@@ -34,7 +34,8 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   if (street) {
     const [place] = await Location.reverseGeocodeAsync({ latitude: hit.latitude, longitude: hit.longitude }).catch(() => []);
     if (place?.street && fold(place.street) !== fold(street)) {
-      const [hit2] = await Location.geocodeAsync(`${street}${parts![2]}`).catch(() => []);
+      const rest = parts![2].replace(/\b\d{5}\b/, '').replace(/^[\s,]+/, '').replace(/\s+/g, ' ');
+      const [hit2] = await Location.geocodeAsync(`${street}, ${rest}`).catch(() => []);
       const [place2] = hit2 ? await Location.reverseGeocodeAsync({ latitude: hit2.latitude, longitude: hit2.longitude }).catch(() => []) : [];
       g = place2?.street && fold(place2.street) === fold(street) ? { lat: hit2!.latitude, lon: hit2!.longitude, exact: false } : null;
       if (!g) L.warn('another street, ignored', { q, found: place.street });

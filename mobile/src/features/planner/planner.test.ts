@@ -152,3 +152,17 @@ test('plan on the phone: the geocoder wins over a stored in-area position; a pin
   const pinned = p.stops.find(x => x.number === '2');
   assert.deepEqual({ lat: pinned?.lat, lon: pinned?.lon }, stored, 'pinned stop keeps its stored position');
 });
+
+test('plan on the phone: geocoder rejecting a stop drops its stored position; a pinned one keeps it', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 } };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const stored = { lat: 50.951, lon: 6.956 };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
+    s('Ring', '1', { postcode: '50670', ...stored }), s('Ring', '2', { postcode: '50670', ...stored, pinned: true }),
+  ] }, deps);
+  const rejected = p.stops.find(x => x.number === '1');
+  assert.equal(rejected?.lat, undefined);
+  assert.ok(p.ungeocoded.some(x => x.number === '1'), 'rejected stop ends up ungeocoded');
+  const pinned = p.stops.find(x => x.number === '2');
+  assert.deepEqual({ lat: pinned?.lat, lon: pinned?.lon }, stored, 'pinned stop stays placed');
+});
