@@ -32,9 +32,9 @@ export const unreachable = (e: unknown) => /network|fetch|timed? ?out|abort|reso
 /** A dropped connection reads better as what to do about it. */
 export function friendly(e: unknown) {
   const m = (e as Error)?.message ?? String(e);
-  return /network|failed to fetch|timed? ?out|abort/i.test(m)
+  return /network|fetch failed|could not be found|could not connect|timed? ?out|abort/i.test(m)
     ? "Can't reach your PC. Is Tailscale on? Your changes stay on the phone and sync when it's back."
-    : m;
+    : m.replace(/\s*\(at .*\)$/, '');
 }
 
 /**

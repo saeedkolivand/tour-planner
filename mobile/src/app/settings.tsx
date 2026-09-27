@@ -68,7 +68,9 @@ export default function SettingsScreen() {
           )}
         </SettingsSection>
 
-        <SettingsSection title="Road times on the phone" footer="Optional. With a free openrouteservice.org key, plans made on this phone use real road times (one-ways, bridges) instead of distance estimates. Needs internet, not the PC.">
+        <SettingsSection title="Road times on the phone" footer={s.orsKey
+          ? `Key saved (ends in …${s.orsKey.slice(-4)}). Plans made on this phone use real road times.`
+          : 'Optional. With a free openrouteservice.org key, plans made on this phone use real road times (one-ways, bridges) instead of distance estimates. Needs internet, not the PC.'}>
           <Input defaultValue={s.orsKey} autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder="OpenRouteService key"
             accessibilityLabel="OpenRouteService key" onChangeText={orsKey => setSettings({ orsKey: orsKey.trim() })} />
         </SettingsSection>
