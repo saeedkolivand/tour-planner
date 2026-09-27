@@ -39,8 +39,13 @@ jobs:
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --clean
 
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
+
+      # Build cache reuses the Reanimated/worklets/RN C++ compile (the bulk of the 24 min) across runs when inputs match.
       - name: Build (Release APK)
-        run: cd android && ./gradlew assembleRelease --no-daemon
+        run: cd android && ./gradlew assembleRelease --no-daemon --build-cache
 
       - run: cp android/app/build/outputs/apk/release/app-release.apk TourPlanner.apk
 
