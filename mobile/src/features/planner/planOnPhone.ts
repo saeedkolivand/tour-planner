@@ -36,7 +36,8 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   const placed: (Stop & LatLon)[] = [];
   // Geocoders answer an address that doesn't exist in this postcode with the same street elsewhere (the PC found
   // an Agnesstraße 69 20 km away): a position must be within 3 km of its postcode's area to count, unless the
-  // driver pinned it. Positions kept from earlier plans are checked too, or an old wrong hit stays forever.
+  // driver pinned it. The geocoder's answer wins over a stored position (stored ones may predate a geocoder fix);
+  // a stored position is only a fallback for when the geocoder has nothing. A dragged pin wins over both.
   const centres = new Map<string, LatLon | null>();
   const centre = async (s: Stop) => {
     const pc = String(s.postcode ?? '').replace(/\D/g, '');
@@ -47,7 +48,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   for (const s of todo) {
     const inArea = async (g: LatLon | null) => { const c = g && await centre(s); return g && (!c || meters(g, c) <= 3000) ? g : null; };
     const kept = s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null;
-    const g = (s.pinned ? kept : await inArea(kept)) ?? await inArea(await deps.geocode(label(s)).catch(() => null));
+    const g = s.pinned ? kept : (await inArea(await deps.geocode(label(s)).catch(() => null))) ?? await inArea(kept);
     if (!g) s.lat = s.lon = undefined;
     if (g) { Object.assign(s, g); placed.push(s as Stop & LatLon); } else ungeocoded.push(s);
   }

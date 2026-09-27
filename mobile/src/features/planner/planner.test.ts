@@ -136,3 +136,19 @@ test('plan on the phone: a wrong position kept from an earlier plan is looked up
   assert.deepEqual(p.stops.find(x => x.street === 'Agnesstraße')?.lat, 50.952);
   assert.deepEqual(p.stops.find(x => x.street === 'Ring')?.lat, far.lat);
 });
+
+test('plan on the phone: the geocoder wins over a stored in-area position; a pinned one keeps its stored position', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = {
+    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
+    'Ring 1, 50670 Köln': { lat: 50.949, lon: 6.950 },
+  };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const stored = { lat: 50.951, lon: 6.956 };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
+    s('Ring', '1', { postcode: '50670', ...stored }), s('Ring', '2', { postcode: '50670', ...stored, pinned: true }),
+  ] }, deps);
+  const geocoded = p.stops.find(x => x.number === '1');
+  assert.deepEqual({ lat: geocoded?.lat, lon: geocoded?.lon }, pos['Ring 1, 50670 Köln'], 'geocoder answer wins over the stored position');
+  const pinned = p.stops.find(x => x.number === '2');
+  assert.deepEqual({ lat: pinned?.lat, lon: pinned?.lon }, stored, 'pinned stop keeps its stored position');
+});
