@@ -9,6 +9,10 @@ import type { PhoneDeps } from './planOnPhone';
 import { fold, meters } from './stops';
 
 const L = log('phone-planner');
+// on a corner, Apple/Google may reverse-geocode to the cross street instead of the queried one;
+// accept the hit if the queried street shows up in any of the address's name-ish fields
+const onStreet = (p: Location.LocationGeocodedAddress | undefined, street: string) =>
+  !!p && [p.street, p.name, p.formattedAddress].some((x) => x && fold(x).includes(fold(street)));
 const KEY = 'geocache-v2'; // v1 could return the wrong street's hit; force a re-lookup
 const COLOGNE = { lat: 50.94, lon: 6.96 };
 let cache: Record<string, LatLon & { exact?: boolean }> | null = null;
@@ -24,7 +28,7 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   if (c[k]) return c[k];
   // Android's geocoder needs location permission (iOS's doesn't, and asking again is free once granted)
   await Location.requestForegroundPermissionsAsync().catch(() => null);
-  const [hit] = await Location.geocodeAsync(q);
+  const [hit] = await Location.geocodeAsync(q).catch((e) => { L.warn('geocoder failed', { q, error: e }); return []; });
   // the platform geocoders happily answer "somewhere in Germany": only take results in the Cologne region
   if (!hit || meters(COLOGNE, { lat: hit.latitude, lon: hit.longitude }) > 60_000) { L.warn('not found near Köln', { q }); return null; }
 
@@ -33,11 +37,12 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   let g: (LatLon & { exact?: boolean }) | null = { lat: hit.latitude, lon: hit.longitude, exact: true };
   if (street) {
     const [place] = await Location.reverseGeocodeAsync({ latitude: hit.latitude, longitude: hit.longitude }).catch(() => []);
-    if (place?.street && fold(place.street) !== fold(street)) {
+    if (place && !onStreet(place, street)) {
       const rest = parts![2].replace(/\b\d{5}\b/, '').replace(/^[\s,]+/, '').replace(/\s+/g, ' ');
-      const [hit2] = await Location.geocodeAsync(`${street}, ${rest}`).catch(() => []);
+      const retryQ = `${street}, ${rest}`;
+      const [hit2] = await Location.geocodeAsync(retryQ).catch((e) => { L.warn('geocoder failed', { q: retryQ, error: e }); return []; });
       const [place2] = hit2 ? await Location.reverseGeocodeAsync({ latitude: hit2.latitude, longitude: hit2.longitude }).catch(() => []) : [];
-      g = place2?.street && fold(place2.street) === fold(street) ? { lat: hit2!.latitude, lon: hit2!.longitude, exact: false } : null;
+      g = onStreet(place2, street) ? { lat: hit2!.latitude, lon: hit2!.longitude, exact: false } : null;
       if (!g) L.warn('another street, ignored', { q, found: place.street });
     }
   }
