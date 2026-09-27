@@ -51,7 +51,10 @@ export function setSettings(patch: Partial<Settings>) {
 
 export async function loadSettings() {
   const raw = await AsyncStorage.getItem(KEY).catch(() => null);
-  if (raw) setSettings(JSON.parse(raw));
+  if (!raw) return;
+  const stored = JSON.parse(raw);
+  if (stored.navApp === 'apple' && Platform.OS === 'android') stored.navApp = 'google'; // Apple Maps doesn't exist on Android
+  setSettings(stored);
 }
 
 export const useSettings = () => useSyncExternalStore(subscribe, getSettings);
