@@ -1,0 +1,52 @@
+# Builds a release APK of mobile/ on GitHub's Linux runners. React Native's template signs the
+# release build with the debug keystore that `expo prebuild` generates (android/app/debug.keystore),
+# so the APK installs by sideloading only -- it is NOT suitable for the Play Store.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/android-apk.yml']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - run: npm ci
+
+      - name: Checks
+        run: npm run typecheck && npm run lint && npm test
+
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build (Release APK)
+        run: cd android && ./gradlew assembleRelease --no-daemon
+
+      - run: cp android/app/build/outputs/apk/release/app-release.apk TourPlanner.apk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: TourPlanner-apk
+          path: mobile/TourPlanner.apk
+          retention-days: 30

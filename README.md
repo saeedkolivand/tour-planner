@@ -50,6 +50,7 @@ cd mobile; npm test; npm run typecheck; npm run lint
 | `mobile/` | Expo Router app: `src/app` routes · `src/features` (tour, settings) · `src/services` (scan, location, navigation) · `src/shared` (UI, logging) |
 | `wsl/` | routing stack setup and start scripts |
 | `.github/workflows/ios-unsigned.yml` | unsigned iOS `.ipa` built on GitHub's macOS runners |
+| `.github/workflows/android-apk.yml` | release APK (debug-signed) built on GitHub's Linux runners |
 | `CONTEXT.md`, `docs/adr/` | glossary and decisions |
 
 ## iPhone app
@@ -101,6 +102,10 @@ All of it lives in `server/roads/` and `wsl/osrm.sh`. Every apply rebuilds the r
 2. On Windows, install **Sideloadly** and iTunes, plug in the iPhone, drop in the `.ipa`, and sign in with a free Apple ID.
 3. On the iPhone: Settings → General → VPN & Device Management → trust your Apple ID. Also enable Developer Mode.
 4. Free signing expires after 7 days. Re-sideload the same `.ipa` weekly.
+
+## Android install
+
+The **Android APK** workflow builds `TourPlanner.apk`; download it from the run's artifacts. Install with `adb install -r TourPlanner.apk`, or copy the file to the phone and open it.
 
 ## Logs
 
