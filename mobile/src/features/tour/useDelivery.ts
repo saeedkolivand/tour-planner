@@ -1,5 +1,5 @@
 // The driving loop in one place: navigate → deliver → (optionally) navigate to the next stop.
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useSettings } from '@/features/settings/settings';
 import { NAV_APPS, navigateTo } from '@/services/navigation';
@@ -17,6 +17,9 @@ export function useDelivery() {
   const { navApp, autoNavigate } = useSettings();
   const minute = useMinute();
   const view = useMemo(() => routeView(tour, minute), [tour, minute]);
+  // read the latest view in callbacks without putting it in their deps, so a minute tick doesn't recreate them (and re-render memo'd rows)
+  const viewRef = useRef(view);
+  useEffect(() => { viewRef.current = view; });
 
   const navigate = useCallback((c: Cluster) => {
     haptic.tap();
@@ -29,10 +32,11 @@ export function useDelivery() {
     lastDelivered.current = Date.now();
     haptic.success();
     store.setDone(keysOf(c), true);
+    const view = viewRef.current;
     const following = view?.next === c ? view.upcoming[0]?.cluster : undefined;
     if (following && autoNavigate) navigate(following);
     if (view?.next === c && !following) haptic.success(); // tour finished
-  }, [store, view, autoNavigate, navigate]);
+  }, [store, autoNavigate, navigate]);
 
   /**
    * Marks a parking stop delivered; if it was the next one and auto-navigate is on, heads to the one after.
@@ -41,6 +45,7 @@ export function useDelivery() {
    */
   const deliver = useCallback((c: Cluster) => {
     if (Date.now() - lastDelivered.current < 1500) return;
+    const view = viewRef.current;
     if (view?.next === c) return markDelivered(c);
     const first = c.stops[0];
     // by address: the row shows its place in the route, the stop its loading number, so a number here confuses
@@ -50,7 +55,7 @@ export function useDelivery() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delivered', onPress: () => markDelivered(c) },
     ]);
-  }, [view, markDelivered]);
+  }, [markDelivered]);
 
   const reopen = useCallback((c: Cluster) => { haptic.warn(); store.setDone(keysOf(c), false); }, [store]);
   const toggleStop = useCallback((s: Stop) => { if (s.key) store.toggleDone(s.key); }, [store]);

@@ -42,11 +42,14 @@ export const noPc = (s: Settings = current) => !s.server.trim() || s.planner ===
 let onChange: ((patch: Partial<Settings>) => void) | undefined;
 export const onSettingsChange = (fn: typeof onChange) => { onChange = fn; };
 
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
 export function setSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };
   onChange?.(patch);
   listeners.forEach(l => l());
-  AsyncStorage.setItem(KEY, JSON.stringify(current)).catch(() => {});
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => AsyncStorage.setItem(KEY, JSON.stringify(current)).catch(() => {}), 300);
 }
 
 export async function loadSettings() {

@@ -1,6 +1,6 @@
 import { useColorScheme } from 'nativewind';
 import { LocateFixed, Maximize2 } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import type { LatLon, Stop } from '../types';
 const ll = (p: LatLon) => ({ latitude: p.lat, longitude: p.lon });
 
 /** Numbered stop pins, the next one emphasised. Hold and drag a pin to correct a wrong position (remembered by the server). */
-export function RouteMap({ start, stops, nextKeys, onMove }: { start: LatLon; stops: Stop[]; nextKeys: Set<string | undefined>; onMove(s: Stop, to: LatLon): void }) {
+export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove }: { start: LatLon; stops: Stop[]; nextKeys: Set<string | undefined>; onMove(s: Stop, to: LatLon): void }) {
   const map = useRef<MapView>(null);
   const scheme = useColorScheme().colorScheme ?? 'light';
   const placed = stops.filter((x): x is Stop & LatLon => x.lat != null && x.lon != null);
@@ -61,4 +61,4 @@ export function RouteMap({ start, stops, nextKeys, onMove }: { start: LatLon; st
       </View>
     </View>
   );
-}
+});
