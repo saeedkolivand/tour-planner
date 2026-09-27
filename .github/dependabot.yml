@@ -1,6 +1,6 @@
-# Weekly dependency PRs, one per area, minor+patch grouped so they can be merged in one go.
-# The app's majors are left out: Expo pins React Native and its native libraries per SDK, and the
-# SDK upgrade (expo@^58 + `npx expo install --fix`) is done by hand with a device pass.
+# Weekly dependency PRs, one per area, grouped so they can be merged in one go.
+# The app's React Native / Expo majors are left out: Expo pins them per SDK, and the SDK upgrade
+# (expo@^58 + `npx expo install --fix`) is done by hand with a device pass. Tooling majors still come.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -13,10 +13,20 @@ updates:
     directory: /mobile
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
     groups:
-      app: { patterns: ["*"], update-types: [minor, patch] }
+      app: { patterns: ["*"] }
     ignore:
-      - dependency-name: "*"
+      - dependency-name: "expo*"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@react-native*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /
