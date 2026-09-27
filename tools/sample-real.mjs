@@ -25,7 +25,7 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const rng = mulberry32(50670);
+const rng = mulberry32(Number(process.argv[3]) || 50670); // optional seed: another set of real addresses
 const pick = arr => arr[Math.floor(rng() * arr.length)];
 const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
