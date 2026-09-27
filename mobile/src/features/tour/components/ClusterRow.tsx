@@ -40,7 +40,7 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
         <Text className={cn('font-semibold', done && 'line-through')} numberOfLines={1}>
           {first.street} {first.number}{cluster.stops.length > 1 ? <Text className="text-muted-foreground">{`  +${cluster.stops.length - 1}`}</Text> : null}
         </Text>
-        <Text className="text-muted-foreground text-xs" style={{ fontVariant: ['tabular-nums'] }} numberOfLines={1}>
+        <Text className="text-muted-foreground text-xs" style={{ fontVariant: ['tabular-nums'] }} numberOfLines={2}>
           {nos}{done ? '' : <Text className={cn('text-xs', late ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{`  ·  ~${eta}`}</Text>}
           {!done && !!express && <Text className="text-express text-xs font-semibold">{`  ·  Express ${express}`}</Text>}
           {!done && !!shop && <Text className="text-success text-xs">{`  ·  Shop ${shop.replace(/:00/g, '').replace('-', '–')}`}</Text>}
