@@ -1,0 +1,25 @@
+# Weekly dependency PRs, one per area, minor+patch grouped so they can be merged in one go.
+# The app's majors are left out: Expo pins React Native and its native libraries per SDK, and the
+# SDK upgrade (expo@^58 + `npx expo install --fix`) is done by hand with a device pass.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    groups:
+      backend: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    groups:
+      app: { patterns: ["*"], update-types: [minor, patch] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    groups:
+      actions: { patterns: ["*"] }
