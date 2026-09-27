@@ -1,0 +1,50 @@
+# Fast PR checks. The Android/iOS build workflows only run on push to main and take 15-25 min,
+# so PRs (Dependabot's in particular) otherwise get no CI at all.
+name: Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm test
+
+      # Fails if a dependency drifted off the Expo SDK's pinned version -- catches a Dependabot
+      # bump of an Expo-pinned package that dependabot.yml's ignore list didn't cover.
+      - run: npx expo-doctor
+      - run: npx expo install --check

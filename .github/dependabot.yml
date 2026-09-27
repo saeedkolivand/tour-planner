@@ -15,18 +15,23 @@ updates:
     groups:
       app: { patterns: ["*"] }
     ignore:
+      # pinned exactly by the Expo SDK (native code must match): `npx expo install --fix` moves them, not PRs
       - dependency-name: "expo*"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "react"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-native*"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@react-native*"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "@types/react"
-        update-types: ["version-update:semver-minor"]
+      # need their ecosystems to catch up first: NativeWind 4 wants Tailwind 3, eslint-config-expo's plugins
+      # don't run on ESLint 10 / TypeScript 7 yet (checked 2026-09-27)
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
