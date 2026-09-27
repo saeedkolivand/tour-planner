@@ -62,7 +62,7 @@ console.log(`
 Paketshops outside opening hours: fastest only ${closed(fastest).length} of ${shops.length}, planned ${closed(pc).length}`);
 
 // the phone planner, with the positions the PC found (isolates ordering from geocoding), fastest only (vs PC fastest)
-const phoneStops = pc.stops.map(({ no, ...s }) => s);
+const phoneStops = pc.stops.map(({ no, ...s }) => ({ ...s, pinned: true })); // pinned: the phone never re-geocodes them
 const t1 = Date.now();
 const phone = await planOnPhone({ start: pc.start, end: pc.end, stops: phoneStops, expressOnTime: false }, { geocode: async () => null, matrix: async p => estimateMatrix(p) });
 const [a, b] = await Promise.all([fastest, phone].map(plan => drive([plan.start, ...plan.clusters.map(c => c.park), plan.end])));
