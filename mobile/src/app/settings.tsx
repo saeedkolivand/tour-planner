@@ -1,5 +1,5 @@
 import { RefreshCw, Trash2 } from 'lucide-react-native';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ScreenHeader, StatusBanner } from '@/components/Screen';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,8 @@ export default function SettingsScreen() {
           <SwitchRow label="Express on time" hint="Plan around 10:00 / 12:00 / 14:00 deadlines" value={s.expressOnTime} onChange={expressOnTime => setSettings({ expressOnTime })} />
         </SettingsSection>
 
-        <SettingsSection title="Navigation & CarPlay" footer="Navigation opens in this app, which shows on your CarPlay screen. Deliver on the phone, drive by the car's display.">
+        <SettingsSection title={Platform.OS === 'ios' ? 'Navigation & CarPlay' : 'Navigation & Android Auto'}
+          footer={`Navigation opens in this app, which shows on your ${Platform.OS === 'ios' ? "CarPlay" : "Android Auto"} screen. Deliver on the phone, drive by the car's display.`}>
           <NavAppPicker value={s.navApp} onChange={navApp => setSettings({ navApp })} />
           <SettingsDivider />
           <SwitchRow label="Auto-navigate" hint="After Delivered, start navigation to the next stop" value={s.autoNavigate} onChange={autoNavigate => setSettings({ autoNavigate })} />

@@ -1,9 +1,10 @@
+import { Platform } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { NAV_APPS, type NavApp } from '@/services/navigation';
 import { haptic } from '@/shared/haptics';
 
-const APPS = Object.keys(NAV_APPS) as NavApp[];
+const APPS = (Object.keys(NAV_APPS) as NavApp[]).filter(a => a !== 'apple' || Platform.OS === 'ios');
 const SHORT: Record<NavApp, string> = { apple: 'Apple', google: 'Google', waze: 'Waze' };
 
 /** Which app "Navigate" opens. It's the app you'll see on the CarPlay screen. */

@@ -4,7 +4,7 @@
 //   Google comgooglemaps://?daddr=LAT,LON&directionsmode=driving   (needs LSApplicationQueriesSchemes, see app.json)
 //          https://www.google.com/maps/dir/?api=1&destination=…    (fallback when the app isn't installed)
 //   Waze   https://waze.com/ul?ll=LAT,LON&navigate=yes             (official; waze:// silently does nothing if not installed)
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import type { LatLon } from '@/features/tour/types';
 import { log } from '@/shared/log';
 
@@ -14,6 +14,7 @@ export const NAV_APPS: Record<NavApp, string> = { apple: 'Apple Maps', google: '
 const L = log('navigate');
 
 export async function navigateTo({ lat, lon }: LatLon, app: NavApp, label?: string) {
+  if (app === 'apple' && Platform.OS === 'android') app = 'google'; // Apple Maps doesn't exist on Android
   let url = `https://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
   if (app === 'waze') url = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
   if (app === 'google') {
