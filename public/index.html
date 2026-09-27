@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#dc0032">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Tour Planner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header><span>Tour Planner</span><span id="status"></span></header>
+
+<section id="s-photos">
+  <h2>1 · Scanner photos</h2>
+  <label class="btn" style="justify-content:center">📷 Add photos
+    <input id="photos" type="file" accept="image/*" capture="environment" multiple class="hidden">
+  </label>
+  <p id="read-msg" class="mute"></p>
+  <label>Stops on scanner <input id="expected" type="number" inputmode="numeric" style="width:90px"></label>
+  <p id="count-msg"></p>
+</section>
+
+<section id="s-stops">
+  <h2>2 · Stops <span id="n" class="mute"></span></h2>
+  <div id="stops"></div>
+  <div class="row" style="margin-top:8px"><button class="ghost grow" id="add">+ Add stop</button><button class="ghost" id="clear">Clear tour</button></div>
+</section>
+
+<section id="s-start">
+  <h2>3 · Start</h2>
+  <input id="depot" placeholder="Depot address, e.g. Robert-Perthel-Str. 20" aria-label="Depot address">
+  <label><input type="checkbox" id="use-gps"> Start from my current location</label>
+  <label><input type="checkbox" id="end-depot"> Return to depot at the end</label>
+  <button id="go" style="width:100%">Plan fastest route</button>
+  <p id="plan-msg" class="mute" role="status"></p>
+</section>
+
+<div id="result" class="hidden">
+  <div id="map"></div>
+  <p id="summary"></p>
+  <div id="clusters"></div>
+</div>
+
+<div class="bar hidden" id="bar"><button class="ghost" id="top">↑ Edit</button><button id="replan">Re-plan from here</button></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

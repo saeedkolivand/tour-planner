@@ -1,0 +1,5 @@
+# LF everywhere: the wsl/*.sh scripts run in bash and break with CRLF.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ps1 text eol=crlf

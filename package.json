@@ -1,0 +1,17 @@
+{
+  "name": "delivery-order",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node server/main.mjs",
+    "test": "node selfcheck.mjs",
+    "stress": "node stress.mjs"
+  },
+  "keywords": [],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "pino": "^10.3.1",
+    "pino-roll": "^4.0.0"
+  },
+  "type": "module"
+}

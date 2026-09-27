@@ -1,0 +1,9 @@
+{
+  "name": "Tour Planner",
+  "short_name": "Tour",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#dc0032",
+  "theme_color": "#dc0032",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

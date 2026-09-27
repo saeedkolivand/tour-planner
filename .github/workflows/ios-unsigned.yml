@@ -1,0 +1,76 @@
+# Builds an UNSIGNED iOS .ipa of mobile/ on GitHub's macOS runners (no Mac or paid Apple account needed).
+# Install it on the iPhone from Windows with Sideloadly + a free Apple ID; free signing expires after 7 days,
+# so re-sideload weekly (the same .ipa works; no rebuild needed).
+name: iOS unsigned build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/ios-unsigned.yml']
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+        shell: bash # explicit, so GitHub runs it with -o pipefail and a failed xcodebuild fails the step
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+
+      - name: Checks
+        run: npm run typecheck && npm run lint && npm test
+
+      - name: Generate the native iOS project
+        # React Native prints a "pod install called directly" notice here. It's informational: its opt-out,
+        # RCT_IGNORE_PODS_DEPRECATION=1, also forces RCT_SKIP_CODEGEN=1 and breaks the build
+        # (no ReactAppDependencyProvider podspec), so it must not be set.
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Build (Release, device, unsigned)
+        run: |
+          WS=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | xcbeautify
+          echo "SCHEME=$SCHEME" >> "$GITHUB_ENV"
+
+      - name: Package .ipa
+        run: |
+          mkdir -p Payload
+          cp -R "build/Build/Products/Release-iphoneos/$SCHEME.app" Payload/
+          # the widget extension must ship, as an optimized Release build (see plugins/withWidgetReleaseSettings.js)
+          test -d "Payload/$SCHEME.app/PlugIns/ExpoWidgetsTarget.appex" || { echo "::error::widget extension missing"; exit 1; }
+          if find Payload -name '*.debug.dylib' | grep -q .; then echo "::error::debug dylib in Release build"; find Payload -name '*.debug.dylib'; exit 1; fi
+
+          # Ad-hoc sign inside-out with the real entitlements. Sideloaders (AltServer, Sideloadly) read the
+          # entitlements from the binary to decide which App Groups to register; an unsigned build has none,
+          # and without the App Group the Live Activity and widget can't get their layouts.
+          APP="Payload/$SCHEME.app"
+          EXT="$APP/PlugIns/ExpoWidgetsTarget.appex"
+          find "$APP" -depth \( -name '*.framework' -o -name '*.dylib' \) -exec codesign --force --sign - {} \;
+          codesign --force --sign - --entitlements ios/ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements "$EXT"
+          codesign --force --sign - --entitlements "ios/$SCHEME/$SCHEME.entitlements" "$APP"
+          for target in "$APP" "$EXT"; do
+            echo "entitlements of $target:"; codesign -d --entitlements - --xml "$target" | plutil -p - || true
+            codesign -d --entitlements - --xml "$target" | grep -q 'com.apple.security.application-groups' \
+              || { echo "::error::$target has no App Group entitlement"; exit 1; }
+          done
+          zip -qry TourPlanner-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: TourPlanner-unsigned-ipa
+          path: mobile/TourPlanner-unsigned.ipa
+          retention-days: 30

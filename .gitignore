@@ -1,0 +1,6 @@
+node_modules/
+# customer addresses, tours and logs: personal data, never committed
+data/
+.claude/
+# generated knowledge graph, rebuilt by graphify
+graphify-out/

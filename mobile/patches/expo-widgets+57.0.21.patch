@@ -1,0 +1,61 @@
+diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+--- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
++++ b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+@@ -1,7 +1,33 @@
+ public enum WidgetsStorage {
+-  public static var appGroupIdentifier: String? = Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++  public static var appGroupIdentifier: String? = resolveAppGroupIdentifier()
+   static let defaults = UserDefaults(suiteName: appGroupIdentifier)
+ 
++  // [tour-planner patch] Info.plist names the group the app was built with, but sideloading tools
++  // (AltStore/AltServer) register it as "<group>.<TEAMID>". The embedded provisioning profile lists
++  // what was actually granted, so use that when the configured group isn't usable. Same result in
++  // the app and the widget extension, which is what makes them share storage.
++  static func resolveAppGroupIdentifier() -> String? {
++    guard let configured = Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String else {
++      return nil
++    }
++    if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: configured) != nil {
++      return configured
++    }
++    return provisionedAppGroups().first { $0 == configured || $0.hasPrefix(configured + ".") } ?? configured
++  }
++
++  static func provisionedAppGroups() -> [String] {
++    guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
++          let data = try? Data(contentsOf: url),
++          let start = data.range(of: Data("<?xml".utf8)),
++          let end = data.range(of: Data("</plist>".utf8), in: start.lowerBound..<data.endIndex),
++          let plist = try? PropertyListSerialization.propertyList(from: data.subdata(in: start.lowerBound..<end.upperBound), format: nil) as? [String: Any],
++          let entitlements = plist["Entitlements"] as? [String: Any] else {
++      return []
++    }
++    return entitlements["com.apple.security.application-groups"] as? [String] ?? []
++  }
++
+   static func set(_ value: [String: Any], forKey key: String) {
+     guard let defaults else { return }
+ 
+diff --git a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
+--- a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
++++ b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
+@@ -8,8 +8,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
+   public func getSnapshot(
+     in context: Context, completion: @escaping @Sendable (WidgetsTimelineEntry) -> Void
+   ) {
+-    let groupIdentifier =
+-      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
+     guard let groupIdentifier else {
+       completion(WidgetsTimelineEntry(date: Date(), name: name, props: nil, entryIndex: nil))
+       return
+@@ -23,8 +22,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
+     in context: Context,
+     completion: @escaping @Sendable (Timeline<WidgetsTimelineEntry>) -> Void
+   ) {
+-    let groupIdentifier =
+-      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
+     guard let groupIdentifier else {
+       fatalError("Could not get the app group identifier from Info.plist")
+     }

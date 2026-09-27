@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "Tour Planner",
+    "slug": "tour-planner",
+    "scheme": "tourplanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "dev.saeed.tourplanner",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "waze"
+        ]
+      }
+    },
+    "android": {
+      "package": "dev.saeed.tourplanner",
+      "adaptiveIcon": {
+        "backgroundColor": "#DC0032",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pick screenshots of the scanner's stop list.",
+          "cameraPermission": "Photograph the scanner's stop list to read the addresses."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Photograph the scanner's stop list and scan parcel labels.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Start or re-plan the route from where you are."
+        }
+      ],
+      "./plugins/withWidgetReleaseSettings",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "dev.saeed.tourplanner.widgets",
+          "groupIdentifier": "group.dev.saeed.tourplanner",
+          "enablePushNotifications": false,
+          "widgets": [
+            {
+              "name": "NextStopWidget",
+              "displayName": "Next stop",
+              "description": "Your next delivery stop and how many are left.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
