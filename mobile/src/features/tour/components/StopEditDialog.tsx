@@ -22,6 +22,7 @@ export function StopEditDialog({ stop, onSave, onDelete, onClose }: {
   const { t } = useTranslation();
   const [initial] = useState<Draft>(() => ({ street: stop.street, number: stop.number, postcode: stop.postcode, type: stop.type, parcels: stop.parcels }));
   const [d, setD] = useState(initial);
+  // Text fields are uncontrolled (defaultValue): a controlled TextInput on Android drops characters when typing fast.
   // The newest draft, kept in a ref and updated on every keystroke: the dialog keeps the close handler from an
   // early render, and a close right after typing must not lose the last characters.
   const latest = useRef(initial);
@@ -41,11 +42,11 @@ export function StopEditDialog({ stop, onSave, onDelete, onClose }: {
         <View className="gap-2">
           <Label nativeID="street">{t('stops.address')}</Label>
           <View className="flex-row gap-2">
-            <Input className="flex-[3]" value={d.street} onChangeText={street => set({ street })} placeholder={t('common.street')} aria-labelledby="street" accessibilityLabel={t('common.street')} />
-            <Input className="flex-1" value={d.number} onChangeText={number => set({ number })} placeholder={t('common.houseNo')} accessibilityLabel={t('common.houseNumber')} />
+            <Input className="flex-[3]" defaultValue={initial.street} onChangeText={street => set({ street })} placeholder={t('common.street')} aria-labelledby="street" accessibilityLabel={t('common.street')} />
+            <Input className="flex-1" defaultValue={initial.number} onChangeText={number => set({ number })} placeholder={t('common.houseNo')} accessibilityLabel={t('common.houseNumber')} />
           </View>
           {/* numbers-and-punctuation: the number pad has no Done key on iOS, so the keyboard could hide Save */}
-          <Input value={d.postcode} onChangeText={postcode => set({ postcode })} placeholder={t('common.postcode')} keyboardType="numbers-and-punctuation" returnKeyType="done" maxLength={5} accessibilityLabel={t('common.postcode')} />
+          <Input defaultValue={initial.postcode} onChangeText={postcode => set({ postcode })} placeholder={t('common.postcode')} keyboardType="numbers-and-punctuation" returnKeyType="done" maxLength={5} accessibilityLabel={t('common.postcode')} />
         </View>
         <View className="gap-2">
           <Label>{t('common.type')}</Label>
