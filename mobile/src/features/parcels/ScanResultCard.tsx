@@ -61,7 +61,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
         <Text className="text-lg font-bold">Which stop is this parcel for?</Text>
         {result.candidates.slice(0, 6).map(s => (
           <Pressable key={s.key} onPress={() => onPick(s)} className="bg-muted active:bg-accent flex-row items-center gap-3 rounded-xl px-4 py-3" accessibilityRole="button">
-            <Text className="w-14 text-2xl font-extrabold" style={{ fontVariant: ['tabular-nums'] }}>#{s.no ?? '–'}</Text>
+            <Text className="w-20 text-2xl font-extrabold" numberOfLines={1} style={{ fontVariant: ['tabular-nums'] }}>#{s.no ?? '–'}</Text>
             <Text className="flex-1 text-base font-semibold" numberOfLines={1}>{address(s)}</Text>
           </Pressable>
         ))}
