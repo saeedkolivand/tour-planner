@@ -1,4 +1,5 @@
 // Boot: logging first, then wire the sections and load today's tour.
+import { initI18n, onLanguageChange, setLang, t } from './i18n.js';
 import { log, startLogging } from './log.js';
 import { readPhotos } from './photos.js';
 import { bindPlan, renderPlan } from './plan.js';
@@ -18,7 +19,7 @@ $('#photos').onchange = e => {
 };
 
 $('#clear').onclick = () => {
-  if (!confirm('Clear the whole tour?')) return;
+  if (!confirm(t('stops.clearConfirm'))) return;
   L.warn('tour cleared');
   setTour(EMPTY());
   $('#expected').value = '';
@@ -31,6 +32,10 @@ for (const id of ['depot', 'use-gps', 'end-depot']) {
   if (v != null) { if (el.type === 'checkbox') el.checked = v === '1'; else el.value = v; }
   el.onchange = () => { pref(id, el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value); L.info('preference changed', { id }); };
 }
+
+await initI18n();
+for (const b of document.querySelectorAll('.lang')) b.onclick = () => setLang(b.dataset.lang);
+onLanguageChange(() => { renderStops(); renderPlan(); });
 
 bindStops();
 bindPlan();

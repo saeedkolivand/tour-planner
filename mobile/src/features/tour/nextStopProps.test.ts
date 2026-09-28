@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { nextStopProps, propsKey } from './nextStopProps.ts';
 import type { Plan, Stop, Tour } from './types.ts';
+import type { Translate } from '../../shared/i18n.ts';
+import en from '../../shared/locales/en.json' with { type: 'json' };
+
+// a tiny English t(): nested lookup, _one/_other by count, {{x}} filled; keeps i18next out of node
+const t = ((key: string, o: Record<string, unknown> = {}) => {
+  const k = 'count' in o ? `${key}_${o.count === 1 ? 'one' : 'other'}` : key;
+  const s = k.split('.').reduce<unknown>((n, p) => (n as Record<string, unknown> | undefined)?.[p], en) as string;
+  return s.replace(/\{\{(\w+)\}\}/g, (_, v) => String(o[v] ?? ''));
+}) as unknown as Translate;
 
 const s = (key: string, no: number, extra: Partial<Stop> = {}): Stop =>
   ({ key, no, street: 'Ring', number: String(no), postcode: '50667', type: 'private', parcels: 1, ...extra });
@@ -15,12 +24,12 @@ const plan: Plan = {
 };
 
 test('no route: nothing to show', () => {
-  assert.equal(nextStopProps({ plan: null, stops: [], expected: '' }), null);
+  assert.equal(nextStopProps({ plan: null, stops: [], expected: '' }, t), null);
 });
 
 test('next open parking stop: walk-ups, Express from any of its stops, counts and ETA', () => {
   const tour: Tour = { plan, stops: [s('a', 1, { done: true }), s('b', 2, { type: 'business' }), s('c', 3, { express: '12:00' })], expected: '' };
-  const p = nextStopProps(tour, plan.startedAt)!; // on time
+  const p = nextStopProps(tour, t, plan.startedAt)!; // on time
   assert.equal(p.no, 2);
   assert.equal(p.address, 'Ring 2');
   assert.equal(p.postcode, '50667');
@@ -34,13 +43,13 @@ test('next open parking stop: walk-ups, Express from any of its stops, counts an
 
 test('a stop without address never shows a blank line', () => {
   const empty: Plan = { ...plan, clusters: [{ park: { lat: 0, lon: 0 }, stops: [s('x', 8, { street: '', number: '' })], service: 60, eta: 0 }] };
-  assert.equal(nextStopProps({ plan: empty, stops: [s('x', 8, { street: '', number: '' })], expected: '' })!.address, 'Address missing');
+  assert.equal(nextStopProps({ plan: empty, stops: [s('x', 8, { street: '', number: '' })], expected: '' }, t)!.address, 'Address missing');
 });
 
 test('all delivered: a completed state, and its key differs from an open one', () => {
   const tour: Tour = { plan, stops: ['a', 'b', 'c'].map((k, i) => s(k, i + 1, { done: true })), expected: '' };
-  const p = nextStopProps(tour)!;
+  const p = nextStopProps(tour, t)!;
   assert.equal(p.left, 0);
   assert.equal(p.delivered, 3);
-  assert.notEqual(propsKey(p), propsKey(nextStopProps({ ...tour, stops: [s('a', 1)] })));
+  assert.notEqual(propsKey(p), propsKey(nextStopProps({ ...tour, stops: [s('a', 1)] }, t)));
 });

@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Photograph the scanner's stop list and scan parcel labels.",
+    "NSPhotoLibraryUsageDescription": "Pick screenshots of the scanner's stop list.",
+    "NSLocationWhenInUseUsageDescription": "Start or re-plan the route from where you are."
+  }
+}

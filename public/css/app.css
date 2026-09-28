@@ -34,3 +34,6 @@ label input[type=checkbox] { width:22px; height:22px; min-height:0; }
 .bar { position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; padding:10px 16px; padding-bottom:max(10px, env(safe-area-inset-bottom)); background:var(--card); border-top:1px solid var(--line); z-index:1000; }
 .bar > * { flex:1; }
 .hidden { display:none !important; }
+.langs { display:flex; gap:6px; align-items:center; }
+.lang { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; padding:2px 8px; min-height:0; border-radius:6px; font-size:12px; font-weight:700; }
+.lang.on { background:#fff; color:var(--acc); }

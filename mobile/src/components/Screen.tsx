@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { cantReachPc } from '@/features/tour/store';
+import { useTranslation, type Key } from '@/shared/i18n';
 import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
@@ -18,17 +20,16 @@ export function ScreenHeader({ title, subtitle, right }: { title: string; subtit
   );
 }
 
-const OFFLINE = 'Offline: your PC is not reachable. Deliveries are kept on the phone and sync when it is back.';
-
-/** One line under the header: a spinner with what's running, the last error, or that the PC is out of reach. */
+/** One line under the header: a spinner with what's running (`busy` is a translation key), the last error, or that the PC is out of reach. */
 export function StatusBanner({ busy, error, offline }: { busy: string | null; error: string | null; offline?: boolean }) {
+  const { t } = useTranslation();
   if (!busy && !error && !offline) return null;
   return (
     <View className={cn('mx-5 mb-2 flex-row items-center gap-2 rounded-lg px-3 py-2', error && !busy ? 'bg-destructive/10' : 'bg-muted')}
       accessibilityLiveRegion="polite">
       {busy ? <ActivityIndicator size="small" /> : null}
       <Text className={cn('flex-1 text-sm', error && !busy ? 'text-destructive font-medium' : 'text-muted-foreground')}>
-        {busy ?? error ?? OFFLINE}
+        {busy ? t(busy as Key) : error ? (cantReachPc(error) ? t('store.cantReachPc') : error) : t('common.offlineBanner')}
       </Text>
     </View>
   );

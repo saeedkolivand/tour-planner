@@ -2,6 +2,7 @@
 import { api } from './api.js';
 import { log } from './log.js';
 import { save, tour } from './state.js';
+import { t } from './i18n.js';
 import { $, esc } from './util.js';
 
 const L = log('photos');
@@ -26,20 +27,20 @@ export async function readPhotos(files, onUpdate) {
   const errors = [];
   L.info('reading photos', { count: files.length, bytes: files.reduce((n, f) => n + f.size, 0) });
   for (const [i, f] of files.entries()) {
-    $('#read-msg').textContent = `Reading photo ${i + 1} of ${files.length}…`;
+    $('#read-msg').textContent = t('photos.reading', { i: i + 1, n: files.length });
     try {
       const before = tour.stops.length;
       const r = await api('POST', '/extract', { images: [await shrink(f)], stops: tour.stops });
       tour.stops = r.stops;
       const p = r.photos[0];
-      if (p.error) errors.push(`photo ${i + 1}: ${p.error}`);
+      if (p.error) errors.push(t('photos.photoError', { i: i + 1, error: p.error }));
       L.info('photo read', { photo: i, by: p.by, found: p.found, added: r.stops.length - before, error: p.error });
       onUpdate();
     } catch (e) {
-      errors.push(`photo ${i + 1}: ${e.message}`);
+      errors.push(t('photos.photoError', { i: i + 1, error: e.message }));
       L.error('photo failed', { photo: i, error: e });
     }
   }
-  $('#read-msg').innerHTML = errors.length ? `<span class="warn">${esc(errors.join(' · '))}</span>` : `Read ${files.length} photo(s).`;
+  $('#read-msg').innerHTML = errors.length ? `<span class="warn">${esc(errors.join(' · '))}</span>` : t('photos.read', { count: files.length });
   save();
 }

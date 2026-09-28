@@ -2,6 +2,7 @@
 /* global L */
 import { api } from './api.js';
 import { log } from './log.js';
+import { t } from './i18n.js';
 import { $, esc } from './util.js';
 
 const Lg = log('map');
@@ -15,19 +16,19 @@ export function drawMap(plan, done) {
   layer?.remove();
   layer = L.layerGroup().addTo(map);
   const pts = [[plan.start.lat, plan.start.lon]];
-  L.circleMarker(pts[0], { radius: 8, color: '#16a34a' }).addTo(layer).bindPopup('Start');
+  L.circleMarker(pts[0], { radius: 8, color: '#16a34a' }).addTo(layer).bindPopup(t('map.start'));
   for (const s of plan.clusters.flatMap(c => c.stops)) {
     const m = L.marker([s.lat, s.lon], {
       draggable: true, opacity: done.has(s.key) ? 0.4 : 1,
       icon: L.divIcon({ className: '', html: `<div class="pin">${s.no}</div>`, iconSize: [26, 26] }),
     }).addTo(layer);
-    m.bindPopup(`${esc(s.street)} ${esc(s.number)}<br><span class="mute">Drag to fix the position</span>`);
+    m.bindPopup(`${esc(s.street)} ${esc(s.number)}<br><span class="mute">${t('map.dragHint')}</span>`);
     m.on('dragend', async () => {
       const { lat, lng } = m.getLatLng();
       Lg.info('pin moved', { key: s.key, from: { lat: s.lat, lon: s.lon }, to: { lat, lon: lng } });
       Object.assign(s, { lat, lon: lng, exact: true });
       await api('POST', '/pin', { key: s.key, lat, lon: lng });
-      $('#plan-msg').textContent = `Saved position for ${s.street} ${s.number}. Re-plan to use it.`;
+      $('#plan-msg').textContent = t('map.savedPosition', { address: `${s.street} ${s.number}` });
     });
     pts.push([s.lat, s.lon]);
   }

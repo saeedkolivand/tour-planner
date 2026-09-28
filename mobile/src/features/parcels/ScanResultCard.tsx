@@ -1,4 +1,5 @@
 import { CircleCheck, ListPlus, PackagePlus, PackageX } from 'lucide-react-native';
+import { useTranslation } from '@/shared/i18n';
 import { Pressable, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -22,13 +23,14 @@ const address = (s: { street?: string; number?: string }) => `${s.street ?? ''} 
 export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
   result: ScanResult; onPick(s: Stop): void; onDelivered(s: Stop): void; onAdd(): void;
 }) {
+  const { t } = useTranslation();
   if (result.kind === 'added') {
     return (
       <View className="bg-card flex-row items-center gap-4 rounded-3xl p-5" accessibilityLiveRegion="assertive">
         <Icon as={PackagePlus} size={40} className="text-success" />
         <View className="flex-1 gap-1">
-          <Text className="text-xl font-bold">Added to the tour</Text>
-          <Text className="text-muted-foreground">{address(result.parcel)}{result.planned ? ' · re-plan to give it a loading number' : ''}</Text>
+          <Text className="text-xl font-bold">{t('scan.addedTitle')}</Text>
+          <Text className="text-muted-foreground">{address(result.parcel)}{result.planned ? ` · ${t('scan.replanHint')}` : ''}</Text>
         </View>
       </View>
     );
@@ -40,17 +42,17 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
         <View className="flex-row items-center gap-4">
           <Icon as={PackageX} size={40} className="text-destructive" />
           <View className="flex-1 gap-1">
-            <Text className="text-xl font-bold">Not in today&apos;s tour</Text>
-            <Text className="text-muted-foreground">{address(result.parcel) || `Parcel ${result.parcel.id}`}{result.parcel.postcode ? ` · ${result.parcel.postcode}` : ''}</Text>
+            <Text className="text-xl font-bold">{t('scan.notInTour')}</Text>
+            <Text className="text-muted-foreground">{address(result.parcel) || t('scan.parcelId', { id: result.parcel.id })}{result.parcel.postcode ? ` · ${result.parcel.postcode}` : ''}</Text>
           </View>
         </View>
         {addable ? (
           <Button size="xl" onPress={onAdd}>
             <Icon as={ListPlus} size={20} className="text-primary-foreground" />
-            <Text>Add to tour</Text>
+            <Text>{t('scan.addToTour')}</Text>
           </Button>
         ) : (
-          <Text className="text-muted-foreground text-sm">Scan the square code on the label to add it: the long barcode has no street.</Text>
+          <Text className="text-muted-foreground text-sm">{t('scan.needsSquareCode')}</Text>
         )}
       </View>
     );
@@ -58,7 +60,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
   if (result.kind === 'pick') {
     return (
       <View className="bg-card gap-3 rounded-3xl p-5">
-        <Text className="text-lg font-bold">Which stop is this parcel for?</Text>
+        <Text className="text-lg font-bold">{t('scan.whichStop')}</Text>
         {result.candidates.slice(0, 6).map(s => (
           <Pressable key={s.key} onPress={() => onPick(s)} className="bg-muted active:bg-accent flex-row items-center gap-3 rounded-xl px-4 py-3" accessibilityRole="button">
             <Text className="w-20 text-2xl font-extrabold" numberOfLines={1} style={{ fontVariant: ['tabular-nums'] }}>#{s.no ?? '–'}</Text>
@@ -68,7 +70,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
         {!!(result.parcel.street && result.parcel.number) && (
           <Button variant="outline" size="lg" onPress={onAdd}>
             <Icon as={ListPlus} size={18} />
-            <Text>Not listed: add {address(result.parcel)}</Text>
+            <Text>{t('scan.notListedAdd', { address: address(result.parcel) })}</Text>
           </Button>
         )}
       </View>
@@ -83,7 +85,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
         </View>
         <View className="flex-1 gap-1">
           <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
-            {stop.done ? 'Already delivered' : isNext ? 'Next stop' : 'Loading number'}
+            {stop.done ? t('scan.alreadyDelivered') : isNext ? t('scan.nextStop') : t('scan.loadingNumber')}
           </Text>
           <Text className="text-2xl font-bold" numberOfLines={2}>{address(stop)}</Text>
           <StopBadges stop={stop} />
@@ -92,7 +94,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
       {isNext && !stop.done && (
         <Button size="xl" variant="success" onPress={() => onDelivered(stop)}>
           <Icon as={CircleCheck} size={20} className="text-success-foreground" />
-          <Text>Delivered</Text>
+          <Text>{t('common.delivered')}</Text>
         </Button>
       )}
     </View>

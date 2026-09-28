@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getSettings, noPc } from '@/features/settings/settings';
 import type { ScanInput } from '@/features/tour/api';
 import { log } from '@/shared/log';
+import { t } from '@/shared/i18n';
 
 const L = log('scan');
 
@@ -42,7 +43,7 @@ export async function pickScreenshots(): Promise<ScanInput | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
     L.warn('permission denied', { source: 'library' });
-    throw new Error('Allow photo access in Settings');
+    throw new Error(t('permission.photoAccess'));
   }
   const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.8 });
   if (res.canceled) { L.info('cancelled', { source: 'library' }); return null; }

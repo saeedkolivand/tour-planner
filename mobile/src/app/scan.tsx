@@ -16,6 +16,7 @@ import { routeView } from '@/features/tour/selectors';
 import { useTourStore } from '@/features/tour/TourProvider';
 import type { Stop } from '@/features/tour/types';
 import { haptic } from '@/shared/haptics';
+import { useTranslation } from '@/shared/i18n';
 import { log } from '@/shared/log';
 
 const L = log('parcel-scan');
@@ -27,6 +28,7 @@ const TYPES = ['aztec', 'code128'] as const;
  * The camera only runs while this tab is open.
  */
 export default function ScanScreen() {
+  const { t } = useTranslation();
   const store = useTourStore();
   const focused = useIsFocused();
   const [permission, request] = useCameraPermissions();
@@ -72,9 +74,9 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View className="bg-background flex-1">
-        <ScreenHeader title="Scan" />
-        <EmptyState icon={ScanBarcode} title="Scan parcel labels" body="Point the camera at a DPD label to see its loading number while you load, or to check it's the right parcel at the door."
-          action={<Button size="xl" onPress={request}><Text>Allow camera</Text></Button>} />
+        <ScreenHeader title={t('tabs.scan')} />
+        <EmptyState icon={ScanBarcode} title={t('scan.emptyTitle')} body={t('scan.emptyBody')}
+          action={<Button size="xl" onPress={request}><Text>{t('permission.allowCamera')}</Text></Button>} />
       </View>
     );
   }
@@ -86,16 +88,16 @@ export default function ScanScreen() {
           barcodeScannerSettings={{ barcodeTypes: [...TYPES] }} onBarcodeScanned={onScan} />
       )}
       <View className="absolute inset-x-0 top-0" pointerEvents="box-none">
-        <ScreenHeader title="Scan" subtitle={count ? `${count} parcel${count === 1 ? '' : 's'} scanned` : 'Point at the label'}
+        <ScreenHeader title={t('tabs.scan')} subtitle={count ? t('scan.parcelsScanned', { count }) : t('scan.pointAtLabel')}
           right={
             <View className="flex-row gap-2">
               {/* Auto-add: every label not in the tour joins it, for building the tour while loading */}
               <Button variant={autoAddScans ? 'default' : 'secondary'} className="h-11 rounded-full px-4" onPress={() => { haptic.select(); setSettings({ autoAddScans: !autoAddScans }); }}
-                accessibilityRole="switch" accessibilityState={{ checked: autoAddScans }} accessibilityLabel="Add new labels to the tour automatically">
+                accessibilityRole="switch" accessibilityState={{ checked: autoAddScans }} accessibilityLabel={t('scan.autoAddLabel')}>
                 <Icon as={ListPlus} size={18} className={autoAddScans ? 'text-primary-foreground' : undefined} />
-                <Text>Auto-add</Text>
+                <Text>{t('scan.autoAdd')}</Text>
               </Button>
-              <Button variant="secondary" size="icon" className="rounded-full" onPress={() => setTorch(t => !t)} accessibilityLabel={torch ? 'Light off' : 'Light on'}>
+              <Button variant="secondary" size="icon" className="rounded-full" onPress={() => setTorch(on => !on)} accessibilityLabel={torch ? t('scan.lightOff') : t('scan.lightOn')}>
                 <Icon as={torch ? FlashlightOff : Flashlight} size={20} />
               </Button>
             </View>
@@ -107,7 +109,7 @@ export default function ScanScreen() {
             onPick={s => { haptic.success(); show(s, result.parcel); }}
             onDelivered={s => { if (s.key) { haptic.success(); store.setDone([s.key], true); setResult(null); } }}
             onAdd={() => add(result.parcel)} />
-          <Button variant="secondary" size="icon" className="absolute -top-3 right-2 rounded-full" onPress={() => { haptic.select(); setResult(null); }} accessibilityLabel="Dismiss">
+          <Button variant="secondary" size="icon" className="absolute -top-3 right-2 rounded-full" onPress={() => { haptic.select(); setResult(null); }} accessibilityLabel={t('common.dismiss')}>
             <Icon as={X} size={20} />
           </Button>
         </View>

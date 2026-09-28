@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { getSettings } from '@/features/settings/settings';
 import type { LatLon } from '@/features/tour/types';
+import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
 import { estimateMatrix, orsMatrix } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
@@ -86,4 +87,4 @@ async function matrix(points: LatLon[]) {
   return estimateMatrix(points);
 }
 
-export const phoneDeps: PhoneDeps = { geocode, matrix };
+export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key) };

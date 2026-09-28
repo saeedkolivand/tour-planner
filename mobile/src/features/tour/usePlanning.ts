@@ -4,6 +4,7 @@ import { useSettings } from '@/features/settings/settings';
 import { currentPosition } from '@/services/location';
 import { haptic } from '@/shared/haptics';
 import { useTourStore } from './TourProvider';
+import { t } from '@/shared/i18n';
 
 /** Plans from the depot (or GPS when none is set), or re-plans the rest of the tour from where you are. */
 export function usePlanning() {
@@ -14,7 +15,7 @@ export function usePlanning() {
     haptic.tap();
     try {
       const useGps = fromHere || !depot;
-      if (useGps) store.setBusy('Finding your location…');
+      if (useGps) store.setBusy('planning.findingLocation');
       const start = useGps ? await currentPosition().finally(() => store.setBusy(null)) : { q: depot };
       // planning at the depot before leaving: count ETAs and Express deadlines from the usual departure time
       const leave = /^(\d{1,2}):(\d{2})$/.exec(leaveAt.trim());
@@ -24,7 +25,7 @@ export function usePlanning() {
       return ok;
     } catch (e) {
       haptic.error();
-      Alert.alert('Could not plan', (e as Error).message);
+      Alert.alert(t('planning.couldNotPlan'), (e as Error).message);
       return false;
     }
   }, [store, depot, endAtDepot, expressOnTime, leaveAt]);

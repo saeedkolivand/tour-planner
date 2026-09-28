@@ -19,10 +19,12 @@ import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { usePlanning } from '@/features/tour/usePlanning';
 import { pickScreenshots, readPhotos } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
+import { useTranslation, type Lang } from '@/shared/i18n';
 
-const today = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+const today = (lang: Lang) => new Date().toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 
 export default function StopsScreen() {
+  const { t, lang } = useTranslation();
   const store = useTourStore();
   const { tour, busy, error, offline } = useTourState();
   const plan = usePlanning();
@@ -37,7 +39,8 @@ export default function StopsScreen() {
       const r = await input.then(i => i && store.scan(i));
       if (!r) return;
       (r.error ? haptic.warn : haptic.success)();
-      setMsg(r.error ? `Some photos failed: ${r.error}` : `Found ${r.found} ${r.found === 1 ? 'row' : 'rows'} · ${r.added} new ${r.added === 1 ? 'stop' : 'stops'}`);
+      setMsg(r.error ? t('scan.someFailed', { error: r.error })
+        : t('scan.foundSummary', { rows: t('count.rows', { count: r.found }), newStopsPhrase: t('count.newStops', { count: r.added }) }));
     } catch (e) { haptic.error(); setMsg((e as Error).message); }
   };
   const addStop = () => { store.addStop(); setEditing(tour.stops.length); };
@@ -47,11 +50,11 @@ export default function StopsScreen() {
     const st = store.getState().tour.stops[i];
     if (!st) return;
     haptic.warn();
-    Alert.alert('Remove this stop?', `${st.street} ${st.number}`.trim() || 'New stop', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => store.removeStop(i) },
+    Alert.alert(t('stops.removeConfirmTitle'), `${st.street} ${st.number}`.trim() || t('stops.newStop'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.remove'), style: 'destructive', onPress: () => store.removeStop(i) },
     ]);
-  }, [store]);
+  }, [store, t]);
   const moreParcels = useCallback((i: number) => {
     const st = store.getState().tour.stops[i];
     if (!st) return;
@@ -68,8 +71,8 @@ export default function StopsScreen() {
 
   return (
     <View className="bg-background flex-1">
-      <ScreenHeader title="Stops" subtitle={today()} right={
-        <Button variant="secondary" size="icon" className="rounded-full" onPress={addStop} accessibilityLabel="Add a stop by hand">
+      <ScreenHeader title={t('stops.title')} subtitle={today(lang)} right={
+        <Button variant="secondary" size="icon" className="rounded-full" onPress={addStop} accessibilityLabel={t('stops.addByHand')}>
           <Icon as={Plus} size={20} />
         </Button>
       } />
@@ -83,14 +86,14 @@ export default function StopsScreen() {
           <View className="mb-1 gap-3">
             <CaptureCard onCamera={() => { haptic.tap(); setCamera(true); }} onLibrary={() => capture(pickScreenshots())} busy={!!busy} message={msg} />
             {tour.stops.length > 0 && <CoverageCard c={cov} expected={tour.expected} onExpected={store.setExpected} />}
-            {tour.stops.length > 0 && <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">Captured</Text>}
+            {tour.stops.length > 0 && <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">{t('stops.captured')}</Text>}
           </View>
         }
         renderItem={({ item, index }) => <StopListItem stop={item} index={index} onOpen={setEditing} onDelete={confirmDelete} onMoreParcels={moreParcels} />}
-        ListEmptyComponent={<EmptyState icon={ScanLine} title="No stops yet" body="Photograph your scanner's stop list. Several photos are fine; overlaps are merged." />}
+        ListEmptyComponent={<EmptyState icon={ScanLine} title={t('stops.emptyTitle')} body={t('stops.emptyBody')} />}
       />
       {tour.stops.length > 0 && (
-        <StickyAction label={`Plan fastest route · ${tour.stops.length} ${tour.stops.length === 1 ? 'stop' : 'stops'}`} icon={Sparkles} onPress={planAndGo} disabled={!!busy} />
+        <StickyAction label={`${t('stops.planRoute')} · ${t('count.stops', { count: tour.stops.length })}`} icon={Sparkles} onPress={planAndGo} disabled={!!busy} />
       )}
       {editing != null && tour.stops[editing] && (
         <StopEditDialog key={editing} stop={tour.stops[editing]} onClose={closeEditor}

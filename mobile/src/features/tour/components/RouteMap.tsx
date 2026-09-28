@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { currentPosition } from '@/services/location';
 import { haptic } from '@/shared/haptics';
+import { useTranslation } from '@/shared/i18n';
 import { THEME } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import type { LatLon, Stop } from '../types';
@@ -16,6 +17,7 @@ const ll = (p: LatLon) => ({ latitude: p.lat, longitude: p.lon });
 
 /** Numbered stop pins, the next one emphasised. Hold and drag a pin to correct a wrong position (remembered by the server). */
 export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove }: { start: LatLon; stops: Stop[]; nextKeys: Set<string | undefined>; onMove(s: Stop, to: LatLon): void }) {
+  const { t } = useTranslation();
   const map = useRef<MapView>(null);
   const scheme = useColorScheme().colorScheme ?? 'light';
   const placed = stops.filter((x): x is Stop & LatLon => x.lat != null && x.lon != null);
@@ -28,7 +30,7 @@ export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove 
     try {
       const me = await currentPosition();
       map.current?.animateToRegion({ ...ll(me), latitudeDelta: 0.008, longitudeDelta: 0.008 }, 400);
-    } catch (e) { Alert.alert('Your position', (e as Error).message); }
+    } catch (e) { Alert.alert(t('map.yourPosition'), (e as Error).message); }
     finally { setLocating(false); }
   };
   return (
@@ -36,12 +38,12 @@ export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove 
       <MapView ref={map} style={{ flex: 1 }} showsUserLocation userInterfaceStyle={scheme}
         initialRegion={{ ...ll(start), latitudeDelta: 0.15, longitudeDelta: 0.15 }}
         onMapReady={() => fitTour(false)}>
-        <Marker coordinate={ll(start)} pinColor={THEME[scheme].success} title="Start" />
+        <Marker coordinate={ll(start)} pinColor={THEME[scheme].success} title={t('map.start')} />
         {placed.map(x => {
           const next = nextKeys.has(x.key);
           return (
             <Marker key={x.key} draggable coordinate={ll(x)} zIndex={next ? 10 : x.done ? 0 : 1}
-              title={`#${x.no}  ${x.street} ${x.number}`} description="Hold and drag to fix the position"
+              title={`#${x.no}  ${x.street} ${x.number}`} description={t('map.dragHint')}
               onDragEnd={e => onMove(x, { lat: e.nativeEvent.coordinate.latitude, lon: e.nativeEvent.coordinate.longitude })}>
               <View className={cn('items-center justify-center rounded-full border-2 border-white',
                 next ? 'bg-primary size-9' : x.done ? 'bg-success size-6' : 'bg-foreground size-7')}>
@@ -52,10 +54,10 @@ export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove 
         })}
       </MapView>
       <View className="absolute right-2 top-2 gap-2">
-        <Button variant="secondary" size="icon" className="rounded-full shadow-sm" onPress={showMe} disabled={locating} accessibilityLabel="Show my position">
+        <Button variant="secondary" size="icon" className="rounded-full shadow-sm" onPress={showMe} disabled={locating} accessibilityLabel={t('map.showMe')}>
           <Icon as={LocateFixed} size={20} className={locating ? 'text-muted-foreground' : 'text-primary'} />
         </Button>
-        <Button variant="secondary" size="icon" className="rounded-full shadow-sm" onPress={() => { haptic.tap(); fitTour(); }} accessibilityLabel="Show the whole tour">
+        <Button variant="secondary" size="icon" className="rounded-full shadow-sm" onPress={() => { haptic.tap(); fitTour(); }} accessibilityLabel={t('map.showTour')}>
           <Icon as={Maximize2} size={18} />
         </Button>
       </View>

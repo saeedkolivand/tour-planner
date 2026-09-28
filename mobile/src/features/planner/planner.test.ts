@@ -72,7 +72,7 @@ test('plan on the phone: grouped, ordered, numbered once, and compared with the 
     'A 1, 50667 Köln': { lat: 50.94, lon: 6.95 }, 'A 3, 50667 Köln': { lat: 50.9401, lon: 6.9501 },
     'B 1, 50667 Köln': { lat: 50.94, lon: 6.92 }, 'C 1, 50667 Köln': { lat: 50.94, lon: 6.98 },
   };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const stops = [s('C', '1'), s('A', '1'), s('Nowhere', '9'), s('B', '1'), s('A', '3'), s('', '')];
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops, lastNo: 4 }, deps);
   assert.deepEqual(p.clusters.map(c => c.stops.map(x => x.street).join('+')), ['B', 'A+A', 'C'], 'west to east from the depot, A 1 and A 3 walked');
@@ -101,7 +101,7 @@ test('plan on the phone: an address found in another town (not near its postcode
     'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 }, 'Agnesstraße 69, 50670 Köln': { lat: 50.813, lon: 7.135 },
   };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Ring', '1', { postcode: '50670' }), s('Agnesstraße', '69', { postcode: '50670' })] }, deps);
   assert.deepEqual(p.ungeocoded.map(x => x.street), ['Agnesstraße']);
 });
@@ -111,7 +111,7 @@ test('plan on the phone: a street-only hit (exact: false) parks alone, even next
     'Depot, Köln': { lat: 50.94, lon: 6.90 },
     'A 1, 50667 Köln': { lat: 50.94, lon: 6.95, exact: true }, 'A 3, 50667 Köln': { lat: 50.9401, lon: 6.9501, exact: false },
   };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('A', '1'), s('A', '3')] }, deps);
   assert.equal(p.stops.find(x => x.number === '3')?.exact, false);
   assert.equal(p.clusters.length, 2, 'the street-only stop does not walk with its exact neighbour');
@@ -128,7 +128,7 @@ test('plan on the phone: a wrong position kept from an earlier plan is looked up
     'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Agnesstraße 69, 50670 Köln': { lat: 50.952, lon: 6.953 },
   };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const far = { lat: 50.813, lon: 7.135 };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
     s('Agnesstraße', '69', { postcode: '50670', ...far }), s('Ring', '1', { postcode: '50670', ...far, pinned: true }),
@@ -142,7 +142,7 @@ test('plan on the phone: the geocoder wins over a stored in-area position; a pin
     'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Ring 1, 50670 Köln': { lat: 50.949, lon: 6.950 },
   };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const stored = { lat: 50.951, lon: 6.956 };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
     s('Ring', '1', { postcode: '50670', ...stored }), s('Ring', '2', { postcode: '50670', ...stored, pinned: true }),
@@ -155,7 +155,7 @@ test('plan on the phone: the geocoder wins over a stored in-area position; a pin
 
 test('plan on the phone: geocoder rejecting a stop drops its stored position; a pinned one keeps it', async () => {
   const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 } };
-  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p) };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const stored = { lat: 50.951, lon: 6.956 };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
     s('Ring', '1', { postcode: '50670', ...stored }), s('Ring', '2', { postcode: '50670', ...stored, pinned: true }),

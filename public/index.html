@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,30 +13,30 @@
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<header><span>Tour Planner</span><span id="status"></span></header>
+<header><span>Tour Planner</span><span class="langs"><button type="button" class="lang" data-lang="en">EN</button><button type="button" class="lang" data-lang="de">DE</button></span><span id="status"></span></header>
 
 <section id="s-photos">
-  <h2>1 · Scanner photos</h2>
-  <label class="btn" style="justify-content:center">📷 Add photos
+  <h2 data-i18n="photos.heading">1 · Scanner photos</h2>
+  <label class="btn" style="justify-content:center"><span data-i18n="photos.add">📷 Add photos</span>
     <input id="photos" type="file" accept="image/*" capture="environment" multiple class="hidden">
   </label>
   <p id="read-msg" class="mute"></p>
-  <label>Stops on scanner <input id="expected" type="number" inputmode="numeric" style="width:90px"></label>
+  <label><span data-i18n="photos.expected">Stops on scanner</span> <input id="expected" type="number" inputmode="numeric" style="width:90px"></label>
   <p id="count-msg"></p>
 </section>
 
 <section id="s-stops">
-  <h2>2 · Stops <span id="n" class="mute"></span></h2>
+  <h2><span data-i18n="stops.heading">2 · Stops</span> <span id="n" class="mute"></span></h2>
   <div id="stops"></div>
-  <div class="row" style="margin-top:8px"><button class="ghost grow" id="add">+ Add stop</button><button class="ghost" id="clear">Clear tour</button></div>
+  <div class="row" style="margin-top:8px"><button class="ghost grow" id="add" data-i18n="stops.add">+ Add stop</button><button class="ghost" id="clear" data-i18n="stops.clear">Clear tour</button></div>
 </section>
 
 <section id="s-start">
-  <h2>3 · Start</h2>
-  <input id="depot" placeholder="Depot address, e.g. Robert-Perthel-Str. 20" aria-label="Depot address">
-  <label><input type="checkbox" id="use-gps"> Start from my current location</label>
-  <label><input type="checkbox" id="end-depot"> Return to depot at the end</label>
-  <button id="go" style="width:100%">Plan fastest route</button>
+  <h2 data-i18n="start.heading">3 · Start</h2>
+  <input id="depot" placeholder="Depot address, e.g. Robert-Perthel-Str. 20" aria-label="Depot address" data-i18n-placeholder="start.depotPlaceholder" data-i18n-aria-label="start.depotLabel">
+  <label><input type="checkbox" id="use-gps"> <span data-i18n="start.useGps">Start from my current location</span></label>
+  <label><input type="checkbox" id="end-depot"> <span data-i18n="start.endDepot">Return to depot at the end</span></label>
+  <button id="go" style="width:100%" data-i18n="start.go">Plan fastest route</button>
   <p id="plan-msg" class="mute" role="status"></p>
 </section>
 
@@ -46,9 +46,10 @@
   <div id="clusters"></div>
 </div>
 
-<div class="bar hidden" id="bar"><button class="ghost" id="top">↑ Edit</button><button id="replan">Re-plan from here</button></div>
+<div class="bar hidden" id="bar"><button class="ghost" id="top" data-i18n="plan.top">↑ Edit</button><button id="replan" data-i18n="plan.replan">Re-plan from here</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<script src="js/vendor/i18next.min.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

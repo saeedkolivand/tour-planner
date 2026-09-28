@@ -8,6 +8,8 @@ export interface PhoneDeps {
   /** Address -> position, null when not found. exact:false when only the street (not the house number) was placed. */
   geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null>;
   matrix(points: LatLon[]): Promise<Matrix>;
+  /** Messages shown to the driver: a translation key in, text out. */
+  t(key: 'plan.startNotFound' | 'plan.noStopsPlaced'): string;
 }
 
 const label = (s: Stop) => `${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim();
@@ -27,7 +29,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
   const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
   const start = await place(req.start);
-  if (!start) throw new Error('Start location not found');
+  if (!start) throw new Error(deps.t('plan.startNotFound'));
   const end = await place(req.end);
 
   const all = dedupe(req.stops);
@@ -52,7 +54,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
     if (!g) s.lat = s.lon = undefined;
     if (g) { Object.assign(s, g); placed.push(s as Stop & LatLon); } else ungeocoded.push(s);
   }
-  if (!placed.length) throw new Error('No stops could be placed on the map');
+  if (!placed.length) throw new Error(deps.t('plan.noStopsPlaced'));
 
   const groups = cluster(placed);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];

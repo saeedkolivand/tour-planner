@@ -14,7 +14,8 @@
         "LSApplicationQueriesSchemes": [
           "comgooglemaps",
           "waze"
-        ]
+        ],
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -83,8 +84,18 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["en", "de"]
+        }
       ]
     ],
+    "locales": {
+      "en": "./locales/en.json",
+      "de": "./locales/de.json"
+    },
     "experiments": {
       "typedRoutes": true
     }

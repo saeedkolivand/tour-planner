@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { haptic } from '@/shared/haptics';
+import { useTranslation } from '@/shared/i18n';
 import type { Cluster } from '../types';
 import { ClusterRow } from './ClusterRow';
 
@@ -11,6 +12,7 @@ import { ClusterRow } from './ClusterRow';
 export function CompletedSection({ items, startedAt, onReopen }: {
   items: { cluster: Cluster; index: number }[]; startedAt: number; onReopen(c: Cluster): void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (!items.length) return null;
   return (
@@ -18,7 +20,7 @@ export function CompletedSection({ items, startedAt, onReopen }: {
       <Pressable onPress={() => { haptic.select(); setOpen(o => !o); }} className="flex-row items-center gap-1.5 py-1"
         accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <Icon as={open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
-        <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Delivered ({items.length})</Text>
+        <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{t('route.deliveredCount', { n: items.length })}</Text>
       </Pressable>
       {open && items.map(({ cluster, index }) => (
         <ClusterRow key={cluster.stops[0].key ?? index} cluster={cluster} index={index} startedAt={startedAt} done onNavigate={() => {}} onToggle={onReopen} />

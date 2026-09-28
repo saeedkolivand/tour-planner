@@ -18,19 +18,22 @@ import type { Plan, Stop } from '@/features/tour/types';
 import { useDelivery } from '@/features/tour/useDelivery';
 import { usePlanning } from '@/features/tour/usePlanning';
 import { noPc, useSettings } from '@/features/settings/settings';
+import { useTranslation } from '@/shared/i18n';
 
 /**
  * Express / Paketshop stops the route can't reach in time: how many, the first three, then "+N more".
  * Only the stops with a deadline of their own (a late parking stop also holds ordinary addresses).
  */
 function LateNote({ plan, stops }: { plan: Plan; stops: Stop[] }) {
+  const { t } = useTranslation();
   const late = stops.filter(s => s.key && plan.late?.includes(s.key) && (s.express || s.opens));
   if (!late.length) return null;
-  const why = (s: Stop) => (s.express ? `Express ${s.express}` : `shop closes ${s.opens!.split('-')[1]}`);
+  const why = (s: Stop) => (s.express ? t('common.expressValue', { value: s.express }) : t('route.shopCloses', { time: s.opens!.split('-')[1] }));
   const shown = late.slice(0, 3).map(s => `#${s.no} ${s.street} ${s.number} (${why(s)})`).join(', ');
+  const more = late.length > 3 ? t('route.moreCount', { n: late.length - 3 }) : '';
   return (
     <Text className="text-destructive text-sm font-medium">
-      {late.length} {late.length === 1 ? 'stop' : 'stops'} can&apos;t be reached in time: {shown}{late.length > 3 ? ` +${late.length - 3} more` : ''}. Planned as early as the route allows.
+      {t('route.lateNote', { stops: t('count.stops', { count: late.length }), list: shown, more })}
     </Text>
   );
 }
@@ -38,6 +41,7 @@ function LateNote({ plan, stops }: { plan: Plan; stops: Stop[] }) {
 const Label = ({ children }: { children: string }) => <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">{children}</Text>;
 
 export default function RouteScreen() {
+  const { t } = useTranslation();
   const store = useTourStore();
   const { tour, busy, error, offline } = useTourState();
   const { view, navigate, deliver, reopen, toggleStop, navLabel } = useDelivery();
@@ -47,7 +51,7 @@ export default function RouteScreen() {
   const replan = (
     <View className="flex-row gap-2">
       {!noPc(settings) && <ReportClosureButton onReported={() => plan(true)} disabled={!!busy} />}
-      <Button variant="secondary" size="icon" className="rounded-full" onPress={() => plan(true)} disabled={!!busy} accessibilityLabel="Re-plan the rest from here">
+      <Button variant="secondary" size="icon" className="rounded-full" onPress={() => plan(true)} disabled={!!busy} accessibilityLabel={t('route.replanLabel')}>
         <Icon as={LocateFixed} size={20} />
       </Button>
     </View>
@@ -56,11 +60,11 @@ export default function RouteScreen() {
   if (!tour.plan || !view) {
     return (
       <View className="bg-background flex-1">
-        <ScreenHeader title="Route" />
+        <ScreenHeader title={t('tabs.route')} />
         <StatusBanner busy={busy} error={error} offline={offline} />
-        <EmptyState icon={RouteIcon} title="No route yet" body="Capture your stops, then plan. The fastest order, grouped into park-and-walk stops, appears here."
+        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={t('route.emptyBody')}
           action={<Button size="xl" onPress={() => (tour.stops.length ? plan() : router.navigate('/'))} disabled={!!busy}>
-            <Text>{tour.stops.length ? `Plan ${tour.stops.length} stops` : 'Capture stops'}</Text>
+            <Text>{tour.stops.length ? t('route.planStopsBtn', { count: tour.stops.length }) : t('route.captureStopsBtn')}</Text>
           </Button>} />
       </View>
     );
@@ -69,7 +73,7 @@ export default function RouteScreen() {
   const p = tour.plan;
   return (
     <View className="bg-background flex-1">
-      <ScreenHeader title="Route" subtitle={view.next ? `${view.upcoming.length + 1} parking stops left` : 'All done'} right={replan} />
+      <ScreenHeader title={t('tabs.route')} subtitle={view.next ? t('count.parkingStops', { count: view.upcoming.length + 1 }) : t('route.allDone')} right={replan} />
       <StatusBanner busy={busy} error={error} offline={offline} />
       <FlatList
         data={view.upcoming}
@@ -82,17 +86,17 @@ export default function RouteScreen() {
               <NextStopCard cluster={view.next} index={view.nextIndex} total={p.clusters.length} startedAt={view.etaBase} navLabel={navLabel}
                 onNavigate={() => navigate(view.next!)} onDelivered={() => deliver(view.next!)} onToggleStop={toggleStop} />
             ) : (
-              <EmptyState icon={PartyPopper} title="Tour complete" body={`All ${view.total} stops delivered. Nice work.`} />
+              <EmptyState icon={PartyPopper} title={t('route.tourCompleteTitle')} body={t('route.tourCompleteBody', { n: view.total })} />
             )}
             <LateNote plan={p} stops={tour.stops} />
             {p.ungeocoded.length > 0 && (
               <Text className="text-destructive text-sm font-medium">
-                Not planned: {p.ungeocoded.map(s => (`${s.street} ${s.number}`.trim() || 'a stop without address') + (s.unreachable ? ' (no road there today: closure)' : '')).join(', ')}.
-                {p.ungeocoded.some(s => !s.unreachable) ? ' Fix addresses on the Stops tab.' : ' Deliver on foot from a nearby stop.'}
+                {t('route.notPlanned', { list: p.ungeocoded.map(s => (`${s.street} ${s.number}`.trim() || t('route.noAddressStop')) + (s.unreachable ? t('route.noRoadClosure') : '')).join(', ') })}
+                {p.ungeocoded.some(s => !s.unreachable) ? t('route.fixAddresses') : t('route.deliverOnFoot')}
               </Text>
             )}
             <RouteMap start={p.start} stops={tour.stops.filter(s => s.no != null)} nextKeys={nextKeys} onMove={store.pin} />
-            {view.upcoming.length > 0 && <Label>Up next</Label>}
+            {view.upcoming.length > 0 && <Label>{t('route.upNext')}</Label>}
           </View>
         }
         renderItem={({ item }) => <ClusterRow cluster={item.cluster} index={item.index} startedAt={view.etaBase} onNavigate={navigate} onToggle={deliver} />}

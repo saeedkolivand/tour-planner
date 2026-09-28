@@ -1,0 +1,61 @@
+{
+  "photos": {
+    "heading": "1 · Scanner photos",
+    "add": "📷 Add photos",
+    "expected": "Stops on scanner",
+    "reading": "Reading photo {{i}} of {{n}}…",
+    "read_one": "Read {{count}} photo.",
+    "read_other": "Read {{count}} photos.",
+    "photoError": "photo {{i}}: {{error}}"
+  },
+  "stops": {
+    "heading": "2 · Stops",
+    "add": "+ Add stop",
+    "clear": "Clear tour",
+    "clearConfirm": "Clear the whole tour?",
+    "allCaptured": "✓ All stops captured",
+    "missing_one": "{{count}} stop missing: take more photos",
+    "missing_other": "{{count}} stops missing: take more photos",
+    "extra": "{{count}} more than the scanner shows: check for duplicates",
+    "street": "Street",
+    "houseNo": "No.",
+    "houseNumber": "House number",
+    "postcodeShort": "Postcode",
+    "postcode": "Postcode",
+    "type": "Stop type",
+    "parcels": "Parcels",
+    "remove": "Remove stop"
+  },
+  "types": { "private": "Private", "business": "Business", "pickup": "Pickup", "shop": "Paketshop" },
+  "start": {
+    "heading": "3 · Start",
+    "depotPlaceholder": "Depot address, e.g. Robert-Perthel-Str. 20",
+    "depotLabel": "Depot address",
+    "useGps": "Start from my current location",
+    "endDepot": "Return to depot at the end",
+    "go": "Plan fastest route",
+    "planning": "Planning…",
+    "needStart": "Enter a depot address or use your location",
+    "notFound": "⚠ Not found on the map: {{list}}",
+    "locationUnavailable": "location unavailable: {{message}}"
+  },
+  "plan": {
+    "navigate": "Navigate",
+    "delivered": "Delivered",
+    "parcels_one": "{{count}} parcel",
+    "parcels_other": "{{count}} parcels",
+    "onFoot": "+{{n}} on foot",
+    "streetOnly": "≈ street only",
+    "parkingStops_one": "{{count}} parking stop",
+    "parkingStops_other": "{{count}} parking stops",
+    "saves": "saves ~{{min}} min vs scanner order",
+    "top": "↑ Edit",
+    "replan": "Re-plan from here"
+  },
+  "map": {
+    "start": "Start",
+    "dragHint": "Drag to fix the position",
+    "savedPosition": "Saved position for {{address}}. Re-plan to use it."
+  },
+  "api": { "serverError": "Server error {{status}}" }
+}

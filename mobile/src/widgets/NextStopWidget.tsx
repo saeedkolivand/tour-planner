@@ -20,9 +20,9 @@ const NextStopWidget = (p: NextStopProps, env: WidgetEnvironment) => {
   const header = (
     <HStack spacing={5}>
       <Image systemName={done ? 'checkmark.seal.fill' : 'shippingbox.fill'} size={11} color={accent} />
-      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{done ? 'DONE' : 'NEXT'}</Text>
+      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{(done ? p.widgetDoneLabel : p.widgetNextLabel).toUpperCase()}</Text>
       <Spacer />
-      <Text modifiers={[font({ size: 11, weight: 'semibold' }), foregroundStyle('secondary'), monospacedDigit()]}>{done ? '' : `${p.left} left`}</Text>
+      <Text modifiers={[font({ size: 11, weight: 'semibold' }), foregroundStyle('secondary'), monospacedDigit()]}>{done ? '' : p.leftShort}</Text>
     </HStack>
   );
   const number = (
@@ -31,11 +31,11 @@ const NextStopWidget = (p: NextStopProps, env: WidgetEnvironment) => {
   const expressChip = p.express ? (
     <HStack spacing={3} modifiers={[padding({ horizontal: 7, vertical: 3 }), background(AMBER), clipShape('capsule')]}>
       <Image systemName="bolt.fill" size={10} color={ON_AMBER} />
-      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(ON_AMBER)]}>{`Express ${p.express}`}</Text>
+      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(ON_AMBER)]}>{p.expressPhrase}</Text>
     </HStack>
   ) : null;
   const bar = <ProgressView value={progress} modifiers={[tint(GREEN)]} />;
-  const address = done ? 'All stops delivered' : p.address;
+  const address = done ? p.widgetDoneAddress : p.address;
 
   if (env.widgetFamily !== 'systemMedium') {
     return (
@@ -54,20 +54,20 @@ const NextStopWidget = (p: NextStopProps, env: WidgetEnvironment) => {
   return (
     <HStack spacing={16} modifiers={root}>
       <VStack alignment="leading" spacing={2}>
-        <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{done ? 'DONE' : 'NEXT'}</Text>
+        <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{(done ? p.widgetDoneLabel : p.widgetNextLabel).toUpperCase()}</Text>
         {number}
         <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle('secondary'), monospacedDigit()]}>{done ? '' : `~${p.eta}`}</Text>
       </VStack>
       <VStack alignment="leading" spacing={5}>
         <Text modifiers={[font({ size: 17, weight: 'bold' }), minimumScaleFactor(0.7)]}>{address}</Text>
         <Text modifiers={[font({ size: 13 }), foregroundStyle('secondary')]}>
-          {[p.postcode, p.walk ? `+${p.walk} on foot` : ''].filter(Boolean).join('  ·  ')}
+          {[p.postcode, p.onFootPhrase].filter(Boolean).join('  ·  ')}
         </Text>
         {expressChip}
         <Spacer />
         {bar}
         <Text modifiers={[font({ size: 11, weight: 'medium' }), foregroundStyle('secondary'), monospacedDigit()]}>
-          {`${p.delivered} of ${p.total} delivered${done ? '' : `  ·  ${p.left} left`}`}
+          {`${p.deliveredOfTotal}${done ? '' : `  ·  ${p.leftShort}`}`}
         </Text>
       </VStack>
     </HStack>

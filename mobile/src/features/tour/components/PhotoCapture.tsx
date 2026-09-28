@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { haptic } from '@/shared/haptics';
+import { useTranslation } from '@/shared/i18n';
 
 /** Full-screen in-app camera: several photos of the scanner list, no system-camera cancel button. */
 export function PhotoCapture({ open, onClose, onDone }: {
   open: boolean; onClose(): void; onDone(uris: string[]): void;
 }) {
+  const { t } = useTranslation();
   const [permission, request] = useCameraPermissions();
   const [uris, setUris] = useState<string[]>([]);
   const camera = useRef<CameraView>(null);
@@ -35,21 +37,21 @@ export function PhotoCapture({ open, onClose, onDone }: {
         )}
         <View className="absolute inset-x-0 top-0 px-5" style={{ paddingTop: insets.top + 8 }}>
           <View className="flex-row items-center justify-between">
-            <Button variant="secondary" size="icon" className="rounded-full bg-black/40" onPress={onClose} accessibilityLabel="Close">
+            <Button variant="secondary" size="icon" className="rounded-full bg-black/40" onPress={onClose} accessibilityLabel={t('common.close')}>
               <Icon as={X} size={20} className="text-white" />
             </Button>
           </View>
           {permission?.granted && (
-            <Text className="mt-3 text-center text-white/80">Photograph the scanner list. Several pages are fine.</Text>
+            <Text className="mt-3 text-center text-white/80">{t('capture.inAppHint')}</Text>
           )}
         </View>
         {!permission?.granted && (
           <View className="flex-1 items-center justify-center gap-4 px-8">
             <Text className="text-center text-white">
-              {permission?.canAskAgain === false ? 'Allow camera access in Settings' : 'Camera access is needed to photograph the scanner list.'}
+              {permission?.canAskAgain === false ? t('permission.cameraSettings') : t('permission.cameraNeeded')}
             </Text>
             {permission?.canAskAgain !== false && (
-              <Button size="xl" onPress={request}><Text>Allow camera</Text></Button>
+              <Button size="xl" onPress={request}><Text>{t('permission.allowCamera')}</Text></Button>
             )}
           </View>
         )}
@@ -58,10 +60,10 @@ export function PhotoCapture({ open, onClose, onDone }: {
             <View className="w-14">
               {!!uris.length && <Image source={{ uri: uris[uris.length - 1] }} className="size-12 rounded-lg border border-white/40" />}
             </View>
-            <Pressable onPress={shoot} accessibilityLabel="Take photo" className="size-20 items-center justify-center rounded-full bg-white/30">
+            <Pressable onPress={shoot} accessibilityLabel={t('capture.takePhoto')} className="size-20 items-center justify-center rounded-full bg-white/30">
               <View className="size-16 rounded-full bg-white" />
             </Pressable>
-            <Button size="xl" className="w-24" disabled={!uris.length} onPress={() => onDone(uris)} accessibilityLabel={`Done, ${uris.length} photos`}>
+            <Button size="xl" className="w-24" disabled={!uris.length} onPress={() => onDone(uris)} accessibilityLabel={`${t('common.done')}, ${t('count.photos', { count: uris.length })}`}>
               <Icon as={Check} size={18} />
               <Text>{uris.length}</Text>
             </Button>

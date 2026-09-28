@@ -1,0 +1,61 @@
+{
+  "photos": {
+    "heading": "1 · Scanner-Fotos",
+    "add": "📷 Fotos hinzufügen",
+    "expected": "Stopps auf dem Scanner",
+    "reading": "Foto {{i}} von {{n}} wird gelesen…",
+    "read_one": "{{count}} Foto gelesen.",
+    "read_other": "{{count}} Fotos gelesen.",
+    "photoError": "Foto {{i}}: {{error}}"
+  },
+  "stops": {
+    "heading": "2 · Stopps",
+    "add": "+ Stopp hinzufügen",
+    "clear": "Tour löschen",
+    "clearConfirm": "Die ganze Tour löschen?",
+    "allCaptured": "✓ Alle Stopps erfasst",
+    "missing_one": "{{count}} Stopp fehlt: mehr Fotos machen",
+    "missing_other": "{{count}} Stopps fehlen: mehr Fotos machen",
+    "extra": "{{count}} mehr als der Scanner zeigt: auf Duplikate prüfen",
+    "street": "Straße",
+    "houseNo": "Nr.",
+    "houseNumber": "Hausnummer",
+    "postcodeShort": "PLZ",
+    "postcode": "Postleitzahl",
+    "type": "Stopp-Typ",
+    "parcels": "Pakete",
+    "remove": "Stopp entfernen"
+  },
+  "types": { "private": "Privat", "business": "Geschäft", "pickup": "Abholung", "shop": "Paketshop" },
+  "start": {
+    "heading": "3 · Start",
+    "depotPlaceholder": "Depot-Adresse, z. B. Robert-Perthel-Str. 20",
+    "depotLabel": "Depot-Adresse",
+    "useGps": "Von meinem aktuellen Standort starten",
+    "endDepot": "Am Ende zum Depot zurück",
+    "go": "Schnellste Route planen",
+    "planning": "Wird geplant…",
+    "needStart": "Depot-Adresse eingeben oder Standort verwenden",
+    "notFound": "⚠ Nicht auf der Karte gefunden: {{list}}",
+    "locationUnavailable": "Standort nicht verfügbar: {{message}}"
+  },
+  "plan": {
+    "navigate": "Navigation",
+    "delivered": "Zugestellt",
+    "parcels_one": "{{count}} Paket",
+    "parcels_other": "{{count}} Pakete",
+    "onFoot": "+{{n}} zu Fuß",
+    "streetOnly": "≈ nur Straße",
+    "parkingStops_one": "{{count}} Parkstopp",
+    "parkingStops_other": "{{count}} Parkstopps",
+    "saves": "spart ~{{min}} Min. gegenüber der Scanner-Reihenfolge",
+    "top": "↑ Bearbeiten",
+    "replan": "Ab hier neu planen"
+  },
+  "map": {
+    "start": "Start",
+    "dragHint": "Ziehen, um die Position zu korrigieren",
+    "savedPosition": "Position für {{address}} gespeichert. Neu planen, um sie zu nutzen."
+  },
+  "api": { "serverError": "Serverfehler {{status}}" }
+}

@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import type { LatLon } from '@/features/tour/types';
 import { log } from '@/shared/log';
+import { t } from '@/shared/i18n';
 
 const L = log('location');
 
@@ -16,13 +17,13 @@ export async function currentPosition(): Promise<LatLon> {
   const { granted } = await within(30_000, Location.requestForegroundPermissionsAsync()).catch(() => ({ granted: false }));
   if (!granted) {
     L.warn('permission denied or unanswered');
-    throw new Error('Location permission is needed to plan from where you are. Or set a depot in Settings.');
+    throw new Error(t('location.permissionNeeded'));
   }
   const p = await within(15_000, Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }))
     .catch(() => Location.getLastKnownPositionAsync({ maxAge: 10 * 60_000 }).catch(() => null));
   if (!p) {
     L.warn('no position', { ms: Date.now() - t0 });
-    throw new Error("Couldn't get your location. Step outside for a GPS fix, or set a depot in Settings.");
+    throw new Error(t('location.noFix'));
   }
   L.info('position fixed', { ms: Date.now() - t0, accuracyM: p.coords.accuracy });
   return { lat: p.coords.latitude, lon: p.coords.longitude };

@@ -1,4 +1,5 @@
 import { Camera, Images, ScanText } from 'lucide-react-native';
+import { useTranslation } from '@/shared/i18n';
 import { View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { onDeviceOcr } from '@/services/scan';
 export function CaptureCard({ onCamera, onLibrary, busy, message }: {
   onCamera(): void; onLibrary(): void; busy: boolean; message?: string;
 }) {
+  const { t } = useTranslation();
   const { serverOcr } = useSettings();
   const onPhone = onDeviceOcr && !serverOcr;
   return (
@@ -21,20 +23,20 @@ export function CaptureCard({ onCamera, onLibrary, busy, message }: {
             <Icon as={ScanText} size={22} className="text-primary-foreground" />
           </View>
           <View className="flex-1">
-            <Text className="text-primary-foreground text-lg font-bold">Capture the scanner list</Text>
+            <Text className="text-primary-foreground text-lg font-bold">{t('capture.title')}</Text>
             <Text className="text-primary-foreground/80 text-sm">
-              {onPhone ? 'Read on this phone. Photos never leave it.' : 'Photos are read on your PC.'}
+              {onPhone ? t('capture.onPhone') : t('capture.onPc')}
             </Text>
           </View>
         </View>
         <View className="flex-row gap-2.5">
-          <Button size="xl" className="flex-1 bg-white active:bg-white/90" onPress={onCamera} disabled={busy} accessibilityLabel="Photograph the scanner">
+          <Button size="xl" className="flex-1 bg-white active:bg-white/90" onPress={onCamera} disabled={busy} accessibilityLabel={t('capture.photographLabel')}>
             <Icon as={Camera} size={20} className="text-primary" />
-            <Text className="text-primary">Camera</Text>
+            <Text className="text-primary">{t('common.camera')}</Text>
           </Button>
-          <Button size="xl" className="flex-1 bg-white/15 active:bg-white/25" onPress={onLibrary} disabled={busy} accessibilityLabel="Pick screenshots">
+          <Button size="xl" className="flex-1 bg-white/15 active:bg-white/25" onPress={onLibrary} disabled={busy} accessibilityLabel={t('capture.pickScreenshotsLabel')}>
             <Icon as={Images} size={20} className="text-primary-foreground" />
-            <Text className="text-primary-foreground" numberOfLines={1} adjustsFontSizeToFit>Screenshots</Text>
+            <Text className="text-primary-foreground" numberOfLines={1} adjustsFontSizeToFit>{t('capture.screenshots')}</Text>
           </Button>
         </View>
         {!!message && <Text className="text-primary-foreground/90 text-sm font-medium" accessibilityLiveRegion="polite">{message}</Text>}

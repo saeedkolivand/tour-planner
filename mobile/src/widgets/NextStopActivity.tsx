@@ -15,9 +15,9 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
   const icons: Record<string, 'building.2.fill' | 'arrow.uturn.backward.circle.fill' | 'storefront.fill'> = { business: 'building.2.fill', pickup: 'arrow.uturn.backward.circle.fill', shop: 'storefront.fill' };
   const icon = done ? 'checkmark.seal.fill' as const : icons[p.type] ?? 'house.fill' as const;
   const progress = p.total ? p.delivered / p.total : 0;
-  const detail = done ? `All ${p.total} stops delivered` : [p.postcode, p.walk ? `+${p.walk} on foot` : ''].filter(Boolean).join('  ·  ');
-  const counts = `${p.delivered} of ${p.total} delivered`;
-  const left = done ? '' : `${p.left} ${p.left === 1 ? 'stop' : 'stops'} left`;
+  const detail = done ? p.deliveredOfTotal : [p.postcode, p.onFootPhrase].filter(Boolean).join('  ·  ');
+  const counts = p.deliveredOfTotal;
+  const left = done ? '' : p.leftPhrase;
 
   const badge = (size: number) => (
     <Text modifiers={[font({ size, weight: 'heavy', design: 'rounded' }), monospacedDigit(), foregroundStyle('white'),
@@ -28,13 +28,13 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
   const expressChip = p.express ? (
     <HStack spacing={3} modifiers={[padding({ horizontal: 7, vertical: 3 }), background(AMBER), clipShape('capsule')]}>
       <Image systemName="bolt.fill" size={10} color={ON_AMBER} />
-      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(ON_AMBER)]}>{`Express ${p.express}`}</Text>
+      <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(ON_AMBER)]}>{p.expressPhrase}</Text>
     </HStack>
   ) : null;
   const caption = (text: string) => <Text modifiers={[font({ size: 11, weight: 'medium' }), foregroundStyle('secondary'), monospacedDigit()]}>{text}</Text>;
   const eta = (size: number) => <Text modifiers={[font({ size, weight: 'semibold' }), monospacedDigit()]}>{done ? '' : `~${p.eta}`}</Text>;
   const address = (size: number) => (
-    <Text modifiers={[font({ size, weight: 'bold' }), minimumScaleFactor(0.7)]}>{done ? 'Tour complete' : p.address}</Text>
+    <Text modifiers={[font({ size, weight: 'bold' }), minimumScaleFactor(0.7)]}>{done ? p.doneLabel : p.address}</Text>
   );
 
   return {
@@ -45,7 +45,7 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
           <VStack alignment="leading" spacing={3}>
             <HStack spacing={5}>
               <Image systemName={icon} size={11} color={accent} />
-              <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{done ? 'TOUR COMPLETE' : 'NEXT STOP'}</Text>
+              <Text modifiers={[font({ size: 11, weight: 'bold' }), foregroundStyle(accent)]}>{(done ? p.doneLabel : p.nextLabel).toUpperCase()}</Text>
               <Spacer />
               {eta(14)}
             </HStack>
@@ -85,7 +85,7 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
     expandedLeading: <VStack modifiers={[padding({ leading: 4 })]}>{badge(26)}</VStack>,
     expandedTrailing: (
       <VStack alignment="trailing" spacing={1} modifiers={[padding({ trailing: 4 })]}>
-        {caption(done ? '' : 'arrive')}{eta(17)}
+        {caption(done ? '' : p.arriveLabel)}{eta(17)}
       </VStack>
     ),
     expandedCenter: address(17),

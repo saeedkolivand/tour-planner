@@ -38,6 +38,10 @@ cd mobile; npm test; npm run typecheck; npm run lint
 - Open `https://<your-pc>.<your-tailnet>.ts.net` on any device on the tailnet (or `http://localhost:3000`).
 - **One-time setup**: `wsl -u root bash wsl/setup.sh deps`, then `wsl bash wsl/setup.sh build`. This downloads the map and the Photon DB and builds VROOM.
 
+## Languages
+
+English and German. The app follows the phone's language (iOS and Android also list it under per-app languages) and can be switched under Settings > Language. The web app follows the browser and has an EN/DE toggle in the header. Texts live in `mobile/src/shared/locales/*.json` and `public/locales/*.json`; app code only ever imports `@/shared/i18n` (a lint rule enforces it), so the library behind it can change in one place.
+
 ## Layout
 
 | Path | What |

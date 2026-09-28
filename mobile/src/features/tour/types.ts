@@ -61,7 +61,6 @@ export interface Plan {
 
 export interface Tour { stops: Stop[]; plan: Plan | null; expected: string }
 
-export const TYPE_LABEL: Record<StopType, string> = { private: 'Private', business: 'Business', pickup: 'Pickup', shop: 'Paketshop' };
-export const STOP_TYPES = Object.keys(TYPE_LABEL) as StopType[];
+export const STOP_TYPES: StopType[] = ['private', 'business', 'pickup', 'shop']; // labels: locales stopType.*
 export const EMPTY_TOUR: Tour = { stops: [], plan: null, expected: '' };
 export const newStop = (): Stop => ({ street: '', number: '', postcode: '', city: 'Köln', type: 'private', parcels: 1 });

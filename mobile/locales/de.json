@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fotografiere die Stopp-Liste des Scanners und scanne Paketetiketten.",
+    "NSPhotoLibraryUsageDescription": "Wähle Screenshots der Stopp-Liste deines Scanners aus.",
+    "NSLocationWhenInUseUsageDescription": "Route von deinem Standort aus starten oder neu planen."
+  }
+}

@@ -3,6 +3,7 @@
 // @expo/ui's SwiftUI components can't even be imported on other platforms.
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
+import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
 import { useMinute } from '@/shared/useMinute';
 import NextStopActivity from '../../widgets/NextStopActivity';
@@ -15,7 +16,7 @@ const NOT_FOREGROUND = /not foreground/i; // cold start: tour restores before iO
 
 export function useLiveSurfaces() {
   const { tour } = useTourState();
-  const props = nextStopProps(tour, useMinute()); // ETAs move with a delay
+  const props = nextStopProps(tour, t, useMinute()); // ETAs move with a delay
   const key = propsKey(props);
   const last = useRef<string | null>(null);
 

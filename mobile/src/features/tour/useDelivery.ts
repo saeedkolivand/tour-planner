@@ -8,6 +8,7 @@ import { useMinute } from '@/shared/useMinute';
 import { routeView } from './selectors';
 import { useTourState, useTourStore } from './TourProvider';
 import type { Cluster, Stop } from './types';
+import { t } from '@/shared/i18n';
 
 const keysOf = (c: Cluster) => c.stops.map(s => s.key).filter((k): k is string => !!k);
 
@@ -24,7 +25,7 @@ export function useDelivery() {
   const navigate = useCallback((c: Cluster) => {
     haptic.tap();
     const first = c.stops[0];
-    navigateTo(c.park, navApp, `${first.street} ${first.number}`).catch(e => Alert.alert('Navigation', (e as Error).message));
+    navigateTo(c.park, navApp, `${first.street} ${first.number}`).catch(e => Alert.alert(t('delivery.navigationError'), (e as Error).message));
   }, [navApp]);
 
   const lastDelivered = useRef(0);
@@ -50,10 +51,10 @@ export function useDelivery() {
     const first = c.stops[0];
     // by address: the row shows its place in the route, the stop its loading number, so a number here confuses
     const next = view?.next?.stops[0];
-    const more = c.stops.length > 1 ? ` (+${c.stops.length - 1})` : '';
-    Alert.alert(`Deliver ${first.street} ${first.number}${more} now?`, next ? `Your next stop is ${next.street} ${next.number}.` : 'It is not your next stop.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delivered', onPress: () => markDelivered(c) },
+    const more = c.stops.length > 1 ? t('delivery.moreCount', { n: c.stops.length - 1 }) : '';
+    Alert.alert(t('delivery.confirmTitle', { address: `${first.street} ${first.number}`, more }), next ? t('delivery.nextStopIs', { address: `${next.street} ${next.number}` }) : t('delivery.notNextStop'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delivered'), onPress: () => markDelivered(c) },
     ]);
   }, [markDelivered]);
 

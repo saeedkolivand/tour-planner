@@ -13,6 +13,7 @@ import { TourProvider } from '@/features/tour/TourProvider';
 import { useLiveSurfaces } from '@/features/tour/useLiveSurfaces';
 import { NAV_THEME, THEME } from '@/lib/theme';
 import { haptic } from '@/shared/haptics';
+import { useTranslation } from '@/shared/i18n'; // also initializes i18next, before any screen renders
 import { log } from '@/shared/log';
 
 const nav = log('nav');
@@ -37,6 +38,7 @@ const tabLabel = (title: string) => function TabLabel({ color }: { color: ColorV
 export default function RootLayout() {
   const scheme = useColorScheme().colorScheme ?? 'light';
   const { bottom } = useSafeAreaInsets();
+  const { t } = useTranslation();
   const path = usePathname();
   useEffect(() => { nav.info('screen', { path }); }, [path]);
   // darkMode is 'class': native follows the system itself, the web preview needs the class set
@@ -56,10 +58,10 @@ export default function RootLayout() {
             // taller than the default 49pt: bigger targets for use in the van, and room for icon + label
             tabBarStyle: { backgroundColor: THEME[scheme].card, borderTopColor: THEME[scheme].border, height: 64 + bottom, paddingTop: 6, paddingBottom: bottom + 6 },
           }}>
-          <Tabs.Screen name="index" options={{ title: 'Stops', tabBarIcon: tabIcon(ListChecks), tabBarLabel: tabLabel('Stops') }} />
-          <Tabs.Screen name="scan" options={{ title: 'Scan', tabBarIcon: tabIcon(ScanBarcode), tabBarLabel: tabLabel('Scan') }} />
-          <Tabs.Screen name="route" options={{ title: 'Route', tabBarIcon: tabIcon(Navigation), tabBarLabel: tabLabel('Route') }} />
-          <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon(Settings), tabBarLabel: tabLabel('Settings') }} />
+          <Tabs.Screen name="index" options={{ title: t('tabs.stops'), tabBarIcon: tabIcon(ListChecks), tabBarLabel: tabLabel(t('tabs.stops')) }} />
+          <Tabs.Screen name="scan" options={{ title: t('tabs.scan'), tabBarIcon: tabIcon(ScanBarcode), tabBarLabel: tabLabel(t('tabs.scan')) }} />
+          <Tabs.Screen name="route" options={{ title: t('tabs.route'), tabBarIcon: tabIcon(Navigation), tabBarLabel: tabLabel(t('tabs.route')) }} />
+          <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: tabIcon(Settings), tabBarLabel: tabLabel(t('tabs.settings')) }} />
         </Tabs>
         <LiveSurfaces />
         <PortalHost />

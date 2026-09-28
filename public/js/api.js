@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { log } from './log.js';
 
 const L = log('api');
@@ -8,7 +9,7 @@ export async function api(method, path, body) {
   try {
     const r = await fetch(path, { method, headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) });
     const json = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(json.error || `Server error ${r.status}`);
+    if (!r.ok) throw new Error(json.error || t('api.serverError', { status: r.status }));
     L.debug('call', { method, path, ms: Math.round(performance.now() - t0) });
     return json;
   } catch (e) {

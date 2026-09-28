@@ -7,6 +7,7 @@
 import { Linking, Platform } from 'react-native';
 import type { LatLon } from '@/features/tour/types';
 import { log } from '@/shared/log';
+import { t } from '@/shared/i18n';
 
 export type NavApp = 'apple' | 'google' | 'waze';
 export const NAV_APPS: Record<NavApp, string> = { apple: 'Apple Maps', google: 'Google Maps', waze: 'Waze' };
@@ -28,6 +29,6 @@ export async function navigateTo({ lat, lon }: LatLon, app: NavApp, label?: stri
     L.info('opened maps', { app, to: { lat, lon }, label, url: url.split('?')[0] });
   } catch (e) {
     L.error('maps did not open', { app, url, error: e });
-    throw new Error(`Could not open ${NAV_APPS[app]}`);
+    throw new Error(t('route.couldNotOpen', { app: NAV_APPS[app] }));
   }
 }

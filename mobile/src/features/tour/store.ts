@@ -29,12 +29,11 @@ export interface PhoneFallback {
 /** The PC didn't answer (vs. answered with an error about the input): the phone can take over. */
 export const unreachable = (e: unknown) => /network|fetch|timed? ?out|abort|resolve host|Server error 5\d\d/i.test((e as Error)?.message ?? '');
 
-/** A dropped connection reads better as what to do about it. */
+/** A dropped connection reads better as what to do about it: screens show t('store.cantReachPc') for these. */
+export const cantReachPc = (m: string) => /network|fetch failed|could not be found|could not connect|timed? ?out|abort/i.test(m);
 export function friendly(e: unknown) {
   const m = (e as Error)?.message ?? String(e);
-  return /network|fetch failed|could not be found|could not connect|timed? ?out|abort/i.test(m)
-    ? "Can't reach your PC. Is Tailscale on? Your changes stay on the phone and sync when it's back."
-    : m.replace(/\s*\(at .*\)$/, '');
+  return m.replace(/\s*\(at .*\)$/, '');
 }
 
 /**
@@ -164,7 +163,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     async scan(input: ScanInput) {
       const before = state.tour.stops.length;
       const kind = 'texts' in input ? 'text' : 'image';
-      const r = await run('scan', 'Reading stops…', async () => {
+      const r = await run('scan', 'store.readingStops', async () => {
         if ('texts' in input && phone && phone.mode() === 'phone') return readOnPhone(input.texts);
         try { return await api.extract(input, state.tour.stops); }
         catch (e) {
@@ -182,7 +181,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
 
     async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean } = {}) {
       const req: PlanRequest = { start, end, stops: state.tour.stops, lastNo: state.tour.plan?.lastNo, ...opt };
-      const r = await run('plan', 'Planning route…', async () => {
+      const r = await run('plan', 'store.planningRoute', async () => {
         if (phone?.mode() === 'phone') return phone.plan(req);
         try { return { ...await api.optimize(req), by: 'pc' as const }; }
         catch (e) {
@@ -201,7 +200,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     async pin(stop: Stop, at: LatLon) {
       if (!stop.key) return;
       // phone only: the pin lives on the stop (the planner trusts `pinned`); with a PC it's remembered there for good
-      const ok = noPc() || await run('pin', 'Saving position…', async () => { await api.pin(stop.key!, at); return true; });
+      const ok = noPc() || await run('pin', 'store.savingPosition', async () => { await api.pin(stop.key!, at); return true; });
       if (ok) editStops(ss => ss.map(s => s.key === stop.key ? { ...s, ...at, exact: true, pinned: true } : s));
       L.info('pin moved', { key: stop.key, from: { lat: stop.lat, lon: stop.lon }, to: at });
     },

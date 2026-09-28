@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
+import { setLanguage, type Lang } from '@/shared/i18n';
 import type { NavApp } from '@/services/navigation';
 
 export interface Settings {
@@ -26,12 +28,18 @@ export interface Settings {
   expressOnTime: boolean;
   /** "08:30": when you usually leave the depot; ETAs and Express deadlines count from it when planning earlier. */
   leaveAt: string;
+  /** UI language; 'system' follows the phone's language (German if set, else English). */
+  language: 'system' | 'en' | 'de';
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '' };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '', language: 'system' };
+
+const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
+const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);
 
 let current = DEFAULTS;
+applyLang(current);
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 
@@ -48,6 +56,7 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function setSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };
+  if ('language' in patch) applyLang(current);
   onChange?.(patch);
   listeners.forEach(l => l());
   clearTimeout(saveTimer);
