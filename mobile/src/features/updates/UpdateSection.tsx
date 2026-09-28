@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { Download, RefreshCw } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -18,16 +18,16 @@ const current = Constants.expoConfig?.version ?? '0.0.0';
 export function UpdateSection() {
   const { t } = useTranslation();
   const [state, setState] = useState<{ kind: 'checking' } | { kind: 'error' } | { kind: 'done'; latest: Release }>({ kind: 'checking' });
+  const [attempt, setAttempt] = useState(0); // bumped by the retry button: re-runs the effect
 
-  // state starts as 'checking'; the button resets it before calling this, so the effect never sets state synchronously
-  const check = useCallback(async () => {
-    try {
-      const latest = await latestRelease();
-      L.info('checked', { current, latest: latest.version });
-      setState({ kind: 'done', latest });
-    } catch (e) { L.warn('check failed', { error: e }); setState({ kind: 'error' }); }
-  }, []);
-  useEffect(() => { void check(); }, [check]);
+  useEffect(() => {
+    let live = true;
+    latestRelease().then(
+      latest => { L.info('checked', { current, latest: latest.version }); if (live) setState({ kind: 'done', latest }); },
+      e => { L.warn('check failed', { error: e }); if (live) setState({ kind: 'error' }); });
+    return () => { live = false; };
+  }, [attempt]);
+  const check = () => { haptic.tap(); setState({ kind: 'checking' }); setAttempt(a => a + 1); };
 
   const update = state.kind === 'done' && isNewer(state.latest.version, current) ? state.latest : null;
   // Android installs a downloaded APK itself; iOS needs the .ipa sideloaded from a PC, so open the release page there
@@ -46,7 +46,7 @@ export function UpdateSection() {
           <Text>{t('settings.getUpdate', { v: update.version })}</Text>
         </Button>
       ) : (
-        <Button variant="outline" onPress={() => { haptic.tap(); setState({ kind: 'checking' }); void check(); }} disabled={state.kind === 'checking'}>
+        <Button variant="outline" onPress={check} disabled={state.kind === 'checking'}>
           <Icon as={RefreshCw} size={16} />
           <Text>{t('settings.checkUpdates')}</Text>
         </Button>
