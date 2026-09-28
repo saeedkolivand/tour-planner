@@ -10,9 +10,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# A newer push supersedes a running release build: semantic-release refuses to publish a commit that is no
+# longer the branch head, so finishing the older build would only burn runner minutes.
 concurrency:
   group: release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
