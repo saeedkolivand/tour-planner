@@ -223,7 +223,11 @@
     "tourSection": "Tour",
     "clearTourTitle": "Heutige Tour löschen?",
     "clearTourBody": "Alle {{n}} Stopps, die Route und die Zustellhäkchen werden von diesem Handy und der Web-App entfernt.",
-    "clearTour": "Tour löschen"
+    "clearTour": "Tour löschen",
+    "routeStyle": "Routenstil",
+    "styleWalk": "Parken & laufen",
+    "styleDrive": "Bis vor die Tür",
+    "routeStyleFooter": "Parken & laufen: Stopps im Umkreis von 80 m teilen sich einen Parkplatz, dazwischen gehst du zu Fuß. Bis vor die Tür: Du fährst fast jeden Stopp direkt an, nur direkte Nachbarn teilen sich einen Parkplatz. Gilt ab der nächsten Planung."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",

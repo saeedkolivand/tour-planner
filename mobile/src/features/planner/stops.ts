@@ -38,13 +38,13 @@ const WALK_MPS = 1.3, RADIUS_M = 80;
 export const serviceSec = (s: Stop) => (SERVICE_MIN[s.type] ?? 2) * 60 + 30 * Math.max(0, (s.parcels || 1) - 1);
 
 /**
- * Stops within 80 m of a parking spot (its first stop) are walked to; service includes the walk there and back.
+ * Stops within `radius` m (80 by default) of a parking spot (its first stop) are walked to; service includes the walk there and back.
  * Street-only stops (house number unknown) park alone: they all sit at the street's middle (see the PC's cluster.mjs).
  */
-export function cluster(stops: (Stop & LatLon)[]): Omit<Cluster, 'eta'>[] {
+export function cluster(stops: (Stop & LatLon)[], radius = RADIUS_M): Omit<Cluster, 'eta'>[] {
   const out: { park: LatLon; stops: (Stop & LatLon)[]; walkable: boolean }[] = [];
   for (const s of stops) {
-    const c = s.exact !== false && out.find(c => c.walkable && meters(c.park, s) <= RADIUS_M);
+    const c = s.exact !== false && out.find(c => c.walkable && meters(c.park, s) <= radius);
     if (c) c.stops.push(s); else out.push({ park: { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
   }
   return out.map(({ walkable: _, ...c }) => ({ ...c, service: c.stops.reduce((t, s, i) => t + serviceSec(s) + (i ? 2 * meters(c.park, s) / WALK_MPS : 0), 0) }));

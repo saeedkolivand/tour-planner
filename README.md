@@ -11,7 +11,7 @@ Photograph a DPD scanner's stop list; get the fastest delivery order, grouped in
 <p align="center"><img src="docs/screenshots/app-light.png" alt="Stops, Route and Settings screens in light mode" width="100%"></p>
 </details>
 
-<sub>Screens at iPhone size (390 pt), rendered from the app's web build; on iOS the map area shows Apple Maps.</sub>
+<sub>Screens at iPhone size (390 pt), rendered from the app's web build; on iOS the map area shows Apple Maps, on Android MapLibre with OpenFreeMap tiles.</sub>
 
 Glanceable on a real iPhone: the next stop as a Live Activity (Lock Screen, Dynamic Island, CarPlay Dashboard) and Home Screen widgets.
 

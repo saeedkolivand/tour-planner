@@ -1,7 +1,7 @@
 // Stop order: VROOM over a travel-time table from the self-hosted OSRM road graph.
 // Objective = the driver's total time; the only constraint is Express: on time when asked to (ADR 0005).
 import { log } from '../log.mjs';
-import { cluster } from './cluster.mjs';
+import { CLUSTER_RADIUS_M, cluster } from './cluster.mjs';
 import { insertLate, timeline } from './lateness.mjs';
 
 const OSRM = process.env.OSRM_URL || 'http://localhost:5050';
@@ -84,8 +84,8 @@ export async function routeOf(points) {
  * `expressOnTime`: Express stops must be reached by their deadline; those no order can make are planned the
  * fastest way and reported in `late`.
  */
-export async function solve(stops, start, end, { departAt = Date.now(), expressOnTime = true } = {}) {
-  let clusters = cluster(stops);
+export async function solve(stops, start, end, { departAt = Date.now(), expressOnTime = true, walkM } = {}) {
+  let clusters = cluster(stops, walkM ?? CLUSTER_RADIUS_M);
   let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])]);
 
   // A closure can cut a pocket of streets off completely: no road in or out. Those parking stops are left

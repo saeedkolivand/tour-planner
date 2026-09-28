@@ -179,7 +179,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       return result;
     },
 
-    async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean } = {}) {
+    async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean; walkM?: number } = {}) {
       const req: PlanRequest = { start, end, stops: state.tour.stops, lastNo: state.tour.plan?.lastNo, ...opt };
       const r = await run('plan', 'store.planningRoute', async () => {
         if (phone?.mode() === 'phone') return phone.plan(req);

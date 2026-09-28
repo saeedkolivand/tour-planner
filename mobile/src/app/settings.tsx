@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { ClosuresSection } from '@/features/roads/ClosuresSection';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
+import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
 import { setSettings, useSettings } from '@/features/settings/settings';
@@ -43,6 +44,10 @@ export default function SettingsScreen() {
             <Input defaultValue={s.leaveAt} placeholder="08:30" keyboardType="numbers-and-punctuation" maxLength={5} className="w-24 text-center"
               accessibilityLabel={t('settings.leaveAtA11y')} onChangeText={leaveAt => setSettings({ leaveAt: leaveAt.trim() })} />
           </View>
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.routeStyle')} footer={t('settings.routeStyleFooter')}>
+          <RouteStylePicker value={s.routeStyle} onChange={routeStyle => setSettings({ routeStyle })} />
         </SettingsSection>
 
         <SettingsSection title={t('settings.express')} footer={t('settings.expressFooter')}>

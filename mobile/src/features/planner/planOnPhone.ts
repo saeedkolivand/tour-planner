@@ -25,7 +25,7 @@ export function dueSec(express: string | undefined, departAt: number) {
   return s > 0 ? s : null;
 }
 
-export async function planOnPhone(req: { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean }, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
+export async function planOnPhone(req: { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number }, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
   const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
   const start = await place(req.start);
@@ -56,7 +56,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   }
   if (!placed.length) throw new Error(deps.t('plan.noStopsPlaced'));
 
-  const groups = cluster(placed);
+  const groups = cluster(placed, req.walkM);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];
   const m = await deps.matrix(points);
   const endIdx = end ? points.length - 1 : undefined;

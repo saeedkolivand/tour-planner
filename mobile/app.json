@@ -88,9 +88,13 @@
       [
         "expo-localization",
         {
-          "supportedLocales": ["en", "de"]
+          "supportedLocales": [
+            "en",
+            "de"
+          ]
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "locales": {
       "en": "./locales/en.json",

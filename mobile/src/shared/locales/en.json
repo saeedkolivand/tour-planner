@@ -223,7 +223,11 @@
     "tourSection": "Tour",
     "clearTourTitle": "Clear today's tour?",
     "clearTourBody": "All {{n}} stops, the route and delivery ticks are removed from this phone and the web app.",
-    "clearTour": "Clear tour"
+    "clearTour": "Clear tour",
+    "routeStyle": "Route style",
+    "styleWalk": "Park & walk",
+    "styleDrive": "Door to door",
+    "routeStyleFooter": "Park & walk: stops within 80 m share one parking spot and you walk between them. Door to door: you drive up to nearly every stop; only next-door neighbours share a spot. Takes effect at the next plan."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",

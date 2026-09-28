@@ -25,6 +25,11 @@ test('neighbours within 80 m share a parking stop', () => {
   assert.ok(Math.abs(meters({ lat: 50, lon: 7 }, { lat: 50.001, lon: 7 }) - 111) < 1);
 });
 
+test('door to door: a 25 m radius keeps those neighbours on separate parking stops', () => {
+  const at = (lat: number, x: Stop) => ({ ...x, lat, lon: 6.95 });
+  assert.equal(cluster([at(50.94, s('A', '1')), at(50.9403, s('A', '3'))], 25).length, 2);
+});
+
 test('solver: points on a line are visited in order, and a fixed end stays last', () => {
   // start 0 at x=0, jobs at x = 5, 1, 3, 2, 4 (shuffled): the best order walks outward
   const xs = [0, 5, 1, 3, 2, 4];

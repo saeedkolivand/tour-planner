@@ -31,7 +31,7 @@ export function clean(stops) {
   }));
 }
 
-export async function planTour({ start, end, stops, departAt, expressOnTime = true } = {}) {
+export async function planTour({ start, end, stops, departAt, expressOnTime = true, walkM } = {}) {
   if (!start || !isPlace(start) || !isPlace(end)) throw bad('start (and end) must be {lat, lon} or {q}');
   const all = dedupe(clean(stops));
   const [s, e] = [await resolvePlace(start), await resolvePlace(end)];
@@ -47,7 +47,9 @@ export async function planTour({ start, end, stops, departAt, expressOnTime = tr
 
   // ETAs and Express deadlines count from departure: now, or later when planned at the depot before leaving
   const depart = Number.isFinite(departAt) && departAt > Date.now() ? departAt : Date.now();
-  const { unreachable, ...plan } = await solve(placed, s, e, { departAt: depart, expressOnTime: expressOnTime !== false });
+  // walkM: how far the driver walks from one parking spot (the app's route style); the env default otherwise
+  const walk = Number.isFinite(walkM) ? Math.min(300, Math.max(0, walkM)) : undefined;
+  const { unreachable, ...plan } = await solve(placed, s, e, { departAt: depart, expressOnTime: expressOnTime !== false, walkM: walk });
   ungeocoded.push(...unreachable.map(x => ({ ...x, unreachable: true })));
   // stop time is the same in any order, so the scanner's order pays it too (else "saved" compares drive vs drive+stops)
   const serviceMin = plan.clusters.reduce((t, c) => t + c.service, 0) / 60;

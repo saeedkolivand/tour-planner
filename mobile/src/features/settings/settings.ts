@@ -5,6 +5,10 @@ import { Platform } from 'react-native';
 import { setLanguage, type Lang } from '@/shared/i18n';
 import type { NavApp } from '@/services/navigation';
 
+export type RouteStyle = 'walk' | 'drive';
+/** Metres the driver walks from one parking spot, per route style. */
+export const WALK_M: Record<RouteStyle, number> = { walk: 80, drive: 25 };
+
 export interface Settings {
   /** The PC over Tailscale (HTTPS via `tailscale serve`). */
   server: string;
@@ -28,12 +32,14 @@ export interface Settings {
   expressOnTime: boolean;
   /** "08:30": when you usually leave the depot; ETAs and Express deadlines count from it when planning earlier. */
   leaveAt: string;
+  /** 'walk': stops within 80 m share a parking spot (park & walk). 'drive': drive up to nearly every door, only next-door stops share. */
+  routeStyle: RouteStyle;
   /** UI language; 'system' follows the phone's language (German if set, else English). */
   language: 'system' | 'en' | 'de';
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '', language: 'system' };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '', language: 'system', routeStyle: 'walk' };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);

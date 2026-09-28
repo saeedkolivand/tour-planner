@@ -1,4 +1,4 @@
-// Web build (and Android without a Google Maps key): a placeholder where the map would be.
+// Web build: a placeholder where the map would be.
 import { Map } from 'lucide-react-native';
 import { View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
