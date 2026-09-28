@@ -38,12 +38,7 @@ jobs:
       - name: Stamp the release version into app.json
         if: inputs.version != ''
         run: |
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));
-            j.expo.version='${{ inputs.version }}';
-            j.expo.android={...j.expo.android,versionCode:${{ github.run_number }}};
-            j.expo.ios={...j.expo.ios,buildNumber:'${{ github.run_number }}'};
-            fs.writeFileSync('app.json',JSON.stringify(j,null,2)+'
-')"
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));j.expo.version='${{ inputs.version }}';j.expo.android={...j.expo.android,versionCode:${{ github.run_number }}};j.expo.ios={...j.expo.ios,buildNumber:'${{ github.run_number }}'};fs.writeFileSync('app.json',JSON.stringify(j,null,2))"
           grep -E '"(version|versionCode|buildNumber)"' app.json
 
       - name: Generate the native iOS project
