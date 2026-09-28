@@ -180,7 +180,7 @@
     "langGerman": "Deutsch",
     "startEnd": "Start & end",
     "startEndFooter": "Without a depot, routes start from your current location.",
-    "depotPlaceholder": "Depot address, e.g. Carl-Benz-Ring 1, 50374 Erftstadt",
+    "depotPlaceholder": "Depot address, e.g. Carl-Benz-Ring 1",
     "depotLabel": "Depot address",
     "returnToDepot": "Return to depot",
     "returnToDepotHint": "Plan the drive back as part of the route",

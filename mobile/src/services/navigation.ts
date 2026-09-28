@@ -1,7 +1,8 @@
 // Hands a stop to a navigation app. All three run on CarPlay, so the route appears on the car's screen.
 // URL formats per the vendors' docs (checked 2026-09-27):
 //   Apple  https://maps.apple.com/?daddr=LAT,LON&dirflg=d          (dirflg=d = by car; opens Maps)
-//   Google comgooglemaps://?daddr=LAT,LON&directionsmode=driving   (needs LSApplicationQueriesSchemes, see app.json)
+//   Google comgooglemaps://?daddr=LAT,LON&directionsmode=driving   (iOS; needs LSApplicationQueriesSchemes, see app.json)
+//          google.navigation:q=LAT,LON&mode=d                         (Android: starts turn-by-turn right away)
 //          https://www.google.com/maps/dir/?api=1&destination=…    (fallback when the app isn't installed)
 //   Waze   https://waze.com/ul?ll=LAT,LON&navigate=yes             (official; waze:// silently does nothing if not installed)
 import { Linking, Platform } from 'react-native';
@@ -18,7 +19,8 @@ export async function navigateTo({ lat, lon }: LatLon, app: NavApp, label?: stri
   if (app === 'apple' && Platform.OS === 'android') app = 'google'; // Apple Maps doesn't exist on Android
   let url = `https://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
   if (app === 'waze') url = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-  if (app === 'google') {
+  if (app === 'google' && Platform.OS === 'android') url = `google.navigation:q=${lat},${lon}&mode=d`;
+  else if (app === 'google') {
     const native = `comgooglemaps://?daddr=${lat},${lon}&directionsmode=driving`;
     url = await Linking.canOpenURL(native).catch(() => false)
       ? native

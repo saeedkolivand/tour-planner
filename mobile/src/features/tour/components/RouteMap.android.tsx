@@ -56,9 +56,12 @@ export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove 
           return (
             <ViewAnnotation key={id} id={id} lngLat={ll(x)} draggable title={`#${x.no}  ${x.street} ${x.number}`} snippet={t('map.dragHint')}
               onDragEnd={e => onMove(x, { lat: e.nativeEvent.lngLat[1], lon: e.nativeEvent.lngLat[0] })}>
-              <View className={cn('items-center justify-center rounded-full border-2 border-white',
-                next ? 'bg-primary size-9' : x.done ? 'bg-success size-6' : 'bg-foreground size-7')}>
-                <Text className={cn('text-background font-bold', next ? 'text-sm text-white' : 'text-[10px]', x.done && 'text-white')}>{x.no}</Text>
+              {/* fixed outer frame: the annotation keeps its first measured size, so a pin that shrinks (next -> delivered) was clipped */}
+              <View className="size-10 items-center justify-center">
+                <View className={cn('items-center justify-center rounded-full border-2 border-white',
+                  next ? 'bg-primary size-9' : x.done ? 'bg-success size-6' : 'bg-foreground size-7')}>
+                  <Text className={cn('text-background font-bold', next ? 'text-sm text-white' : 'text-[10px]', x.done && 'text-white')}>{x.no}</Text>
+                </View>
               </View>
             </ViewAnnotation>
           );
