@@ -8,14 +8,16 @@ import { StickyAction } from '@/components/StickyAction';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import type { ScanInput } from '@/features/tour/api';
 import { CaptureCard } from '@/features/tour/components/CaptureCard';
 import { CoverageCard } from '@/features/tour/components/CoverageCard';
+import { PhotoCapture } from '@/features/tour/components/PhotoCapture';
 import { StopEditDialog } from '@/features/tour/components/StopEditDialog';
 import { StopListItem } from '@/features/tour/components/StopListItem';
 import { coverage } from '@/features/tour/selectors';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { usePlanning } from '@/features/tour/usePlanning';
-import { scan } from '@/services/scan';
+import { pickScreenshots, readPhotos } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
 
 const today = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
@@ -26,13 +28,13 @@ export default function StopsScreen() {
   const plan = usePlanning();
   const [msg, setMsg] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
+  const [camera, setCamera] = useState(false);
   const cov = useMemo(() => coverage(tour), [tour]);
 
-  const capture = async (source: 'camera' | 'library') => {
+  const capture = async (input: Promise<ScanInput | null>) => {
     haptic.tap();
     try {
-      const input = await scan(source);
-      const r = input && await store.scan(input);
+      const r = await input.then(i => i && store.scan(i));
       if (!r) return;
       (r.error ? haptic.warn : haptic.success)();
       setMsg(r.error ? `Some photos failed: ${r.error}` : `Found ${r.found} ${r.found === 1 ? 'row' : 'rows'} · ${r.added} new ${r.added === 1 ? 'stop' : 'stops'}`);
@@ -79,7 +81,7 @@ export default function StopsScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View className="mb-1 gap-3">
-            <CaptureCard onCamera={() => capture('camera')} onLibrary={() => capture('library')} busy={!!busy} message={msg} />
+            <CaptureCard onCamera={() => { haptic.tap(); setCamera(true); }} onLibrary={() => capture(pickScreenshots())} busy={!!busy} message={msg} />
             {tour.stops.length > 0 && <CoverageCard c={cov} expected={tour.expected} onExpected={store.setExpected} />}
             {tour.stops.length > 0 && <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">Captured</Text>}
           </View>
@@ -94,6 +96,7 @@ export default function StopsScreen() {
         <StopEditDialog key={editing} stop={tour.stops[editing]} onClose={closeEditor}
           onSave={p => store.editStop(editing, p)} onDelete={() => store.removeStop(editing)} />
       )}
+      <PhotoCapture open={camera} onClose={() => setCamera(false)} onDone={uris => { setCamera(false); capture(readPhotos(uris)); }} />
     </View>
   );
 }

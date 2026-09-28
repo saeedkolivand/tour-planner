@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useIsFocused } from 'expo-router';
-import { Flashlight, FlashlightOff, ListPlus, ScanBarcode } from 'lucide-react-native';
+import { Flashlight, FlashlightOff, ListPlus, ScanBarcode, X } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -107,6 +107,9 @@ export default function ScanScreen() {
             onPick={s => { haptic.success(); show(s, result.parcel); }}
             onDelivered={s => { if (s.key) { haptic.success(); store.setDone([s.key], true); setResult(null); } }}
             onAdd={() => add(result.parcel)} />
+          <Button variant="secondary" size="icon" className="absolute -top-3 right-2 rounded-full" onPress={() => { haptic.select(); setResult(null); }} accessibilityLabel="Dismiss">
+            <Icon as={X} size={20} />
+          </Button>
         </View>
       )}
     </View>

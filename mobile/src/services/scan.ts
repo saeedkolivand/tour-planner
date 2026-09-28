@@ -11,32 +11,37 @@ const L = log('scan');
 const Ocr = requireOptionalNativeModule<{ isSupported: boolean; extractTextFromImage(path: string): Promise<string[]> }>('ExpoTextExtractor');
 export const onDeviceOcr = !!Ocr?.isSupported;
 
-/** Photographs or picks screenshots of the scanner list. null when the user cancels. */
-export async function scan(source: 'camera' | 'library'): Promise<ScanInput | null> {
-  const perm = source === 'camera'
-    ? await ImagePicker.requestCameraPermissionsAsync()
-    : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) {
-    L.warn('permission denied', { source });
-    throw new Error(`Allow ${source === 'camera' ? 'camera' : 'photo'} access in Settings`);
-  }
+async function toDataUrl(uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
 
-  const options: ImagePicker.ImagePickerOptions = {
-    mediaTypes: 'images',
-    allowsMultipleSelection: source === 'library',
-    quality: 0.8,
-    base64: !onDeviceOcr, // only needed when the server does the reading
-  };
-  const res = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
-  if (res.canceled) { L.info('cancelled', { source }); return null; }
-
+/** Runs on-device OCR, or prepares base64 for the server, on already-captured photo file uris. */
+export async function readPhotos(uris: string[]): Promise<ScanInput> {
   if (Ocr && onDeviceOcr) {
-    // one text per photo; the server works out which lines belong to which stop
     const t0 = Date.now();
-    const texts = await Promise.all(res.assets.map(async a => (await Ocr.extractTextFromImage(a.uri.replace('file://', ''))).join('\n')));
-    L.info('on-device OCR', { source, photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0 });
+    const texts = await Promise.all(uris.map(async uri => (await Ocr.extractTextFromImage(uri.replace('file://', ''))).join('\n')));
+    L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0 });
     return { texts };
   }
-  L.info('sending photos to server', { source, photos: res.assets.length, reason: Ocr ? 'OCR unsupported on device' : 'no native OCR in this build' });
-  return { images: res.assets.map(a => `data:${a.mimeType ?? 'image/jpeg'};base64,${a.base64}`) };
+  L.info('sending photos to server', { photos: uris.length, reason: Ocr ? 'OCR unsupported on device' : 'no native OCR in this build' });
+  const images = await Promise.all(uris.map(toDataUrl));
+  return { images };
+}
+
+/** Picks screenshots of the scanner list from the photo library. null when the user cancels. */
+export async function pickScreenshots(): Promise<ScanInput | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    L.warn('permission denied', { source: 'library' });
+    throw new Error('Allow photo access in Settings');
+  }
+  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.8 });
+  if (res.canceled) { L.info('cancelled', { source: 'library' }); return null; }
+  return readPhotos(res.assets.map(a => a.uri));
 }
