@@ -5,9 +5,13 @@ name: Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['mobile/**', '.github/workflows/android-apk.yml']
+  workflow_call:
+    inputs:
+      version:
+        description: Release version to stamp into app.json (set by release.yml)
+        type: string
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -35,6 +39,17 @@ jobs:
 
       - name: Checks
         run: npm run typecheck && npm run lint && npm test
+
+      - name: Stamp the release version into app.json
+        if: inputs.version != ''
+        run: |
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));
+            j.expo.version='${{ inputs.version }}';
+            j.expo.android={...j.expo.android,versionCode:${{ github.run_number }}};
+            j.expo.ios={...j.expo.ios,buildNumber:'${{ github.run_number }}'};
+            fs.writeFileSync('app.json',JSON.stringify(j,null,2)+'
+')"
+          grep -E '"(version|versionCode|buildNumber)"' app.json
 
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --clean

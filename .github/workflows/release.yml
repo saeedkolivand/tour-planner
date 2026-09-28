@@ -1,0 +1,77 @@
+# One release per releasable push to main (Conventional Commits: feat -> minor, fix -> patch, "!"/BREAKING CHANGE -> major).
+# 1. semantic-release --dry-run works out whether there is a release and its version (nothing else builds otherwise).
+# 2. The APK and the IPA are built with that version stamped into app.json.
+# 3. semantic-release tags, writes the notes from the commits and attaches both files to the GitHub Release.
+# No changelog commit, no version bump commit: the tag and the release are the record.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # every tag and commit: semantic-release reads the history
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: next
+        run: npx semantic-release --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo "next version = '${{ steps.next.outputs.version }}' (empty means nothing to release)"
+
+  android:
+    needs: version
+    if: needs.version.outputs.version != ''
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  ios:
+    needs: version
+    if: needs.version.outputs.version != ''
+    uses: ./.github/workflows/ios-unsigned.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  release:
+    needs: [version, android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v7
+        with:
+          name: TourPlanner-apk
+      - uses: actions/download-artifact@v7
+        with:
+          name: TourPlanner-unsigned-ipa
+      - run: ls -la TourPlanner.apk TourPlanner-unsigned.ipa
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

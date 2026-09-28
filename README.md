@@ -102,14 +102,18 @@ All of it lives in `server/roads/` and `wsl/osrm.sh`. Every apply rebuilds the r
 
 ## iPhone install without a Mac or paid account
 
-1. Push to GitHub. The workflow builds `TourPlanner-unsigned.ipa`; download it from the run's artifacts.
+1. Download `TourPlanner-unsigned.ipa` from the latest [GitHub Release](../../releases/latest) (or from a workflow run's artifacts).
 2. On Windows, install **Sideloadly** and iTunes, plug in the iPhone, drop in the `.ipa`, and sign in with a free Apple ID.
 3. On the iPhone: Settings → General → VPN & Device Management → trust your Apple ID. Also enable Developer Mode.
 4. Free signing expires after 7 days. Re-sideload the same `.ipa` weekly.
 
 ## Android install
 
-The **Android APK** workflow builds `TourPlanner.apk`; download it from the run's artifacts. Install with `adb install -r TourPlanner.apk`, or copy the file to the phone and open it.
+Download `TourPlanner.apk` from the latest [GitHub Release](../../releases/latest) (or from an **Android APK** workflow run's artifacts). Install with `adb install -r TourPlanner.apk`, or copy the file to the phone and open it.
+
+## Releases
+
+Every push to `main` runs `release.yml`: [semantic-release](https://semantic-release.gitbook.io) reads the commits since the last tag and, if any of them is releasable, builds the APK and the IPA with that version stamped into `app.json`, tags, and publishes a GitHub Release with the notes and both files attached. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `feat:` bumps the minor version, `fix:` the patch, a `!` after the type or a `BREAKING CHANGE:` footer the major. Anything else (`chore:`, `docs:`, `refactor:`, ...) ships with the next release but does not trigger one. The Android APK and iOS workflows can still be run by hand for a test build.
 
 ## Logs
 

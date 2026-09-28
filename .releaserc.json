@@ -1,0 +1,14 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/exec", { "verifyReleaseCmd": "echo \"version=${nextRelease.version}\" >> \"$GITHUB_OUTPUT\"" }],
+    ["@semantic-release/github", {
+      "assets": [
+        { "path": "TourPlanner.apk", "label": "Android APK (sideload)" },
+        { "path": "TourPlanner-unsigned.ipa", "label": "iOS unsigned IPA (Sideloadly / AltStore)" }
+      ]
+    }]
+  ]
+}
