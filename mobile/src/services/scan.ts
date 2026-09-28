@@ -1,5 +1,6 @@
 import { requireOptionalNativeModule } from 'expo';
 import * as ImagePicker from 'expo-image-picker';
+import { getSettings, noPc } from '@/features/settings/settings';
 import type { ScanInput } from '@/features/tour/api';
 import { log } from '@/shared/log';
 
@@ -23,13 +24,15 @@ async function toDataUrl(uri: string): Promise<string> {
 
 /** Runs on-device OCR, or prepares base64 for the server, on already-captured photo file uris. */
 export async function readPhotos(uris: string[]): Promise<ScanInput> {
-  if (Ocr && onDeviceOcr) {
+  // ponytail: the PC reads photos only when it is in use at all; phone-only mode ignores the toggle
+  const toPc = getSettings().serverOcr && !noPc();
+  if (Ocr && onDeviceOcr && !toPc) {
     const t0 = Date.now();
     const texts = await Promise.all(uris.map(async uri => (await Ocr.extractTextFromImage(uri.replace('file://', ''))).join('\n')));
     L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0 });
     return { texts };
   }
-  L.info('sending photos to server', { photos: uris.length, reason: Ocr ? 'OCR unsupported on device' : 'no native OCR in this build' });
+  L.info('sending photos to server', { photos: uris.length, reason: toPc ? 'chosen in Settings' : Ocr ? 'OCR unsupported on device' : 'no native OCR in this build' });
   const images = await Promise.all(uris.map(toDataUrl));
   return { images };
 }

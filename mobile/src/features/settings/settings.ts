@@ -14,6 +14,8 @@ export interface Settings {
   autoNavigate: boolean;
   /** Scan tab: a label that isn't in the tour is added to it right away (building the tour while loading). */
   autoAddScans: boolean;
+  /** Read scanner photos on the PC (its vision model) even when this phone can read text itself. */
+  serverOcr: boolean;
   /**
    * Planning without the PC: 'auto' uses the PC when it answers and the phone otherwise; 'phone' never asks the PC.
    */
@@ -27,7 +29,7 @@ export interface Settings {
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '' };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '' };
 
 let current = DEFAULTS;
 const listeners = new Set<() => void>();

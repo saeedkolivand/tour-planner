@@ -4,12 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { useSettings } from '@/features/settings/settings';
 import { onDeviceOcr } from '@/services/scan';
 
 /** The first thing on screen: photograph the scanner list (or pick screenshots). */
 export function CaptureCard({ onCamera, onLibrary, busy, message }: {
   onCamera(): void; onLibrary(): void; busy: boolean; message?: string;
 }) {
+  const { serverOcr } = useSettings();
+  const onPhone = onDeviceOcr && !serverOcr;
   return (
     <Card className="border-0 bg-primary py-5">
       <CardContent className="gap-4 px-5">
@@ -20,7 +23,7 @@ export function CaptureCard({ onCamera, onLibrary, busy, message }: {
           <View className="flex-1">
             <Text className="text-primary-foreground text-lg font-bold">Capture the scanner list</Text>
             <Text className="text-primary-foreground/80 text-sm">
-              {onDeviceOcr ? 'Read on this phone. Photos never leave it.' : 'Photos are read on your PC.'}
+              {onPhone ? 'Read on this phone. Photos never leave it.' : 'Photos are read on your PC.'}
             </Text>
           </View>
         </View>

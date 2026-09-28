@@ -52,7 +52,7 @@ export default function SettingsScreen() {
         <ClosuresSection />
 
         <SettingsSection title="Planning" footer={s.planner === 'auto'
-          ? `Plans on your PC when it answers (road map with roadworks and closures), on this phone when it doesn't. Text recognition: ${onDeviceOcr ? 'on this phone' : 'on the PC'}.`
+          ? `Plans on your PC when it answers (road map with roadworks and closures), on this phone when it doesn't. Text recognition: ${onDeviceOcr && !s.serverOcr ? 'on this phone' : 'on the PC'}.`
           : 'Everything runs on this phone: reading lists and labels, addresses, and the stop order. No PC needed.'}>
           <SwitchRow label="Use my PC" hint="Best plans when it's reachable over Tailscale" value={s.planner === 'auto'}
             onChange={on => setSettings({ planner: on ? 'auto' : 'phone' })} />
@@ -65,6 +65,12 @@ export default function SettingsScreen() {
                 <Icon as={RefreshCw} size={16} />
                 <Text>Reconnect</Text>
               </Button>
+              {onDeviceOcr && (
+                <>
+                  <SettingsDivider />
+                  <SwitchRow label="Read photos on my PC" hint="Its vision model instead of this phone's text recognition" value={s.serverOcr} onChange={serverOcr => setSettings({ serverOcr })} />
+                </>
+              )}
             </>
           )}
         </SettingsSection>
