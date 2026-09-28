@@ -227,7 +227,16 @@
     "routeStyle": "Route style",
     "styleWalk": "Park & walk",
     "styleDrive": "Door to door",
-    "routeStyleFooter": "Park & walk: stops within 80 m share one parking spot and you walk between them. Door to door: you drive up to nearly every stop; only next-door neighbours share a spot. Takes effect at the next plan."
+    "routeStyleFooter": "Park & walk: stops within 80 m share one parking spot and you walk between them. Door to door: you drive up to nearly every stop; only next-door neighbours share a spot. Takes effect at the next plan.",
+    "updates": "Updates",
+    "version": "Version {{v}}",
+    "updateChecking": "Checking GitHub for a newer release…",
+    "updateFailed": "Couldn't reach GitHub. Try again with internet.",
+    "upToDate": "You have the latest release.",
+    "checkUpdates": "Check for updates",
+    "getUpdate": "Get version {{v}}",
+    "updateHintAndroid": "A newer release is out. Download the APK and open it to install over this app.",
+    "updateHintIos": "A newer release is out. Download the .ipa from the release page on your PC and sideload it with Sideloadly."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",

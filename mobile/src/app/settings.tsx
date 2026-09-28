@@ -13,6 +13,7 @@ import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
 import { setSettings, useSettings } from '@/features/settings/settings';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
+import { UpdateSection } from '@/features/updates/UpdateSection';
 import { onDeviceOcr } from '@/services/scan';
 import { useTranslation } from '@/shared/i18n';
 
@@ -103,6 +104,8 @@ export default function SettingsScreen() {
             </Button>
           </ConfirmDialog>
         </SettingsSection>
+
+        <UpdateSection />
       </ScrollView>
     </View>
   );

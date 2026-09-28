@@ -227,7 +227,16 @@
     "routeStyle": "Routenstil",
     "styleWalk": "Parken & laufen",
     "styleDrive": "Bis vor die Tür",
-    "routeStyleFooter": "Parken & laufen: Stopps im Umkreis von 80 m teilen sich einen Parkplatz, dazwischen gehst du zu Fuß. Bis vor die Tür: Du fährst fast jeden Stopp direkt an, nur direkte Nachbarn teilen sich einen Parkplatz. Gilt ab der nächsten Planung."
+    "routeStyleFooter": "Parken & laufen: Stopps im Umkreis von 80 m teilen sich einen Parkplatz, dazwischen gehst du zu Fuß. Bis vor die Tür: Du fährst fast jeden Stopp direkt an, nur direkte Nachbarn teilen sich einen Parkplatz. Gilt ab der nächsten Planung.",
+    "updates": "Updates",
+    "version": "Version {{v}}",
+    "updateChecking": "Suche auf GitHub nach einer neueren Version…",
+    "updateFailed": "GitHub nicht erreichbar. Mit Internet erneut versuchen.",
+    "upToDate": "Du hast die neueste Version.",
+    "checkUpdates": "Nach Updates suchen",
+    "getUpdate": "Version {{v}} laden",
+    "updateHintAndroid": "Eine neuere Version ist da. APK laden und öffnen, um sie über diese App zu installieren.",
+    "updateHintIos": "Eine neuere Version ist da. Lade die .ipa von der Release-Seite auf deinen PC und installiere sie mit Sideloadly."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",
