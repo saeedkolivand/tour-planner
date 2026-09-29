@@ -1,6 +1,7 @@
 // HTTP API: "METHOD /path" -> handler(body). Handlers stay thin; the work lives in the modules they call.
 import { dedupe } from './route/stops.mjs';
 import { extract } from './extract/index.mjs';
+import { untruncate } from './extract/ground.mjs';
 import { log, write } from './log.mjs';
 import { pin } from './route/geocode.mjs';
 import { clean, planTour } from './route/plan.mjs';
@@ -17,7 +18,7 @@ export const routes = {
   /** {images?: [dataUrl], texts?: [ocrText], stops?: [known]} -> merged + deduped stops, in scanner order. */
   async 'POST /extract'({ images = [], texts = [], stops = [] }) {
     const photos = await extract([...images.map(image => ({ image })), ...texts.map(text => ({ text }))]);
-    const merged = dedupe(clean([...clean(stops), ...photos.flatMap(p => p.stops)]));
+    const merged = dedupe(clean([...clean(stops), ...untruncate(photos.flatMap(p => p.stops), stops)]));
     L.info('extracted', { images: images.length, texts: texts.length, before: stops.length, after: merged.length });
     return { stops: merged, photos: photos.map(({ stops, ...p }) => ({ ...p, found: stops.length })) };
   },

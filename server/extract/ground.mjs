@@ -11,13 +11,32 @@ export const fixNumber = s => String(s).replace(/[OoIl|](?=\d|$)|(?<=\d)[OoIl|]/
 /** Postcodes are all digits, so every look-alike is converted. */
 export const fixPostcode = s => String(s).replace(/[OoIl|SB]/g, c => DIGIT[c]).replace(/\D/g, '');
 
-const EXPRESS = /(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\b(0?8)[:.]30\b|\bexpress\b/i;
+// "PRIO" is this scanner's priority flag (= 12:00). A bare time is never a deadline: every row carries its
+// planned slot ("09:11 11:11"), so a plain "08:30" would flag the first stop of the day as Express.
+const EXPRESS = /(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\b(prio)\b|\bexpress\b/i;
 
 function expressIn(block) {
   const m = block.match(EXPRESS);
   if (!m) return '';
-  const t = m[1] ? `${m[1].padStart(2, '0')}:${m[2]}` : m[3] ? '08:30' : '18:00';
+  const t = m[1] ? `${m[1].padStart(2, '0')}:${m[2]}` : m[3] ? '12:00' : '18:00';
   return EXPRESS_TIMES.includes(t) ? t : '18:00';
+}
+
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * The scanner shortens long street names in the middle ("Gereonsm…engasse"): fill in the full name when another
+ * row of the batch (or a known stop) spells it out; otherwise it stays as shown and is geocoded as best it can.
+ */
+export function untruncate(stops, known = []) {
+  const tight = s => s.replace(/\s+/g, '');
+  const full = [...new Set([...known, ...stops].map(s => s.street).filter(s => s && !/…|\.\.\./.test(s)))];
+  return stops.map(s => {
+    const m = /^(.*?)(?:…|\.\.\.)(.*)$/.exec(s.street ?? '');
+    if (!m) return s;
+    const re = new RegExp(`^${esc(tight(m[1]))}.*${esc(tight(m[2]))}$`, 'i');
+    const hit = full.filter(f => re.test(tight(f)));
+    return hit.length === 1 ? { ...s, street: hit[0] } : s;
+  });
 }
 
 /** Each stop's own lines run from its street to the next stop's street; Express is read from those only. */

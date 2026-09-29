@@ -3,15 +3,16 @@ import { log } from '../log.mjs';
 import { applianceContent, askAppliance } from './appliance.mjs';
 import { askClaude, claudeContent } from './claude.mjs';
 import { ground } from './ground.mjs';
-import { IMAGE_PROMPT, TEXT_PROMPT, isValid } from './schema.mjs';
+import { IMAGE_PROMPT, TEXT_PROMPT, isValid, usable } from './schema.mjs';
 
 const MODE = process.env.VISION || 'auto';
 const L = log('extract');
 
 const PROVIDERS = [
   { name: 'appliance', ask: askAppliance, content: applianceContent, enabled: MODE !== 'claude' },
-  { name: 'claude', ask: askClaude, content: claudeContent, enabled: MODE !== 'appliance' },
+  { name: 'claude', ask: askClaude, content: claudeContent, enabled: MODE !== 'appliance' && !!process.env.ANTHROPIC_API_KEY },
 ].filter(p => p.enabled);
+if (PROVIDERS.length < 2) L.warn('one reader only: a photo it cannot read fails', { readers: PROVIDERS.map(p => p.name), hint: 'set ANTHROPIC_API_KEY for the Claude fallback' });
 
 async function readOne(input, i) {
   const kind = input.image ? 'image' : 'text';
@@ -22,7 +23,9 @@ async function readOne(input, i) {
     try {
       const o = await p.ask(p.content(input, prompt));
       if (!isValid(o)) throw new Error('invalid stops in reply');
-      const stops = input.text ? ground(o.stops, input.text) : o.stops;
+      const rows = usable(o.stops, { fromImage: !!input.image });
+      if (rows.length < o.stops.length) L.info('rows without an address dropped', { input: i, dropped: o.stops.length - rows.length });
+      const stops = input.text ? ground(rows, input.text) : rows;
       L.info('read', { input: i, kind, by: p.name, found: stops.length, ms: Math.round(performance.now() - t0) });
       return { stops, by: p.name };
     } catch (e) {

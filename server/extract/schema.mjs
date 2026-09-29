@@ -4,29 +4,57 @@ export const EXPRESS_TIMES = ['08:30', '10:00', '12:00', '14:00', '18:00'];
 
 const STOP = {
   type: 'object', additionalProperties: false,
-  required: ['street', 'number', 'postcode', 'city', 'type', 'express', 'parcels'],
+  required: ['street', 'number', 'postcode', 'city', 'type', 'express', 'parcels', 'prio'],
   properties: {
     street: { type: 'string' }, number: { type: 'string' }, postcode: { type: 'string' }, city: { type: 'string' },
     name: { type: 'string' },
     type: { type: 'string', enum: ['private', 'business', 'pickup', 'shop'] },
     express: { type: 'string', enum: ['', ...EXPRESS_TIMES] }, // '' = not express; required so small models don't skip it
+    prio: { type: 'boolean' }, // the scanner's literal "PRIO" label on the row (a small model reads a flag better than it infers a deadline)
     parcels: { type: 'integer' },
+    opens: { type: 'string' },
     note: { type: 'string' },
   },
 };
 export const SCHEMA = { type: 'object', additionalProperties: false, required: ['stops'], properties: { stops: { type: 'array', items: STOP } } };
 
-export const isValid = o => Array.isArray(o?.stops) && o.stops.every(s => s.street?.trim() && s.number?.trim());
+export const isValid = o => Array.isArray(o?.stops);
 
-const RULES = `Extract every delivery stop, top to bottom, in the order shown.
-- street: as written, e.g. "Hohe Str." or "Aachener Straße". number: house number incl. suffix, e.g. "12a", "3-5".
-- postcode: 5 digits if present, else "". city: if absent use "Köln".
-- name: recipient or company if shown.
-- type: "shop" = a DPD Pickup Paketshop or parcel station being supplied; "pickup" = Abholung / Retoure / collecting a parcel;
-  "business" = any company or trade (GmbH, AG, KG, Praxis, Apotheke, Kanzlei, a shop's name); otherwise "private".
-- express: if the stop shows "EXPRESS", "Express 12:00", "DPD 10:00", "8:30" or similar, set it to that deadline ("08:30", "10:00", "12:00" or "18:00"; plain "Express" = "18:00"); otherwise "".
-- parcels: number of parcels for that stop if shown, else 1.
-- note: other useful details (floor, Hinterhaus, Ablageort), else omit.
+const spanH = w => { const m = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(w.replace(/\s/g, '')); return m ? (m[3] * 60 + +m[4] - m[1] * 60 - m[2]) / 60 : 0; };
+const NUMBER_AT_END = /^(.+?)\s+(\d+\s*[a-zA-Z]?(?:\s*-\s*\d+\s*[a-zA-Z]?)?)$/;
+/**
+ * What the model returns, made usable in code rather than by prompting a small model harder:
+ * - the house number often lands in the street ("Steinfelder Gasse 27", number "" or "27"): split it off;
+ * - PRIO is the scanner's only Express marker: a deadline of 12:00. A picture never shows "Express 12:00", so an
+ *   `express` the model inferred from the row's planned time slot is dropped (the OCR-text path keeps its own rule);
+ * - a row without an address (cut off, a header) is dropped, not the whole photo.
+ */
+export function usable(stops, { fromImage = true } = {}) {
+  return stops.flatMap(raw => {
+    const s = { ...raw, street: String(raw.street ?? '').trim(), number: String(raw.number ?? '').trim() };
+    const m = NUMBER_AT_END.exec(s.street);
+    if (m && (!s.number || s.number === m[2].replace(/\s+/g, ''))) { s.street = m[1].trim(); s.number = m[2].replace(/\s+/g, ''); }
+    if (fromImage) s.express = s.prio ? '12:00' : '';
+    delete s.prio;
+    // opening hours exist for shops only, and span more than the 2-hour planned slot the model likes to copy here
+    if (s.opens && !(s.type === 'shop' && spanH(s.opens) > 2)) delete s.opens;
+    return s.street && s.number ? [s] : [];
+  });
+}
+
+const RULES = `Extract every delivery stop, top to bottom, in the order shown. One stop per row: a bold name line,
+the street with house number under it, then postcode and city.
+- name: the bold name line (person or company).
+- street: the street name only, e.g. "Hohe Str.", "Aachener Straße", copied exactly with its umlauts.
+- number: the house number incl. suffix, e.g. "12a", "3-5".
+- postcode: 5 digits if present (letters after them are not part of it), else "". city: if absent use "Köln".
+- type: "shop" = a DPD Pickup Paketshop being supplied (red parcel icon before the name); "pickup" = Abholung / Retoure;
+  "business" = a company or practice (GmbH, KG, OHG, e.V., Praxis, Apotheke, Kanzlei, Kita); a person = "private".
+- parcels: the bold number at the row's top right, else 1.
+- prio: true only if the word "PRIO" is printed in that row, else false.
+- express: "" unless the row literally says EXPRESS with a time ("Express 12:00" -> "12:00").
+- opens: opening hours printed in the row, like "11:00-19:00"; else omit.
+- note: a weight icon ">10" or ">20" as "schwer >10 kg" / "schwer >20 kg"; else omit.
 Do not invent stops. Reply with JSON only: {"stops":[...]}.`;
 
 export const IMAGE_PROMPT = `This is a phone photo of a DPD parcel scanner screen listing delivery stops in or around Cologne, Germany.

@@ -1,16 +1,17 @@
 import assert from 'node:assert/strict';
-import { fixNumber, fixPostcode, ground } from './server/extract/ground.mjs';
+import { fixNumber, fixPostcode, ground, untruncate } from './server/extract/ground.mjs';
+import { usable } from './server/extract/schema.mjs';
 import { cluster, meters, serviceSec, walkLoop } from './server/route/cluster.mjs';
 import { improve } from './server/route/improve.mjs';
 import { insertLate, timeline } from './server/route/lateness.mjs';
 import { roadFor } from './server/route/snap.mjs';
 import { arrivalWindow, dueSec, osrmOptions, vroomJob } from './server/route/solve.mjs';
-import { dedupe, normStreet, stopKey } from './server/route/stops.mjs';
+import { alike, dedupe, normStreet, stopKey } from './server/route/stops.mjs';
 import { distToSegment, segmentsAt } from './server/roads/segments.mjs';
 import { mergeLines, speedLines } from './server/roads/speeds.mjs';
 import { mergeTour } from './server/tour.mjs';
 import { levelOf } from './server/roads/verkehrskalender.mjs';
-import { locate, nearbyNumbers } from './server/route/geocode.mjs';
+import { locate, nearbyNumbers, umlautVariants } from './server/route/geocode.mjs';
 import { utm32ToLatLon } from './server/roads/utm.mjs';
 import { sayable } from './server/siri.mjs';
 
@@ -32,6 +33,31 @@ assert.equal(d[0].postcode, '50667');
 // same street + number in two towns stays two stops; a row without postcode still joins its twin
 assert.equal(dedupe([{ street: 'Kölner Str.', number: '12', postcode: '50226' }, { street: 'Kölner Straße', number: '12', postcode: '50354' }]).length, 2);
 assert.equal(dedupe([{ street: 'Kölner Str.', number: '12', postcode: '50226' }, { street: 'Kölner Str.', number: '12' }]).length, 1);
+// two recipients at one door add up; the same row seen twice (same or no name) does not
+assert.equal(dedupe([{ street: 'Von-Werth-Str.', number: '7', name: 'A. Pollitt' }, { street: 'Von-Werth-Str.', number: '7', name: 'H. Steblau', parcels: 2 }])[0].parcels, 3);
+assert.equal(dedupe([{ street: 'Von-Werth-Str.', number: '7', name: 'A. Pollitt', parcels: 2 }, { street: 'Von-Werth-Str.', number: '7', name: 'A. Pollitt', parcels: 2 }])[0].parcels, 2);
+// a shortened street name is completed from a row that spells it out; ambiguous or unknown stays as shown
+const cut = untruncate([{ street: 'Gereonsm…engasse', number: '26' }, { street: 'Gereonsmühlengasse', number: '2' }, { street: 'Neusser Str.', number: '1' }]);
+assert.equal(cut[0].street, 'Gereonsmühlengasse');
+assert.equal(untruncate([{ street: 'Am K...hof', number: '1' }])[0].street, 'Am K...hof');
+// rows without an address are dropped, not the whole photo; a number that landed in the street is split off;
+// PRIO is the only Express marker in a photo, an inferred time is not
+const u = usable([{ street: 'Hohe Str.', number: '1', prio: true, express: '' }, { street: '', number: '' }, { street: 'Ring', number: 5, express: '08:30' },
+  { street: 'Steinfelder Gasse 27', number: '' }, { street: 'Steinfelder Gasse 20-22', number: '20-22' }, { street: 'Cardinalstr. 5', number: '5' }]);
+assert.deepEqual(u.map(s => [s.street, s.number, s.express]), [['Hohe Str.', '1', '12:00'], ['Ring', '5', ''], ['Steinfelder Gasse', '27', ''], ['Steinfelder Gasse', '20-22', ''], ['Cardinalstr.', '5', '']]);
+assert.equal(usable([{ street: 'Ring', number: '5', express: '10:00' }], { fromImage: false })[0].express, '10:00', 'OCR text keeps its own express');
+// printed hours stay on a shop; the planned 2-hour slot copied into `opens` goes
+assert.equal(usable([{ street: 'Balthasarstr.', number: '65', type: 'shop', opens: '11:00-19:00' }])[0].opens, '11:00-19:00');
+assert.equal(usable([{ street: 'Ring', number: '5', type: 'private', opens: '09:19-11:19' }])[0].opens, undefined);
+assert.equal(usable([{ street: 'Kiosk', number: '5', type: 'shop', opens: '09:19-11:19' }])[0].opens, undefined);
+// a street read a little wrong is still that street; a different street is not
+assert.ok(alike('Aquinost.', 'Aquinostraße'));
+assert.ok(alike('Gereonsmühlangasse', 'Gereonsmühlengasse'));
+assert.ok(alike('Neusser Str.', 'Neusser Straße'));
+assert.ok(!alike('Neusser Str.', 'Neusser Wall'));
+assert.ok(!alike('Ring', 'Rinne'), 'short names must match exactly');
+assert.ok(!alike('Nirgendweg', 'Irgendweg'));
+assert.equal(untruncate([{ street: 'Gereonsm...engasse', number: '26' }, { street: 'Gereonsmühlen gasse', number: '2' }])[0].street, 'Gereonsmühlen gasse');
 assert.equal(normStreet('Mülheimer Str.'), normStreet('Mülheimer Straße'), 'decomposed umlaut');
 
 // ~111 m per 0.001° lat
@@ -92,6 +118,11 @@ const g = ground([
 ], text);
 assert.deepEqual(g.map(s => s.express), ['', '10:00', '18:00']);
 assert.equal(g[1].number, '271');
+
+// a misread umlaut is retried with the other two; plain names give nothing to try
+assert.deepEqual(umlautVariants('Am Kämpchenshof'), ['Am Kömpchenshof', 'Am Kümpchenshof']);
+assert.deepEqual(umlautVariants('Hohe Str.'), []);
+assert.equal(umlautVariants('Mülheimer Str.').length, 2);
 
 // Siri reads street abbreviations badly
 assert.equal(sayable('Hohe Str. 68'), 'Hohe straße 68');

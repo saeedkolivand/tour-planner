@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import { writeAtomic } from '../files.mjs';
 import { log } from '../log.mjs';
-import { label, normStreet } from './stops.mjs';
+import { alike, label, normStreet } from './stops.mjs';
 
 // `localhost`, not 127.0.0.1: WSL forwards some services on IPv4 and some on IPv6 only.
 const PHOTON = process.env.PHOTON_URL || 'http://localhost:2322';
@@ -46,7 +46,7 @@ export function nearbyNumbers(number) {
  * Breslauer Platz is 50668, not 50670). Then: the same address without the postcode, else the street itself
  * (street-only) - but only a hit on that very street, never whatever Photon finds instead.
  */
-const sameStreetOf = (s, near) => h => h && normStreet(h.street) === normStreet(s.street) && near(h);
+const sameStreetOf = (s, near) => h => h && alike(h.street, s.street) && near(h);
 
 async function fallback(s, find, near) {
   const sameStreet = sameStreetOf(s, near);
@@ -76,7 +76,7 @@ export async function locate(s, find = geocodeText) {
     const h = await find(label({ ...s, number: n }));
     // same street, and either the list's postcode or right by where the street was found (the list's postcode
     // can be wrong; another town's street of that name is kilometres away)
-    if (h?.exact && normStreet(h.street) === normStreet(s.street) && near(h) && (!s.postcode || h.postcode === s.postcode || km(h, g) < 1)) {
+    if (h?.exact && alike(h.street, s.street) && near(h) && (!s.postcode || h.postcode === s.postcode || km(h, g) < 1)) {
       L.info('placed by a neighbouring number', { key: s.key, used: n });
       return { lat: h.lat, lon: h.lon, exact: true, near: n };
     }
@@ -100,6 +100,27 @@ async function nearPostcode(s, find) {
   return h => !h || h.postcode === pc || !centre || km(h, centre) < 3;
 }
 
+/** The vision model swaps umlauts now and then ("Kämpchenshof" for Kümpchenshof): the same name with each umlaut swapped. */
+export function umlautVariants(street) {
+  const out = [];
+  for (const [i, ch] of [...street].entries()) {
+    if (!'äöü'.includes(ch.toLowerCase())) continue;
+    for (const alt of 'äöü'.replace(ch.toLowerCase(), '')) out.push(street.slice(0, i) + (ch === ch.toUpperCase() ? alt.toUpperCase() : alt) + street.slice(i + 1));
+  }
+  return out;
+}
+
+/** locate(), then the umlaut swaps when the street as read does not exist; the stop takes the spelling that does. */
+async function locateForgiving(s) {
+  const g = await locate(s);
+  if (g) return g;
+  for (const street of umlautVariants(s.street)) {
+    const h = await locate({ ...s, street });
+    if (h) { L.info('street found with an umlaut swapped', { key: s.key, street }); s.street = street; return h; }
+  }
+  return null;
+}
+
 /** Adds lat/lon/exact to each stop in place; returns the stops that could not be found. */
 export async function geocode(stops) {
   const c = load(), missing = [];
@@ -109,7 +130,8 @@ export async function geocode(stops) {
     if (g && (g.exact || g.pinned)) hits++; // "street only" is retried: the OSM data may have the number by now
     else {
       looked++;
-      g = await locate(s).catch(e => { L.error('photon failed', { key: s.key, error: e }); return null; });
+      g = await locateForgiving(s).catch(e => { L.error('photon failed', { key: s.key, error: e }); return null; });
+      if (g?.street && normStreet(g.street) !== normStreet(s.street)) { L.info('street spelling corrected', { key: s.key, read: s.street, real: g.street }); s.street = g.street; }
       if (g) { c[s.key] = { lat: g.lat, lon: g.lon, exact: g.exact, ...(g.near && { near: g.near }) }; save(); }
     }
     if (g) Object.assign(s, { lat: g.lat, lon: g.lon, exact: g.exact ?? true });
