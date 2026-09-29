@@ -16,11 +16,12 @@ export function usePlanning() {
     try {
       const useGps = fromHere || !depot;
       if (useGps) store.setBusy('planning.findingLocation');
-      const start = useGps ? await currentPosition().finally(() => store.setBusy(null)) : { q: depot };
+      const here = useGps ? await currentPosition().finally(() => store.setBusy(null)) : null;
+      const start = here ? { lat: here.lat, lon: here.lon } : { q: depot };
       // planning at the depot before leaving: count ETAs and Express deadlines from the usual departure time
       const leave = /^(\d{1,2}):(\d{2})$/.exec(leaveAt.trim());
       const departAt = !fromHere && leave ? new Date().setHours(Number(leave[1]), Number(leave[2]), 0, 0) : undefined;
-      const ok = await store.plan(start, endAtDepot && depot ? { q: depot } : null, { departAt, expressOnTime, walkM: WALK_M[routeStyle] });
+      const ok = await store.plan(start, endAtDepot && depot ? { q: depot } : null, { departAt, expressOnTime, walkM: WALK_M[routeStyle], heading: here?.heading });
       (ok ? haptic.success : haptic.error)();
       return ok;
     } catch (e) {

@@ -9,7 +9,7 @@ export interface TourApi {
   getTour(): Promise<Partial<Tour>>;
   saveTour(tour: Tour): Promise<void>;
   extract(input: ScanInput, known: Stop[]): Promise<ExtractResult>;
-  optimize(req: { start: Place; end: Place | null; stops: Stop[]; departAt?: number; expressOnTime?: boolean; walkM?: number }): Promise<Plan & { stops: Stop[] }>;
+  optimize(req: { start: Place; end: Place | null; stops: Stop[]; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number }): Promise<Plan & { stops: Stop[] }>;
   pin(key: string, at: LatLon): Promise<void>;
 }
 

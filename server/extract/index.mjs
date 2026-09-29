@@ -33,11 +33,22 @@ async function readOne(input, i) {
   throw lastError;
 }
 
+// iOS fetch() of a file:// uri yields a typeless blob, so the phone sends data:application/octet-stream.
+// Both vision APIs want a real image type: sniff the first bytes (jpeg, png, webp, heic).
+const MAGIC = [[/^\/9j\//, 'jpeg'], [/^iVBORw0/, 'png'], [/^UklGR/, 'webp'], [/^AAAA[A-Za-z0-9+/]{2}Z0eX/, 'heic']];
+export function typedDataUrl(url) {
+  const m = /^data:([^;,]*);base64,(.*)$/s.exec(url);
+  if (!m || m[1].startsWith('image/')) return url;
+  const type = MAGIC.find(([re]) => re.test(m[2]))?.[1] ?? 'jpeg';
+  return `data:image/${type};base64,${m[2]}`;
+}
+
 /** inputs: [{image: dataUrl} | {text}]. Never throws: a failed input comes back with `error`. */
 // ponytail: sequential, the appliance has one GPU; parallelize Claude-only mode if it's too slow
 export async function extract(inputs) {
   const out = [];
-  for (const [i, input] of inputs.entries()) {
+  for (const [i, raw] of inputs.entries()) {
+    const input = raw.image ? { image: typedDataUrl(raw.image) } : raw;
     try { out.push({ photo: i, ...await readOne(input, i) }); }
     catch (e) {
       L.error('input unreadable', { input: i, error: e });

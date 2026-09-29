@@ -12,7 +12,9 @@ const within = <T,>(ms: number, p: Promise<T>) =>
  * Where the phone is. Never waits forever: a GPS fix in a garage or an unanswered permission prompt used to
  * leave "Plan" doing nothing at all. After 15 s the last known position (up to 10 min old) is used instead.
  */
-export async function currentPosition(): Promise<LatLon> {
+export type Position = LatLon & { /** course over ground in degrees, only while moving (>= 1 m/s) */ heading?: number };
+
+export async function currentPosition(): Promise<Position> {
   const t0 = Date.now();
   const { granted } = await within(30_000, Location.requestForegroundPermissionsAsync()).catch(() => ({ granted: false }));
   if (!granted) {
@@ -25,8 +27,10 @@ export async function currentPosition(): Promise<LatLon> {
     L.warn('no position', { ms: Date.now() - t0 });
     throw new Error(t('location.noFix'));
   }
-  L.info('position fixed', { ms: Date.now() - t0, accuracyM: p.coords.accuracy });
-  return { lat: p.coords.latitude, lon: p.coords.longitude };
+  // a parked van reports no course (or a stale one): the planner then treats it as free to turn either way
+  const moving = (p.coords.speed ?? 0) >= 1 && p.coords.heading != null && p.coords.heading >= 0;
+  L.info('position fixed', { ms: Date.now() - t0, accuracyM: p.coords.accuracy, heading: moving ? Math.round(p.coords.heading!) : undefined });
+  return { lat: p.coords.latitude, lon: p.coords.longitude, ...(moving && { heading: p.coords.heading! }) };
 }
 
 /** Where the phone points (0 = north, clockwise). For "no entry this way": the driver aims the phone down the street. */

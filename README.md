@@ -27,6 +27,8 @@ web app (photos) ──────────┼─► server/ (Node, :3000) �
         Tailscale HTTPS ───┘                       └─ VROOM → OSRM, Köln road graph (WSL, :3001 / :5050)
 ```
 
+The order respects how a van actually moves: one-way streets and turn restrictions from the road graph, arrival at the right-hand kerb of every stop (no stop across the road or behind a U-turn), each stop parked on its own street rather than the nearer alley round the corner, and, when you re-plan on the move, the direction you are already driving.
+
 ## Run
 
 ```powershell

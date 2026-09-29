@@ -18,7 +18,7 @@ const NO_LOCAL: LocalStore = { read: async () => null, write: () => {} };
 
 export type TourStore = ReturnType<typeof createTourStore>;
 
-export type PlanRequest = { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean };
+export type PlanRequest = { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number };
 /** Working without the PC: plan and read scanner text on the phone. Absent in tests that only exercise the PC path. */
 export interface PhoneFallback {
   mode(): 'auto' | 'phone';
@@ -179,7 +179,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       return result;
     },
 
-    async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean; walkM?: number } = {}) {
+    async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number } = {}) {
       const req: PlanRequest = { start, end, stops: state.tour.stops, lastNo: state.tour.plan?.lastNo, ...opt };
       const r = await run('plan', 'store.planningRoute', async () => {
         if (phone?.mode() === 'phone') return phone.plan(req);

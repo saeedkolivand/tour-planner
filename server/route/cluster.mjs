@@ -14,7 +14,7 @@ export function meters(a, b) {
 export const serviceSec = s => (SERVICE_MIN[s.type] ?? 2) * 60 + 30 * Math.max(0, (s.parcels || 1) - 1);
 
 /**
- * Stops within `radius` m of a cluster's parking spot (its first stop) join it.
+ * Stops within `radius` m of a cluster's parking spot (its first stop's road point, see snap.mjs) join it.
  * A cluster's service time includes walking there and back for every extra stop.
  * A stop placed on its street only (house number unknown) sits at the street's middle, like every other such
  * stop on that street: grouping them made "one parking stop" of 7 addresses up to 500 m apart. They park alone.
@@ -24,7 +24,7 @@ export function cluster(stops, radius = CLUSTER_RADIUS_M) {
   const out = [];
   for (const s of stops) {
     const c = s.exact !== false && out.find(c => c.walkable && meters(c.park, s) <= radius);
-    if (c) c.stops.push(s); else out.push({ park: { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
+    if (c) c.stops.push(s); else out.push({ park: s.road ?? { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
   }
   for (const c of out) {
     delete c.walkable;

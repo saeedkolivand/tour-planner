@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { fixNumber, fixPostcode, ground } from './server/extract/ground.mjs';
 import { cluster, meters, serviceSec } from './server/route/cluster.mjs';
 import { insertLate, timeline } from './server/route/lateness.mjs';
-import { arrivalWindow, dueSec, vroomJob } from './server/route/solve.mjs';
+import { roadFor } from './server/route/snap.mjs';
+import { arrivalWindow, dueSec, osrmOptions, vroomJob } from './server/route/solve.mjs';
 import { dedupe, normStreet, stopKey } from './server/route/stops.mjs';
 import { distToSegment, segmentsAt } from './server/roads/segments.mjs';
 import { mergeLines, speedLines } from './server/roads/speeds.mjs';
@@ -176,6 +177,17 @@ assert.equal(cluster([{ ...same }, { ...same, lat: 50.9401 }]).length, 1, 'exact
   const g = await locate({ street: 'Ludwigstraße', number: '117', postcode: '50670' }, async q => places[q] ?? null);
   assert.deepEqual([g.lat, g.exact], [streetOnly.lat, false], 'wrong street rejected, street-only hit used instead');
 }
+
+// the van parks on the address's own street, not the nearer alley round the corner; nothing named -> door point
+const roads = [{ name: "", distance: 12, location: [6.9401, 50.9401] }, { name: 'Hohe Straße', distance: 40, location: [6.9405, 50.9402] }, { name: 'Hohe Str.', distance: 400, location: [6.95, 50.95] }];
+assert.deepEqual(roadFor({ street: "Hohe Str." }, roads), { lat: 50.9402, lon: 6.9405 });
+assert.equal(roadFor({ street: "Ring" }, roads), null);
+assert.equal(roadFor({ street: 'Hohe Str.' }, roads.slice(2)), null, 'too far');
+// the road point is where the van parks; the door stays where the driver walks to
+assert.deepEqual(cluster([{ lat: 50.94, lon: 6.96, road: { lat: 50.9401, lon: 6.9601 }, type: 'private' }])[0].park, { lat: 50.9401, lon: 6.9601 });
+// kerb side for every stop, free for start and end; the course only on the start
+assert.equal(osrmOptions(4, { hasEnd: true }), '&approaches=unrestricted;curb;curb;unrestricted');
+assert.equal(osrmOptions(3, { heading: 270.4 }), '&approaches=unrestricted;curb;curb&bearings=270,90;;');
 
 // every server module loads (catches duplicate names and bad imports before a restart does)
 await import('./server/api.mjs');

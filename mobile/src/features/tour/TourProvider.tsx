@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { getSettings, loadSettings, noPc } from '@/features/settings/settings';
@@ -34,7 +35,19 @@ export function TourProvider({ children }: { children: ReactNode }) {
     const sub = AppState.addEventListener('change', s => { if (s === 'active') store.load(); });
     return () => sub.remove();
   }, [store]);
-  return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
+  return <StoreContext.Provider value={store}><AwakeWhileBusy />{children}</StoreContext.Provider>;
+}
+
+// Reading a batch of photos on the PC takes minutes; if the screen locks meanwhile iOS drops the upload and the
+// app only learns of it when reopened (25 min of "Reading stops" on day one). Keep the screen on until done.
+function AwakeWhileBusy() {
+  const { busy } = useTourState();
+  useEffect(() => {
+    if (!busy) return;
+    activateKeepAwakeAsync('busy').catch(() => {});
+    return () => { deactivateKeepAwake('busy').catch(() => {}); };
+  }, [busy]);
+  return null;
 }
 
 /** The store's actions (stable across renders). */

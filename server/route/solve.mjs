@@ -7,6 +7,7 @@ import { insertLate, timeline } from './lateness.mjs';
 const OSRM = process.env.OSRM_URL || 'http://localhost:5050';
 const VROOM = process.env.VROOM_URL || 'http://localhost:3001';
 export const SPEED_FACTOR = Number(process.env.SPEED_FACTOR || 1.3); // ponytail: free-flow OSRM times x factor, no traffic model
+const BEARING_RANGE = 90; // degrees either side of the van's course that still count as the way it is going
 const L = log('solve');
 
 const ll = p => [p.lon, p.lat];
@@ -64,18 +65,40 @@ async function postJson(url, body) {
   return r.json();
 }
 
+/**
+ * Road-direction options for a list of points (start, parking stops, optional end):
+ * every parking stop is reached at the right-hand kerb (the van's side in Germany), so no stop is planned
+ * across the road or behind a U-turn; `heading` (the van's course when re-planning on the move) makes the
+ * first leg start the way it is already going instead of "turn around first".
+ */
+export function osrmOptions(n, { hasEnd = false, heading } = {}) {
+  const approaches = Array.from({ length: n }, (_, i) => (i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
+  const bearings = Number.isFinite(heading) ? `&bearings=${Math.round(heading)},${BEARING_RANGE}${';'.repeat(n - 1)}` : '';
+  return `&approaches=${approaches.join(';')}${bearings}`;
+}
+
+async function osrm(service, points, opts = {}) {
+  const url = o => `${OSRM}/${service}/v1/driving/${points.map(p => ll(p).join(',')).join(';')}?${service === 'table' ? 'annotations=duration,distance' : 'overview=false'}${osrmOptions(points.length, o)}`;
+  let r = await retryOnce(async () => (await fetch(url(opts))).json());
+  // a course no road nearby runs in (GPS noise, a car park): plan as if standing still rather than fail
+  if (r.code !== 'Ok' && opts.heading != null) {
+    L.warn('course unusable, ignoring it', { code: r.code, heading: opts.heading });
+    r = await (await fetch(url({ ...opts, heading: undefined }))).json();
+  }
+  if (r.code !== 'Ok') throw new Error(`osrm ${service}: ${r.code}`);
+  return r;
+}
+
 /** Travel seconds (city factor applied) and metres between all points; null where no road connects them. */
-async function table(points) {
-  const r = await retryOnce(async () => (await fetch(`${OSRM}/table/v1/driving/${points.map(p => ll(p).join(',')).join(';')}?annotations=duration,distance`)).json());
-  if (r.code !== 'Ok') throw new Error('osrm table: ' + r.code);
+async function table(points, opts) {
+  const r = await osrm('table', points, opts);
   return { durations: r.durations.map(row => row.map(d => (d == null ? null : Math.round(d * SPEED_FACTOR)))), distances: r.distances };
 }
 
 /** Driving distance/time of a fixed order (the scanner's), for the "you save" line. */
-export async function routeOf(points) {
+export async function routeOf(points, opts) {
   if (points.length < 2) return { km: 0, min: 0 };
-  const r = await retryOnce(async () => (await fetch(`${OSRM}/route/v1/driving/${points.map(p => ll(p).join(',')).join(';')}?overview=false`)).json());
-  if (r.code !== 'Ok') throw new Error('osrm: ' + r.code);
+  const r = await osrm('route', points, opts);
   return { km: r.routes[0].distance / 1000, min: r.routes[0].duration * SPEED_FACTOR / 60 };
 }
 
@@ -84,9 +107,9 @@ export async function routeOf(points) {
  * `expressOnTime`: Express stops must be reached by their deadline; those no order can make are planned the
  * fastest way and reported in `late`.
  */
-export async function solve(stops, start, end, { departAt = Date.now(), expressOnTime = true, walkM } = {}) {
+export async function solve(stops, start, end, { departAt = Date.now(), expressOnTime = true, walkM, heading } = {}) {
   let clusters = cluster(stops, walkM ?? CLUSTER_RADIUS_M);
-  let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])]);
+  let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])], { hasEnd: !!end, heading });
 
   // A closure can cut a pocket of streets off completely: no road in or out. Those parking stops are left
   // out (the driver sees them under "not planned") instead of failing the whole tour.

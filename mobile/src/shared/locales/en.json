@@ -253,7 +253,7 @@
   },
   "store": {
     "cantReachPc": "Can't reach your PC. Is Tailscale on? Your changes stay on the phone and sync when it's back.",
-    "readingStops": "Reading stops…",
+    "readingStops": "Reading stops… keep the app open",
     "planningRoute": "Planning route…",
     "savingPosition": "Saving position…"
   },

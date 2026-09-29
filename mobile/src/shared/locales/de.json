@@ -253,7 +253,7 @@
   },
   "store": {
     "cantReachPc": "Dein PC ist nicht erreichbar. Ist Tailscale an? Deine Änderungen bleiben auf dem Handy und synchronisieren, wenn er wieder da ist.",
-    "readingStops": "Stopps werden gelesen…",
+    "readingStops": "Stopps werden gelesen… App offen lassen",
     "planningRoute": "Route wird geplant…",
     "savingPosition": "Position wird gespeichert…"
   },

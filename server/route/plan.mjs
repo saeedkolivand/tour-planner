@@ -1,6 +1,7 @@
 // The "plan my tour" use case: stops in, ordered parking stops out, plus savings vs the scanner's order.
 import { log } from '../log.mjs';
 import { geocode, geocodeText } from './geocode.mjs';
+import { snapToStreet } from './snap.mjs';
 import { routeOf, solve } from './solve.mjs';
 import { readTour } from '../tour.mjs';
 import { dedupe } from './stops.mjs';
@@ -31,7 +32,7 @@ export function clean(stops) {
   }));
 }
 
-export async function planTour({ start, end, stops, departAt, expressOnTime = true, walkM } = {}) {
+export async function planTour({ start, end, stops, departAt, expressOnTime = true, walkM, heading } = {}) {
   if (!start || !isPlace(start) || !isPlace(end)) throw bad('start (and end) must be {lat, lon} or {q}');
   const all = dedupe(clean(stops));
   const [s, e] = [await resolvePlace(start), await resolvePlace(end)];
@@ -44,16 +45,19 @@ export async function planTour({ start, end, stops, departAt, expressOnTime = tr
   if (incomplete.length) L.warn('incomplete stops skipped', { count: incomplete.length });
   const placed = todo.filter(x => x.lat != null);
   if (!placed.length) throw bad('no stops could be placed on the map', 422);
+  await snapToStreet(placed);
 
   // ETAs and Express deadlines count from departure: now, or later when planned at the depot before leaving
   const depart = Number.isFinite(departAt) && departAt > Date.now() ? departAt : Date.now();
   // walkM: how far the driver walks from one parking spot (the app's route style); the env default otherwise
   const walk = Number.isFinite(walkM) ? Math.min(300, Math.max(0, walkM)) : undefined;
-  const { unreachable, ...plan } = await solve(placed, s, e, { departAt: depart, expressOnTime: expressOnTime !== false, walkM: walk });
+  // heading: the van's course in degrees when re-planning on the move (absent when standing or at the depot)
+  const course = Number.isFinite(heading) ? ((heading % 360) + 360) % 360 : undefined;
+  const { unreachable, ...plan } = await solve(placed, s, e, { departAt: depart, expressOnTime: expressOnTime !== false, walkM: walk, heading: course });
   ungeocoded.push(...unreachable.map(x => ({ ...x, unreachable: true })));
   // stop time is the same in any order, so the scanner's order pays it too (else "saved" compares drive vs drive+stops)
   const serviceMin = plan.clusters.reduce((t, c) => t + c.service, 0) / 60;
-  const baseline = await routeOf([s, ...placed.filter(x => !unreachable.includes(x)), ...(e ? [e] : [])])
+  const baseline = await routeOf([s, ...placed.filter(x => !unreachable.includes(x)), ...(e ? [e] : [])], { hasEnd: !!e, heading: course })
     .then(b => ({ km: b.km, min: b.min + serviceMin }))
     .catch(err => { L.warn('baseline failed', { error: err }); return null; });
 
@@ -64,7 +68,8 @@ export async function planTour({ start, end, stops, departAt, expressOnTime = tr
 
   L.info('planned', {
     stops: all.length, todo: todo.length, ungeocoded: ungeocoded.length, km: +plan.km.toFixed(1), min: plan.min,
-    baselineMin: baseline && Math.round(baseline.min), fromGps: start?.lat != null, endAtDepot: !!e,
+    baselineMin: baseline && Math.round(baseline.min), fromGps: start?.lat != null, heading: course, endAtDepot: !!e,
+    onStreet: placed.filter(x => x.road).length,
   });
   return { ...plan, stops: all, baseline, ungeocoded, start: s, end: e, startedAt: depart };
 }

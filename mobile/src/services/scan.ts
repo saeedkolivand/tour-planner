@@ -15,9 +15,11 @@ export const onDeviceOcr = !!Ocr?.isSupported;
 
 async function toDataUrl(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).blob();
+  // iOS hands back a typeless blob for a file uri, and the vision model refuses "application/octet-stream"
+  const type = blob.type.startsWith('image/') ? blob.type : /\.png$/i.test(uri) ? 'image/png' : 'image/jpeg';
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => resolve((reader.result as string).replace(/^data:[^;,]*;/, `data:${type};`));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
