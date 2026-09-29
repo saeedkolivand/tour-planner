@@ -1,10 +1,12 @@
-// Travel times between points when the PC isn't there. Two sources, best first:
-//  - OpenRouteService (free key, real road network incl. one-ways; needs internet),
+// Travel times between points when the PC isn't there. Three sources, best first:
+//  - a public OSRM (OpenStreetMap's own router, no key): one-ways, kerb-side arrival and the van's course, like the PC,
+//  - OpenRouteService (free key, real road network; needs internet),
 //  - straight line, fitted to OSRM (x1.3 city factor) over Cologne (always works, offline).
 import type { LatLon } from '../tour/types.ts';
 import { meters } from './stops.ts';
 
 export interface Matrix { seconds: number[][]; meters: number[][]; by: 'road' | 'estimate'; /** why road times weren't used */ why?: string }
+export interface MatrixOptions { /** the last point is a fixed end (the depot): reached from any side */ hasEnd?: boolean; /** the van's course in degrees while moving */ heading?: number }
 
 // Fitted on OSRM x 1.3 (2026-09): roads run ~1.5x the straight line; every leg costs ~2.5 min (start, lights,
 // parking), then ~22 km/h in town and ~40 km/h beyond 4 km (arterials, Autobahn to/from the depot).
@@ -16,6 +18,44 @@ export const estimateSec = (straight: number) =>
 export function estimateMatrix(points: LatLon[]): Matrix {
   const d = points.map(a => points.map(b => meters(a, b)));
   return { meters: d.map(row => row.map(m => m * DETOUR)), seconds: d.map(row => row.map(estimateSec)), by: 'estimate' };
+}
+
+// Public OSRM instances: FOSSGIS's (behind openstreetmap.org's directions) first, the OSRM demo second. Both cap a
+// table at 100 points, plenty for one van's parking stops. Free-flow times, so the PC's x1.3 city factor applies.
+const OSRM = ['https://routing.openstreetmap.de/routed-car', 'https://router.project-osrm.org'];
+export const OSRM_MAX_POINTS = 100;
+const CITY_FACTOR = 1.3, BEARING_RANGE = 90;
+
+/** Same road-direction options as the PC (server/route/solve.mjs): kerb side at every stop, the course at the start. */
+export function osrmOptions(n: number, { hasEnd = false, heading }: MatrixOptions = {}) {
+  const approaches = Array.from({ length: n }, (_, i) => (i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
+  const bearings = Number.isFinite(heading) ? `&bearings=${Math.round(heading!)},${BEARING_RANGE}${';'.repeat(n - 1)}` : '';
+  return `&approaches=${approaches.join(';')}${bearings}`;
+}
+
+/** Road travel times from a public OSRM. Throws when none answers (caller falls back). */
+export async function osrmMatrix(points: LatLon[], opts: MatrixOptions = {}, fetchFn: typeof fetch = fetch): Promise<Matrix> {
+  if (points.length > OSRM_MAX_POINTS) throw new Error(`more than ${OSRM_MAX_POINTS} points`);
+  const coords = points.map(p => `${p.lon},${p.lat}`).join(';');
+  const ask = async (host: string, o: MatrixOptions) => {
+    const r = await fetchFn(`${host}/table/v1/driving/${coords}?annotations=duration,distance${osrmOptions(points.length, o)}`, { signal: AbortSignal.timeout?.(20_000) });
+    if (!r.ok) throw new Error(`OSRM ${r.status}`);
+    return (await r.json()) as { code: string; durations?: (number | null)[][]; distances?: (number | null)[][] };
+  };
+  let last: Error | null = null;
+  for (const host of OSRM) {
+    try {
+      let j = await ask(host, opts);
+      // a course no nearby road runs in (GPS noise, a car park): plan as if standing still rather than fail
+      if (j.code !== 'Ok' && opts.heading != null) j = await ask(host, { ...opts, heading: undefined });
+      if (j.code !== 'Ok' || !j.durations || !j.distances) throw new Error('OSRM ' + j.code);
+      // null = no road between two points (a pin in a pedestrian zone): the estimate fills that cell
+      const seconds = j.durations.map((row, a) => row.map((d, b) => (d == null ? estimateSec(meters(points[a], points[b])) : Math.round(d * CITY_FACTOR))));
+      const dist = j.distances.map((row, a) => row.map((d, b) => d ?? meters(points[a], points[b]) * DETOUR));
+      return { seconds, meters: dist, by: 'road' };
+    } catch (e) { last = e as Error; }
+  }
+  throw last ?? new Error('OSRM unavailable');
 }
 
 // ORS moved to api.heigit.org in April 2026 (new keys get 403 on the old host); the old one is the fallback

@@ -1,6 +1,6 @@
 # Tour Planner
 
-Photograph a DPD scanner's stop list; get the fastest delivery order, grouped into park-and-walk stops, with loading numbers and one-tap navigation. The iPhone app (Expo / React Native) and a web app both use one self-hosted backend on a home PC, reached privately over Tailscale.
+Photograph a DPD scanner's stop list; get the fastest delivery order, grouped into park-and-walk stops, with loading numbers and one-tap navigation. The phone app (Expo / React Native, iPhone and Android) and a web app both use one self-hosted backend on a home PC, reached privately over Tailscale.
 
 <p align="center">
   <img src="docs/screenshots/app-dark.png" alt="Stops, Route and Settings screens in dark mode" width="100%">
@@ -22,9 +22,9 @@ Glanceable on a real iPhone: the next stop as a Live Activity (Lock Screen, Dyna
 </p>
 
 ```
-iPhone (Apple Vision OCR) ─┐                       ┌─ local vision model (Qwen3-VL-8B)  ─fallback─► Claude
-web app (photos) ──────────┼─► server/ (Node, :3000) ┤─ Photon geocoder      (WSL, :2322)
-        Tailscale HTTPS ───┘                       └─ VROOM → OSRM, Köln road graph (WSL, :3001 / :5050)
+phone (Apple Vision / ML Kit OCR) ─┐               ┌─ local vision model (Qwen3-VL-8B)  ─fallback─► Claude
+web app (photos) ──────────────────┼─► server/ (Node, :3000) ┤─ Photon geocoder      (WSL, :2322)
+        Tailscale HTTPS ───────────┘                       └─ VROOM → OSRM, Köln road graph (WSL, :3001 / :5050)
 ```
 
 The order respects how a van actually moves: one-way streets and turn restrictions from the road graph, arrival at the right-hand kerb of every stop (no stop across the road or behind a U-turn), each stop parked on its own street rather than the nearer alley round the corner, and, when you re-plan on the move, the direction you are already driving.
@@ -51,7 +51,7 @@ English and German. The app follows the phone's language (iOS and Android also l
 | `server/main.mjs`, `server/api.mjs` | HTTP entry point and routes (thin) |
 | `server/extract/` | photo/text → stops: prompts + schema, appliance and Claude providers, text grounding |
 | `server/route/` | stop identity, geocoding, park-and-walk clustering, VROOM/OSRM solve, the plan use case |
-| `server/log.mjs` | structured logs → `data/logs/YYYY-MM-DD.jsonl` (server, web and iOS in one file) |
+| `server/log.mjs` | structured logs → `data/logs/YYYY-MM-DD.jsonl` (server, web, iOS and Android in one file) |
 | `public/` | web app: markup, CSS, one ES module per concern |
 | `mobile/` | Expo Router app: `src/app` routes · `src/features` (tour, settings) · `src/services` (scan, location, navigation) · `src/shared` (UI, logging) |
 | `wsl/` | routing stack setup and start scripts |
@@ -59,15 +59,25 @@ English and German. The app follows the phone's language (iOS and Android also l
 | `.github/workflows/android-apk.yml` | release APK (debug-signed) built on GitHub's Linux runners |
 | `CONTEXT.md`, `docs/adr/` | glossary and decisions |
 
-## iPhone app
+## Phone app (iPhone and Android)
 
-Expo SDK 57 · React Native 0.86 · Expo Router · **NativeWind 4 + React Native Reusables** (shadcn/ui for React Native) · lucide icons · Reanimated · haptics · light/dark.
+Expo SDK 57 · React Native 0.86 · Expo Router · **NativeWind 4 + React Native Reusables** (shadcn/ui for React Native) · lucide icons · Reanimated · haptics · light/dark. One code base builds both apps; the differences are listed further down.
 
-- **Stops**: a capture hero (camera or screenshots, read on the phone with Apple Vision), a check of the stop count against the scanner, and stop rows that open a focused edit dialog.
+- **Stops**: a capture hero (camera or screenshots, read on the phone with Apple Vision on iOS and ML Kit on Android), a check of the stop count against the scanner, and stop rows that open a focused edit dialog.
 - **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: the map (draggable pins), the upcoming list, and a collapsed delivered list.
 - **CarPlay (no CarPlay entitlement or paid account needed)**: see [CarPlay](#carplay) below.
 - **Architecture**: `src/features/tour` holds a framework-free store and pure selectors (unit-tested with `node --test`), `useDelivery` / `usePlanning` hooks, and small components. `src/components/ui` holds the Reusables primitives we own and extend (e.g. `Button` `xl` and `success`).
 - **Design preview on Windows**: `npx expo start --web`. The map is replaced by a placeholder on web.
+
+What differs between the two platforms:
+
+| | iPhone | Android |
+|---|---|---|
+| Map on the Route tab | Apple Maps | MapLibre with OpenFreeMap tiles (no key, no billing) |
+| Turn-by-turn | Apple Maps or Google Maps | Google Maps, started straight into navigation |
+| On-device OCR | Apple Vision | ML Kit |
+| Next stop outside the app | Live Activity, widgets, CarPlay Dashboard, Siri | not available |
+| Install | sideload the `.ipa` (see below) | install the `.apk` (see below) |
 
 ## CarPlay
 
@@ -111,7 +121,9 @@ All of it lives in `server/roads/` and `wsl/osrm.sh`. Every apply rebuilds the r
 
 ## Android install
 
-Download `TourPlanner.apk` from the latest [GitHub Release](../../releases/latest) (or from an **Android APK** workflow run's artifacts). Install with `adb install -r TourPlanner.apk`, or copy the file to the phone and open it.
+Download `TourPlanner.apk` from the latest [GitHub Release](../../releases/latest) (or from an **Android APK** workflow run's artifacts). Install with `adb install -r TourPlanner.apk`, or copy the file to the phone and open it from the Files app. Android 7 or newer; the APK contains all four CPU types.
+
+If the phone says the package is invalid, the download is usually incomplete: the file must be the size shown on the release page. On Samsung phones with One UI 6 or newer, turn off *Auto Blocker* under Settings › Security and privacy for the installation, and allow installs from the Files app when asked.
 
 ## Releases
 
@@ -119,7 +131,7 @@ Every push to `main` runs `release.yml`: [semantic-release](https://semantic-rel
 
 ## Logs
 
-[Pino](https://getpino.io) writes every request, reader decision (appliance vs Claude, timings), geocode miss, plan, pin, tick-off and client error to `data/logs/app.<date>.<n>.jsonl`. Files roll daily, and 30 days are kept. Each line is one JSON object with `level`, `t`, `src` (`server`/`web`/`ios`), `scope`, `msg` and details. Clients queue logs on the device and upload them, so logs written offline arrive later.
+[Pino](https://getpino.io) writes every request, reader decision (appliance vs Claude, timings), geocode miss, plan, pin, tick-off and client error to `data/logs/app.<date>.<n>.jsonl`. Files roll daily, and 30 days are kept. Each line is one JSON object with `level`, `t`, `src` (`server`/`web`/`ios`/`android`), `scope`, `msg` and details. Clients queue logs on the device and upload them, so logs written offline arrive later.
 
 ```powershell
 Get-Content (ls data/logs/app.*.jsonl | sort LastWriteTime)[-1] -Wait | ConvertFrom-Json | Format-Table t,level,src,scope,msg

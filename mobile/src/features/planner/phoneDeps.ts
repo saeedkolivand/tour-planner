@@ -5,7 +5,7 @@ import { getSettings } from '@/features/settings/settings';
 import type { LatLon } from '@/features/tour/types';
 import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
-import { estimateMatrix, orsMatrix } from './matrix';
+import { estimateMatrix, orsMatrix, osrmMatrix, type MatrixOptions } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
 import { fold, meters } from './stops';
 
@@ -78,13 +78,18 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   return g;
 }
 
-async function matrix(points: LatLon[]) {
+// road times: a public OSRM (kerb side, course; no key), then OpenRouteService if a key is set, else the estimate
+async function matrix(points: LatLon[], opts: MatrixOptions = {}) {
+  const why: string[] = [];
+  try { return await osrmMatrix(points, opts); }
+  catch (e) { L.warn('public OSRM unavailable', { error: e }); why.push((e as Error).message); }
   const key = getSettings().orsKey.trim();
   if (key) {
     try { return await orsMatrix(points, key); }
-    catch (e) { L.warn('road times unavailable, estimating', { error: e }); return { ...estimateMatrix(points), why: (e as Error).message }; }
+    catch (e) { L.warn('OpenRouteService unavailable', { error: e }); why.push((e as Error).message); }
   }
-  return estimateMatrix(points);
+  L.warn('road times unavailable, estimating', { why });
+  return { ...estimateMatrix(points), why: why.join('; ') };
 }
 
 export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key) };
