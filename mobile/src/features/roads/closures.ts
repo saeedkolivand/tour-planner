@@ -26,13 +26,14 @@ export function useClosures() {
   const [error, setError] = useState<string | null>(null);
 
   const load = () => api<{ closures: Closure[]; roads: RoadsStatus }>('GET', '/closures');
-  const apply = useCallback((r: { closures: Closure[]; roads: RoadsStatus }) => { setClosures(r.closures); setRoads(r.roads); setError(null); }, []);
+  // whatever answered (a captive portal, a proxy page): the screen must never crash on the shape of it
+  const apply = useCallback((r: { closures: Closure[]; roads: RoadsStatus }) => { setClosures(Array.isArray(r?.closures) ? r.closures : []); setRoads(r?.roads ?? null); setError(null); }, []);
   const fail = useCallback((e: unknown) => setError((e as Error).message), []);
   const reload = useCallback(() => load().then(apply, fail), [apply, fail]);
 
   const remove = useCallback(async (id: string) => {
     L.info('removing', { id });
-    try { setClosures((await api<{ closures: Closure[] }>('POST', '/closures/remove', { id })).closures); }
+    try { setClosures((await api<{ closures: Closure[] }>('POST', '/closures/remove', { id })).closures ?? []); }
     catch (e) { setError((e as Error).message); L.error('remove failed', { id, error: e }); }
   }, []);
 
