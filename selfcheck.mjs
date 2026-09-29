@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { fixNumber, fixPostcode, ground } from './server/extract/ground.mjs';
-import { cluster, meters, serviceSec } from './server/route/cluster.mjs';
+import { cluster, meters, serviceSec, walkLoop } from './server/route/cluster.mjs';
+import { improve } from './server/route/improve.mjs';
 import { insertLate, timeline } from './server/route/lateness.mjs';
 import { roadFor } from './server/route/snap.mjs';
 import { arrivalWindow, dueSec, osrmOptions, vroomJob } from './server/route/solve.mjs';
@@ -47,6 +48,19 @@ assert.equal(c.length, 2);
 assert.equal(c[0].stops.length, 2);
 assert.equal(serviceSec(s[2]), 4 * 60 + 60);
 assert.ok(c[0].service > 2 * 120, 'walking time added for the second stop');
+// the parking spot is the most central stop's road point, and the stops come back in walking order
+const row = [{ lat: 50.9400, lon: 6.9600 }, { lat: 50.9406, lon: 6.9600 }, { lat: 50.9403, lon: 6.9600 }].map(p => ({ ...p, type: 'private' }));
+assert.deepEqual(cluster(row)[0].park, { lat: 50.9403, lon: 6.9600 }, 'medoid');
+assert.deepEqual(cluster(row)[0].stops.map(s => s.lat), [50.9403, 50.9400, 50.9406], 'walk: middle, one end, other end, back');
+// the walking loop uncrosses itself: park, A, B, C in a line and back beats zig-zagging
+const loop = walkLoop({ lat: 50.94, lon: 6.96 }, [{ lat: 50.9402, lon: 6.96 }, { lat: 50.9406, lon: 6.96 }, { lat: 50.9404, lon: 6.96 }]);
+assert.deepEqual(loop.order.map(p => p.lat), [50.9402, 50.9404, 50.9406]);
+assert.ok(Math.abs(loop.meters - 2 * 66.7) < 1, 'there and back along the line');
+// improve: one-way costs where the symmetric-looking order 1,2,3 is beaten by 3,2,1; never worse than the input
+const oneWay = [[0, 10, 10, 10], [10, 0, 100, 1], [10, 1, 0, 100], [10, 100, 1, 0]];
+const cost = r => r.reduce((t, i, k) => t + oneWay[k ? r[k - 1] : 0][i], 0);
+assert.equal(cost(improve([1, 2, 3], cost, { budgetMs: 50 })), 12, 'from 210 s down to a one-way-friendly order');
+assert.equal(cost(improve([3, 2, 1], cost, { budgetMs: 50 })), 12);
 
 // VROOM gets our own matrix (city factor included): start = index 0, jobs 1..n, Express = a latest arrival
 const job = vroomJob(c, { durations: [[0]], distances: [[0]] }, false, [null, [0, 3600]]);

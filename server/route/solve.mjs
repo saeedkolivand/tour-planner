@@ -2,12 +2,14 @@
 // Objective = the driver's total time; the only constraint is Express: on time when asked to (ADR 0005).
 import { log } from '../log.mjs';
 import { CLUSTER_RADIUS_M, cluster } from './cluster.mjs';
+import { improve } from './improve.mjs';
 import { insertLate, timeline } from './lateness.mjs';
 
 const OSRM = process.env.OSRM_URL || 'http://localhost:5050';
 const VROOM = process.env.VROOM_URL || 'http://localhost:3001';
 export const SPEED_FACTOR = Number(process.env.SPEED_FACTOR || 1.3); // ponytail: free-flow OSRM times x factor, no traffic model
 const BEARING_RANGE = 90; // degrees either side of the van's course that still count as the way it is going
+const IMPROVE_MS = Number(process.env.IMPROVE_MS || 1500); // local search after VROOM; it converges well before this on 60 stops
 const L = log('solve');
 
 const ll = p => [p.lon, p.lat];
@@ -107,8 +109,12 @@ export async function routeOf(points, opts) {
  * `expressOnTime`: Express stops must be reached by their deadline; those no order can make are planned the
  * fastest way and reported in `late`.
  */
-export async function solve(stops, start, end, { departAt = Date.now(), expressOnTime = true, walkM, heading } = {}) {
-  let clusters = cluster(stops, walkM ?? CLUSTER_RADIUS_M);
+export async function solve(stops, start, end, { walkM, ...opts } = {}) {
+  return solveClusters(cluster(stops, walkM ?? CLUSTER_RADIUS_M), start, end, opts);
+}
+
+/** As `solve`, for parking stops already formed (the benchmark compares clusterings this way). */
+export async function solveClusters(clusters, start, end, { departAt = Date.now(), expressOnTime = true, heading } = {}) {
   let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])], { hasEnd: !!end, heading });
 
   // A closure can cut a pocket of streets off completely: no road in or out. Those parking stops are left
@@ -138,7 +144,11 @@ export async function solve(stops, start, end, { departAt = Date.now(), expressO
     L.warn('express deadlines that cannot be kept', { stops: missing.map(i => clusters[i - 1].stops.map(s => s.key)) });
     order = insertLate(order, missing, dur, service, windows, endIdx);
   }
+  // VROOM symmetrises the matrix for one vehicle; kerb sides and one-ways make ours anything but (improve.mjs)
+  const before = timeline(order, dur, service, windows, endIdx).cost;
+  order = improve(order, r => timeline(r, dur, service, windows, endIdx).cost, { budgetMs: IMPROVE_MS });
   const t = timeline(order, dur, service, windows, endIdx);
+  if (before - t.cost > 1) L.info('order improved after VROOM', { savedMin: +((before - t.cost) / 60).toFixed(1) });
   const ordered = order.map((i, k) => ({ ...clusters[i - 1], eta: Math.round(t.arrive[k] / 60) }));
   const late = order.filter((i, k) => windows[i] && t.arrive[k] > windows[i][1]);
   const path = [0, ...order, ...(endIdx != null ? [endIdx] : [])];
@@ -148,6 +158,6 @@ export async function solve(stops, start, end, { departAt = Date.now(), expressO
     clusters: ordered, unreachable, late: late.flatMap(i => clusters[i - 1].stops.map(s => s.key)),
     km, min: Math.round((t.arrive.at(-1) + service[lastI] + (endIdx != null ? dur[lastI][endIdx] : 0)) / 60),
   };
-  L.info('solved', { stops: stops.length, clusters: clusters.length, km: +plan.km.toFixed(1), min: plan.min, windows: win.filter(Boolean).length, missed: missing.length, late: late.length, solverMs: sol.summary?.computing_times?.solving });
+  L.info('solved', { stops: clusters.reduce((n, c) => n + c.stops.length, 0), clusters: clusters.length, km: +plan.km.toFixed(1), min: plan.min, windows: win.filter(Boolean).length, missed: missing.length, late: late.length, solverMs: sol.summary?.computing_times?.solving });
   return plan;
 }

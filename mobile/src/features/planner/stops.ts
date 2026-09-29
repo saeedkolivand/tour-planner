@@ -37,15 +37,42 @@ const WALK_MPS = 1.3, RADIUS_M = 80;
 /** Seconds at a stop: by type, plus 30 s per extra parcel. */
 export const serviceSec = (s: Stop) => (SERVICE_MIN[s.type] ?? 2) * 60 + 30 * Math.max(0, (s.parcels || 1) - 1);
 
+const walkSum = (p: LatLon, stops: LatLon[]) => stops.reduce((t, s) => t + meters(p, s), 0);
+/** The parking spot for a group: the most central stop (the PC snaps it onto the street; the phone has no road graph). */
+const medoid = (stops: (Stop & LatLon)[]): LatLon => stops.reduce((b, p) => (walkSum(p, stops) < walkSum(b, stops) ? p : b));
+
+/** The walk from the parking spot past every door and back: nearest first, then 2-opt. Doors in walking order + metres. */
+export function walkLoop<T extends LatLon>(park: LatLon, doors: T[]): { order: T[]; meters: number } {
+  const pts = [park, ...doors], d = pts.map(a => pts.map(b => meters(a, b)));
+  const len = (o: number[]) => o.reduce((t, i, k) => t + d[k ? o[k - 1] : 0][i], 0) + (o.length ? d[o[o.length - 1]][0] : 0);
+  let order: number[] = [], at = 0;
+  const left = new Set(doors.map((_, i) => i + 1));
+  while (left.size) { let best = -1; for (const j of left) if (best < 0 || d[at][j] < d[at][best]) best = j; order.push(best); left.delete(best); at = best; }
+  for (let best = len(order), improved = true; improved;) {
+    improved = false;
+    for (let i = 0; i < order.length - 1; i++) for (let k = i + 1; k < order.length; k++) {
+      const cand = [...order.slice(0, i), ...order.slice(i, k + 1).reverse(), ...order.slice(k + 1)];
+      const c = len(cand);
+      if (c < best - 1e-9) { order = cand; best = c; improved = true; }
+    }
+  }
+  return { order: order.map(i => doors[i - 1]), meters: len(order) };
+}
+
 /**
- * Stops within `radius` m (80 by default) of a parking spot (its first stop) are walked to; service includes the walk there and back.
+ * Stops within `radius` m (80 by default) of a parking spot share it: each joins the nearest spot in range, else opens
+ * one; the spot is the group's most central stop and the stops come back in walking order, that walk in the service time.
  * Street-only stops (house number unknown) park alone: they all sit at the street's middle (see the PC's cluster.mjs).
  */
 export function cluster(stops: (Stop & LatLon)[], radius = RADIUS_M): Omit<Cluster, 'eta'>[] {
   const out: { park: LatLon; stops: (Stop & LatLon)[]; walkable: boolean }[] = [];
   for (const s of stops) {
-    const c = s.exact !== false && out.find(c => c.walkable && meters(c.park, s) <= radius);
-    if (c) c.stops.push(s); else out.push({ park: { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
+    let best: (typeof out)[number] | null = null, bd = Infinity;
+    if (s.exact !== false) for (const c of out) { const dd = c.walkable ? meters(c.park, s) : Infinity; if (dd <= radius && dd < bd) { best = c; bd = dd; } }
+    if (best) { best.stops.push(s); best.park = medoid(best.stops); } else out.push({ park: { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
   }
-  return out.map(({ walkable: _, ...c }) => ({ ...c, service: c.stops.reduce((t, s, i) => t + serviceSec(s) + (i ? 2 * meters(c.park, s) / WALK_MPS : 0), 0) }));
+  return out.map(({ walkable: _, ...c }) => {
+    const walk = walkLoop(c.park, c.stops);
+    return { ...c, stops: walk.order, service: c.stops.reduce((t, s) => t + serviceSec(s), 0) + walk.meters / WALK_MPS };
+  });
 }
