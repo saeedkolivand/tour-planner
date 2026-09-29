@@ -118,6 +118,11 @@ const g = ground([
 ], text);
 assert.deepEqual(g.map(s => s.express), ['', '10:00', '18:00']);
 assert.equal(g[1].number, '271');
+// PRIO sits in the header above its street: the stop below gets it, the stop above does not
+const prioText = 'Gina Klein\n1\nSteinfelder Gasse 27\n50670HY Köln\nKatholische junge Gemeinde\nPRIO\n1\nSteinfelder Gasse 20-22\n50670HY Köln\nnetspirits GmbH\nIm Klapperhof 33\n50670ID Köln';
+const gp = ground([{ street: 'Steinfelder Gasse', number: '27', postcode: '50670HY' }, { street: 'Steinfelder Gasse', number: '20-22', postcode: '50670' }, { street: 'Im Klapperhof', number: '33', postcode: '50670' }], prioText);
+assert.deepEqual(gp.map(s => s.express), ['', '12:00', '']);
+assert.equal(gp[0].postcode, '50670', 'the letters after the postcode are dropped');
 
 // a misread umlaut is retried with the other two; plain names give nothing to try
 assert.deepEqual(umlautVariants('Am Kämpchenshof'), ['Am Kömpchenshof', 'Am Kümpchenshof']);

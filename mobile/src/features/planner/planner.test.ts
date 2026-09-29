@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Stop } from '../tour/types.ts';
-import { estimateMatrix, estimateSec } from './matrix.ts';
+import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
 import { parseStops } from './parseText.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { solveOrder } from './solve.ts';
@@ -67,8 +67,29 @@ test('scanner-list text read on the phone becomes stops without the PC', () => {
   const s = parseStops(text);
   assert.deepEqual(s.map(x => `${x.street} ${x.number} ${x.postcode}`), ['Hohe Str. 68 50667', 'Konrad-Adenauer-Ufer 3-5 50668', 'Venloer Straße 211 50823', 'An der Linde 12a 50999']);
   assert.equal(s[0].express, '12:00');
-  assert.deepEqual([s[1].type, s[1].parcels], ['private', 3]); // the company line sits above its street: belongs to the previous block
+  assert.deepEqual([s[1].type, s[1].parcels, s[1].name], ['business', 3, 'Müller GmbH']); // the name line sits above its street
   assert.equal(s[3].type, 'shop');
+});
+
+test('the DPD scanner layout: name + PRIO + count above the street, "50670HX", route code and time slot below', () => {
+  const text = [
+    'Zustellung | T526 | 29. Sept', 'Nächste Stopps',
+    'Gina Klein', '1', '09:11', '11:11', 'Steinfelder Gasse 27', '50670HY Köln', 'G 12 T 387',
+    'Katholische junge Gemeinde…', 'PRIO', '1', 'Steinfelder Gasse 20-22', '50670HY Köln, Altstadt-Nord', '09:15', '11:15',
+    'netspirits GmbH & Co. KG', '1', 'Im Klapperhof 33', '50670ID Köln', '09:19', '11:19',
+    'Thomas Voß', '2', 'Gereonshof 16', '50670HZ Köln',
+    'Kita Remmidemmi e.V.,', 'PRIO', '2', 'Gereonsm…engasse 26', '50670HL Köln', '10:35', '12:35',
+    '3 PQ GmbH', '11:00-19:00', '7', 'Balthasarstr. 65', '50670II Köln, Neustadt-Nord',
+    'Santesson GmbHComputer u…', '1', 'Gereonsmühlengasse 2', '50670HL Köln, Altstadt-Nord',
+  ].join('\n');
+  const s = parseStops(text);
+  assert.deepEqual(s.map(x => `${x.street} ${x.number}`), ['Steinfelder Gasse 27', 'Steinfelder Gasse 20-22', 'Im Klapperhof 33', 'Gereonshof 16', 'Gereonsmühlengasse 26', 'Balthasarstr. 65', 'Gereonsmühlengasse 2']);
+  assert.ok(s.every(x => x.postcode === '50670'), 'the two letters after the postcode are not part of it');
+  assert.deepEqual(s.map(x => x.express ?? ''), ['', '12:00', '', '', '12:00', '', ''], 'PRIO only; the time slot is no deadline');
+  assert.deepEqual(s.map(x => x.parcels), [1, 1, 1, 2, 2, 7, 1]);
+  assert.deepEqual(s.map(x => x.name), ['Gina Klein', 'Katholische junge Gemeinde…', 'netspirits GmbH & Co. KG', 'Thomas Voß', 'Kita Remmidemmi e.V.,', '3 PQ GmbH', 'Santesson GmbHComputer u…']);
+  assert.deepEqual(s.map(x => x.type), ['private', 'business', 'business', 'private', 'business', 'business', 'business']);
+  assert.equal(s[1].city, 'Köln');
 });
 
 test('plan on the phone: grouped, ordered, numbered once, and compared with the scanner order', async () => {
@@ -120,6 +141,24 @@ test('plan on the phone: a street-only hit (exact: false) parks alone, even next
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('A', '1'), s('A', '3')] }, deps);
   assert.equal(p.stops.find(x => x.number === '3')?.exact, false);
   assert.equal(p.clusters.length, 2, 'the street-only stop does not walk with its exact neighbour');
+});
+
+test('public OSRM: kerb side at every stop, the course at the start; a bad course is retried without; cells with no road are estimated', async () => {
+  assert.equal(osrmOptions(4, { hasEnd: true }), '&approaches=unrestricted;curb;curb;unrestricted');
+  assert.equal(osrmOptions(3, { heading: 270.4 }), '&approaches=unrestricted;curb;curb&bearings=270,90;;');
+  const urls: string[] = [];
+  const fetchFn = (async (url: string) => {
+    urls.push(url);
+    const ok = !url.includes('bearings');
+    return { ok: true, json: async () => (ok ? { code: 'Ok', durations: [[0, 100], [null, 0]], distances: [[0, 500], [null, 0]] } : { code: 'NoSegment' }) };
+  }) as unknown as typeof fetch;
+  const pts = [{ lat: 50.94, lon: 6.96 }, { lat: 50.95, lon: 6.96 }];
+  const m = await osrmMatrix(pts, { heading: 90 }, fetchFn);
+  assert.equal(urls.length, 2, 'once with the course, once without');
+  assert.equal(m.by, 'road');
+  assert.equal(m.seconds[0][1], 130, 'city factor applied');
+  assert.ok(m.seconds[1][0] > 0 && m.meters[1][0] > 1000, 'no road -> estimate');
+  await assert.rejects(osrmMatrix(Array(101).fill(pts[0]), {}, fetchFn), /more than 100/);
 });
 
 test('distance estimate: town legs at city pace, the depot run much faster per km', () => {

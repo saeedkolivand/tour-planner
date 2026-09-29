@@ -39,7 +39,11 @@ export function untruncate(stops, known = []) {
   });
 }
 
-/** Each stop's own lines run from its street to the next stop's street; Express is read from those only. */
+/**
+ * Each stop's own lines run from its street to the next stop's street; Express is read from those only.
+ * The scanner prints "PRIO" in a row's header, above the street: that part is searched for PRIO only, and the
+ * lines after the street for the written forms ("Express 12:00"), so a PRIO never lands on the stop above.
+ */
 export function ground(stops, text) {
   const t = fold(text);
   // search on from the previous stop: lists are grouped by street, and searching from the top gave every
@@ -54,6 +58,11 @@ export function ground(stops, text) {
     const out = { ...s, number: fixNumber(s.number), postcode: fixPostcode(s.postcode) };
     if (at[i] < 0) return out; // can't place it in the text: keep what the model said
     const next = Math.min(...at.filter(p => p > at[i]), t.length);
-    return { ...out, express: expressIn(t.slice(at[i], next)) };
+    const prev = Math.max(-1, ...at.filter(p => p >= 0 && p < at[i]));
+    // the header: after the previous stop's postcode line (or its street), up to this street
+    const pcAfterPrev = prev >= 0 ? t.slice(prev, at[i]).search(/\d{5}/) : -1;
+    const head = t.slice(prev < 0 ? Math.max(0, at[i] - 200) : pcAfterPrev >= 0 ? prev + pcAfterPrev + 5 : prev, at[i]);
+    const tail = t.slice(at[i], next);
+    return { ...out, express: /\bprio\b/.test(head) ? '12:00' : expressIn(tail.replace(/\bprio\b/g, '')) };
   });
 }

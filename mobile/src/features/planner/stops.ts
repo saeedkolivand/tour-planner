@@ -11,6 +11,16 @@ const address = (s: Stop) => `${fold(s.street)}|${String(s.number).toLowerCase()
 const plz = (s: Stop) => String(s.postcode ?? '').replace(/\D/g, '');
 export const stopKey = (s: Stop) => address(s) + (plz(s) ? `|${plz(s)}` : '');
 
+/** OCR and vision models swap umlauts now and then ("Kämpchenshof" for Kümpchenshof): the same name with each umlaut swapped. */
+export function umlautVariants(street: string): string[] {
+  const out: string[] = [];
+  for (const [i, ch] of [...street].entries()) {
+    if (!'äöü'.includes(ch.toLowerCase())) continue;
+    for (const alt of 'äöü'.replace(ch.toLowerCase(), '')) out.push(street.slice(0, i) + (ch === ch.toUpperCase() ? alt.toUpperCase() : alt) + street.slice(i + 1));
+  }
+  return out;
+}
+
 /** Overlapping photos show a row twice: keep the first, never sum parcels; two postcodes stay two stops. */
 export function dedupe(stops: Stop[]): Stop[] {
   const out: Stop[] = [];

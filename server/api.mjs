@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 // HTTP API: "METHOD /path" -> handler(body). Handlers stay thin; the work lives in the modules they call.
 import { dedupe } from './route/stops.mjs';
 import { extract } from './extract/index.mjs';
@@ -17,6 +18,8 @@ const LOG_LEVELS = new Set(['debug', 'info', 'warn', 'error']);
 export const routes = {
   /** {images?: [dataUrl], texts?: [ocrText], stops?: [known]} -> merged + deduped stops, in scanner order. */
   async 'POST /extract'({ images = [], texts = [], stops = [] }) {
+    // on-device OCR text is kept (data/ is private): the corpus for tuning the phone's own parser and the text prompt
+    if (texts.length) try { fs.mkdirSync('data/ocr', { recursive: true }); fs.writeFileSync(`data/ocr/${new Date().toISOString().replace(/[:.]/g, '-')}.json`, JSON.stringify({ texts }, null, 1)); } catch (e) { L.warn('ocr sample not kept', { error: e }); }
     const photos = await extract([...images.map(image => ({ image })), ...texts.map(text => ({ text }))]);
     const merged = dedupe(clean([...clean(stops), ...untruncate(photos.flatMap(p => p.stops), stops)]));
     L.info('extracted', { images: images.length, texts: texts.length, before: stops.length, after: merged.length });

@@ -1,13 +1,13 @@
 // "Plan my tour" without the PC: the same result shape as POST /optimize, computed on the phone.
 import type { LatLon, Place, Plan, Stop } from '../tour/types.ts';
-import type { Matrix } from './matrix.ts';
+import type { Matrix, MatrixOptions } from './matrix.ts';
 import { solveOrder } from './solve.ts';
-import { cluster, dedupe, meters } from './stops.ts';
+import { cluster, dedupe, meters, umlautVariants } from './stops.ts';
 
 export interface PhoneDeps {
   /** Address -> position, null when not found. exact:false when only the street (not the house number) was placed. */
   geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null>;
-  matrix(points: LatLon[]): Promise<Matrix>;
+  matrix(points: LatLon[], opts?: MatrixOptions): Promise<Matrix>;
   /** Messages shown to the driver: a translation key in, text out. */
   t(key: 'plan.startNotFound' | 'plan.noStopsPlaced'): string;
 }
@@ -25,7 +25,7 @@ export function dueSec(express: string | undefined, departAt: number) {
   return s > 0 ? s : null;
 }
 
-export async function planOnPhone(req: { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number }, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
+export async function planOnPhone(req: { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number }, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
   const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
   const start = await place(req.start);
@@ -50,7 +50,12 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   for (const s of todo) {
     const inArea = async (g: LatLon | null) => { const c = g && await centre(s); return g && (!c || meters(g, c) <= 3000) ? g : null; };
     const kept = s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null;
-    const g = s.pinned ? kept : await inArea(await deps.geocode(label(s)).catch(() => null));
+    let g = s.pinned ? kept : await inArea(await deps.geocode(label(s)).catch(() => null));
+    // a street read with the wrong umlaut is retried with the others; the stop takes the spelling that exists
+    if (!g && !s.pinned) for (const street of umlautVariants(s.street)) {
+      g = await inArea(await deps.geocode(label({ ...s, street })).catch(() => null));
+      if (g) { s.street = street; break; }
+    }
     if (!g) s.lat = s.lon = undefined;
     if (g) { Object.assign(s, g); placed.push(s as Stop & LatLon); } else ungeocoded.push(s);
   }
@@ -58,7 +63,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
 
   const groups = cluster(placed, req.walkM);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];
-  const m = await deps.matrix(points);
+  const m = await deps.matrix(points, { hasEnd: !!end, heading: req.heading });
   const endIdx = end ? points.length - 1 : undefined;
   const due = req.expressOnTime === false ? [] : [null, ...groups.map(g => {
     // Express deadlines and a Paketshop's closing time; ponytail: opening time not modelled on the phone (the PC waits for it)

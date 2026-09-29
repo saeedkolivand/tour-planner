@@ -62,7 +62,7 @@ Skip rows cut off at the top or bottom edge (another photo covers them). Ignore 
 ${RULES}`;
 
 export const TEXT_PROMPT = `Below is OCR text (possibly with recognition errors) from a DPD parcel scanner screen listing delivery stops in or around Cologne, Germany.
-A stop starts at a line with a street and house number; the following lines until the next street line belong to that same stop, and only to it.
+A stop starts at a line with a street and house number. Above it, its header: the recipient's name (a person or a company), a "PRIO" flag and the parcel count (a lone number). Below it, its trailer: "50670HX Köln" (postcode 50670; the letters are not part of it), a route code like "G 11 T 387" and the planned slot "09:11 / 11:11" (not a deadline). Assign each line to the right stop that way.
 Fix obvious OCR mistakes: German street names and umlauts (Mulheimer -> Mülheimer, Koln -> Köln), and in house numbers and postcodes letters that are digits (l or I -> 1, O -> 0, S -> 5, B -> 8).
 ${RULES}
 
