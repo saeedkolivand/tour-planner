@@ -193,7 +193,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       if (!r) return false;
       const { stops, ...plan } = r; // stops come back keyed, geocoded and numbered
       setTour(t => ({ ...t, stops, plan }));
-      L.info('planned', { fromGps: 'lat' in start, stops: stops.length, clusters: plan.clusters.length, km: plan.km, min: plan.min, ungeocoded: plan.ungeocoded.length });
+      L.info('planned', { fromGps: 'lat' in start, by: plan.by, note: plan.note, stops: stops.length, clusters: plan.clusters.length, km: plan.km, min: plan.min, ungeocoded: plan.ungeocoded.length, unplaced: plan.ungeocoded.map(s => `${s.street} ${s.number}`) });
       return true;
     },
 

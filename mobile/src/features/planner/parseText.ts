@@ -32,10 +32,13 @@ function typeIn(block: string): StopType {
   return 'private';
 }
 
-/** The scanner shortens long street names in the middle ("Gereonsm…engasse"): another row usually spells them out. */
-export function untruncate(stops: Stop[]): Stop[] {
+/**
+ * The scanner shortens long street names in the middle ("Gereonsm…engasse"): another row usually spells them out,
+ * or a street from an earlier tour does (`known`, the phone's geocode history).
+ */
+export function untruncate(stops: Stop[], known: string[] = []): Stop[] {
   const tight = (s: string) => s.replace(/\s+/g, '');
-  const full = [...new Set(stops.map(s => s.street).filter(s => !/…|\.\.\./.test(s)))];
+  const full = [...new Set([...stops.map(s => s.street), ...known].filter(s => s && !/…|\.\.\./.test(s)))];
   return stops.map(s => {
     const m = /^(.*?)(?:…|\.\.\.)(.*)$/.exec(s.street);
     if (!m) return s;
@@ -47,15 +50,20 @@ export function untruncate(stops: Stop[]): Stop[] {
 
 export function parseStops(text: string): Stop[] {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const starts = lines.map((l, i) => ({ i, m: NOT_A_STREET.test(l) ? null : ADDRESS.exec(l) })).filter(x => x.m);
   // the trailer of each stop runs from its street line while the lines look like attributes; the header of the
   // next stop is whatever is left before its street line
-  const trailerEnd = starts.map(({ i }, k) => {
-    const limit = starts[k + 1]?.i ?? lines.length;
+  const trailerOf = (list: { i: number }[]) => list.map(({ i }, k) => {
+    const limit = list[k + 1]?.i ?? lines.length;
     let e = i + 1;
     while (e < limit && TRAILER.test(lines[e])) e++;
     return e;
   });
+  // a name can look like an address ("Späti 2", a kiosk): a street has a postcode after it (or on its line); an
+  // address-like line with neither, followed by another address, is the next stop's name
+  const cands = lines.map((l, i) => ({ i, m: NOT_A_STREET.test(l) ? null : ADDRESS.exec(l) })).filter(x => x.m);
+  const candEnd = trailerOf(cands);
+  const starts = cands.filter((x, k) => !(cands[k + 1] && candEnd[k] === x.i + 1 && !POSTCODE.test(lines[x.i])));
+  const trailerEnd = trailerOf(starts);
   const stops = starts.map(({ i, m }, k) => {
     const head = lines.slice(k ? trailerEnd[k - 1] : 0, i).filter(l => !NOT_A_STREET.test(l));
     const tail = lines.slice(i, trailerEnd[k]).join('\n');

@@ -2,6 +2,7 @@
 import type { LatLon, Place, Plan, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
 import { solveOrder } from './solve.ts';
+import { untruncate } from './parseText.ts';
 import { cluster, dedupe, meters, umlautVariants } from './stops.ts';
 
 export interface PhoneDeps {
@@ -10,6 +11,8 @@ export interface PhoneDeps {
   matrix(points: LatLon[], opts?: MatrixOptions): Promise<Matrix>;
   /** Messages shown to the driver: a translation key in, text out. */
   t(key: 'plan.startNotFound' | 'plan.noStopsPlaced'): string;
+  /** Street names from earlier tours (the geocode history): completes names the scanner shortened with "…". */
+  knownStreets?(): Promise<string[]>;
 }
 
 const label = (s: Stop) => `${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim();
@@ -32,7 +35,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   if (!start) throw new Error(deps.t('plan.startNotFound'));
   const end = await place(req.end);
 
-  const all = dedupe(req.stops);
+  const all = untruncate(dedupe(req.stops), (await deps.knownStreets?.().catch(() => [])) ?? []);
   const todo = all.filter(s => !s.done && complete(s));
   const ungeocoded: Stop[] = all.filter(s => !s.done && !complete(s));
   const placed: (Stop & LatLon)[] = [];

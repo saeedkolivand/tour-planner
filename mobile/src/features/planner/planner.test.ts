@@ -92,6 +92,17 @@ test('the DPD scanner layout: name + PRIO + count above the street, "50670HX", r
   assert.equal(s[1].city, 'Köln');
 });
 
+test('a kiosk called "Späti 2" is a name, not a street; a shortened street is completed from earlier tours', async () => {
+  const s = parseStops(['Späti 2', 'PRIO', '1', 'Neusser Str. 11', '50670IH Köln', 'Kita Remmidemmi e.V.,', '2', 'Gereonsm... engasse 26', '50670HL Köln'].join('\n'));
+  assert.deepEqual(s.map(x => `${x.street} ${x.number}`), ['Neusser Str. 11', 'Gereonsm... engasse 26']);
+  assert.deepEqual([s[0].name, s[0].express], ['Späti 2', '12:00']);
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'Gereonsmühlengasse 26, 50670 Köln': { lat: 50.944, lon: 6.945 }, '50670 Köln': { lat: 50.944, lon: 6.95 } };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, knownStreets: async () => ['Gereonsmühlengasse', 'Neusser Str.'] };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s[1]] }, deps);
+  assert.equal(p.ungeocoded.length, 0, 'placed via the remembered full name');
+  assert.equal(p.stops[0].street, 'Gereonsmühlengasse');
+});
+
 test('plan on the phone: grouped, ordered, numbered once, and compared with the scanner order', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
     'Depot, Köln': { lat: 50.94, lon: 6.90 },
