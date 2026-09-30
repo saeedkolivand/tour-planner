@@ -92,4 +92,12 @@ async function matrix(points: LatLon[], opts: MatrixOptions = {}) {
   return { ...estimateMatrix(points), why: why.join('; ') };
 }
 
-export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key) };
+/** Streets this phone has placed before, from the geocache keys ("gereonsmühlengasse 2, 50670 köln"), title-cased. */
+async function knownStreets(): Promise<string[]> {
+  const keys = Object.keys(await load());
+  const names = keys.map(k => /^([^\d,]+?)\s+\d/.exec(k)?.[1]).filter((s): s is string => !!s);
+  const cased = names.map(n => n.replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase()));
+  return [...new Set(cased)];
+}
+
+export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets };

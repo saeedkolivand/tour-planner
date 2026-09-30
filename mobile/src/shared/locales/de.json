@@ -218,7 +218,7 @@
     "readPhotosOnPcHint": "Sein Vision-Modell statt der Texterkennung dieses Handys",
     "roadTimesTitle": "Fahrzeiten auf dem Handy",
     "orsKeySavedFooter": "Schlüssel gespeichert (endet auf …{{last4}}). Pläne auf diesem Handy nutzen echte Fahrzeiten.",
-    "orsKeyMissingFooter": "Optional. Mit einem kostenlosen openrouteservice.org-Schlüssel nutzen Pläne auf diesem Handy echte Fahrzeiten (Einbahnstraßen, Brücken) statt Entfernungsschätzungen. Braucht Internet, nicht den PC.",
+    "orsKeyMissingFooter": "Optional. Pläne auf diesem Handy nutzen bereits den öffentlichen OpenStreetMap-Router (Einbahnstraßen, Straßenseite). Ein kostenloser openrouteservice.org-Schlüssel ist die zweite Quelle, wenn der Router nicht antwortet. Braucht Internet, nicht den PC.",
     "orsPlaceholder": "OpenRouteService-Schlüssel",
     "tourSection": "Tour",
     "clearTourTitle": "Heutige Tour löschen?",
