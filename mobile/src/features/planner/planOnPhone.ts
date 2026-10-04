@@ -1,9 +1,10 @@
 // "Plan my tour" without the PC: the same result shape as POST /optimize, computed on the phone.
 import type { LatLon, Place, Plan, PlanRequest, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
+import { label, type Located } from './locate.ts';
 import { solveOrder } from './solve.ts';
 import { untruncate } from './parseText.ts';
-import { chain, cluster, dedupe, meters, streetMates, umlautVariants } from './stops.ts';
+import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } from './stops.ts';
 
 export interface PhoneDeps {
   /** Address -> position, null when not found. exact:false when only the street (not the house number) was placed. */
@@ -13,9 +14,15 @@ export interface PhoneDeps {
   t(key: 'plan.startNotFound' | 'plan.noStopsPlaced'): string;
   /** Street names from earlier tours (the geocode history): completes names the scanner shortened with "…". */
   knownStreets?(): Promise<string[]>;
+  /** The second geocoder (OpenStreetMap), for a stop the first could not place; `q` is its label (the cache key). */
+  locate?(s: Stop, q: string): Promise<Located | null>;
+  /** The detailed log: why each stop was or wasn't placed, and how the order came about. */
+  log?(msg: string, data?: Record<string, unknown>): void;
 }
 
-const label = (s: Stop) => `${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim();
+/** What a long plan is doing: placing stop `done` of `total`, fetching road times, ordering. */
+export type PlanProgress = (stage: 'places' | 'roadTimes' | 'ordering', done?: number, total?: number) => void;
+
 const complete = (s: Stop) => !!(s.street?.trim() && String(s.number ?? '').trim());
 
 /** "12:00" -> seconds after departure, null when none or already past. Same rule as the PC (server/route/solve.mjs). */
@@ -31,7 +38,8 @@ export function dueSec(express: string | undefined, departAt: number) {
 /** A deadline `marginSec` earlier, but never in the past while the deadline itself is still ahead (then: as soon as possible). */
 const early = (due: number | null, marginSec: number) => (due == null ? null : Math.max(1, due - marginSec));
 
-export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
+export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: PlanProgress = () => {}): Promise<Plan & { stops: Stop[] }> {
+  const note = deps.log ?? (() => {});
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
   const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
   const start = await place(req.start);
@@ -53,15 +61,29 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Pl
     if (!centres.has(pc)) centres.set(pc, await deps.geocode(`${pc} ${s.city || 'Köln'}`).catch(() => null));
     return centres.get(pc) ?? null;
   };
-  for (const s of todo) {
-    const inArea = async (g: LatLon | null) => { const c = g && await centre(s); return g && (!c || meters(g, c) <= 3000) ? g : null; };
+  for (const [i, s] of todo.entries()) {
+    progress('places', i, todo.length);
+    const inArea = async (g: (LatLon & { exact?: boolean }) | null, by: string) => {
+      const c = g && await centre(s);
+      const km = g && c ? Math.round(meters(g, c) / 100) / 10 : null;
+      if (g && km != null && km > 3) note('placed too far from its postcode, ignored', { stop: label(s), by, km });
+      return g && (km == null || km <= 3) ? g : null;
+    };
     const kept = s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null;
-    let g = s.pinned ? kept : await inArea(await deps.geocode(label(s)).catch(() => null));
+    let g = s.pinned ? kept : await inArea(await deps.geocode(label(s)).catch(() => null), 'phone');
     // a street read with the wrong umlaut is retried with the others; the stop takes the spelling that exists
     if (!g && !s.pinned) for (const street of umlautVariants(s.street)) {
-      g = await inArea(await deps.geocode(label({ ...s, street })).catch(() => null));
-      if (g) { s.street = street; break; }
+      g = await inArea(await deps.geocode(label({ ...s, street })).catch(() => null), 'phone, umlaut swapped');
+      if (g) { note('placed with an umlaut swapped', { stop: label(s), street }); s.street = street; break; }
     }
+    // the phone's geocoder takes a street named after a town ("Neusser Str.") for the town, or lacks the house:
+    // OpenStreetMap's, by the PC's rules (locate.ts); the stop takes the spelling it found if that differs
+    if (!g && !s.pinned && deps.locate) for (const street of [s.street, ...umlautVariants(s.street)]) {
+      const h = await deps.locate({ ...s, street }, label({ ...s, street })).catch(e => { note('second geocoder failed', { stop: label(s), error: (e as Error).message }); return null; });
+      g = await inArea(h && { lat: h.lat, lon: h.lon, exact: h.exact }, 'openstreetmap');
+      if (g) { if (fold(h!.street) !== fold(s.street)) s.street = h!.street; break; }
+    }
+    note(g ? 'stop placed' : 'stop not placed', { stop: label(s), ...(g && { lat: +g.lat.toFixed(6), lon: +g.lon.toFixed(6), exact: (g as { exact?: boolean }).exact ?? true }), pinned: !!s.pinned });
     if (!g) s.lat = s.lon = undefined;
     if (g) { Object.assign(s, g); placed.push(s as Stop & LatLon); } else ungeocoded.push(s);
   }
@@ -71,7 +93,9 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Pl
   const scanned = req.order === 'scanned';
   const groups = scanned ? chain(placed, req.walkM) : cluster(placed, req.walkM);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];
+  progress('roadTimes');
   const m = await deps.matrix(points, { hasEnd: !!end, heading: req.heading, curb: req.bothSides === false });
+  note('road times', { by: m.by, why: m.why, points: points.length, parkingStops: groups.length });
   const endIdx = end ? points.length - 1 : undefined;
   const margin = Math.max(0, req.expressMarginMin ?? 0) * 60;
   const due = req.expressOnTime === false ? [] : [null, ...groups.map(g => {
@@ -80,6 +104,7 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Pl
     return d.length ? Math.min(...d) : null;
   })];
   const rank = req.expressFirst ? [0, ...groups.map(g => (g.stops.some(s => s.express) ? 0 : 1)), 0] : [];
+  progress('ordering');
   const order = scanned ? groups.map((_, i) => i + 1)
     : solveOrder(m.seconds, endIdx, { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] });
 
@@ -106,6 +131,7 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Pl
   const late = req.expressOnTime === false ? [] : clusters.filter(c => c.stops.some(s => {
     return [dueSec(s.express, departAt), dueSec(s.opens?.split('-')[1], departAt)].some(d => d != null && c.eta * 60 > d);
   })).flatMap(c => c.stops.map(s => s.key!));
+  note('order', { scanned, km: +km.toFixed(1), min: Math.round((t + served) / 60), late, parkingStops: clusters.map(c => `${c.eta}m ${c.stops.map(x => `#${x.no} ${x.street} ${x.number}`).join(' + ')}`) });
   return {
     clusters, km, late, min: Math.round((t + served) / 60),
     baseline: scanned ? null : { km: base.km, min: (base.s + served) / 60 },

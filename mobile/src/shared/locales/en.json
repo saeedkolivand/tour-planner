@@ -105,7 +105,8 @@
     "screenshots": "Screenshots",
     "pickScreenshotsLabel": "Pick screenshots",
     "inAppHint": "Photograph the scanner list. Several pages are fine.",
-    "takePhoto": "Take photo"
+    "takePhoto": "Take photo",
+    "readingPhotos": "Reading photos… keep the app open"
   },
   "coverage": {
     "unknown": "Enter the stop count your scanner shows to check nothing is missing.",
@@ -130,8 +131,6 @@
     "shopCloses": "shop closes {{time}}",
     "tourCompleteTitle": "Tour complete",
     "tourCompleteBody": "All {{n}} stops delivered. Nice work.",
-    "notPlanned": "Not planned: {{list}}.",
-    "fixAddresses": " Fix addresses on the Stops tab.",
     "deliverOnFoot": " Deliver on foot from a nearby stop.",
     "noAddressStop": "a stop without address",
     "noRoadClosure": " (no road there today: closure)",
@@ -164,7 +163,11 @@
     "startStopsBtn_other": "Start {{count}} stops",
     "lateNoteScanned": "{{stops}} will be late in the scanner's order: {{list}}{{more}}.",
     "inScannerOrder": "In your scanner's order, nothing re-ordered.",
-    "notStartedYet": "Not started yet: times count from now until your first Navigate or Delivered."
+    "notStartedYet": "Not started yet: times count from now until your first Navigate or Delivered.",
+    "notPlannedTitle_one": "{{count}} stop not on the route",
+    "notPlannedTitle_other": "{{count}} stops not on the route",
+    "notPlannedEditHint": "Opens the stop to fix its address",
+    "notPlannedHint": "Tap one to fix its address, then re-plan. Navigation still finds it by its address, and you can tick it off here."
   },
   "count": {
     "parkingStops_one": "{{count}} parking stop left",
@@ -258,7 +261,14 @@
     "marginMinutesA11y": "{{n}} minutes early",
     "expressFirst": "Express first",
     "expressFirstHint": "Deliver every Express stop before the rest",
-    "expressScannedFooter": "With the stop order \"As scanned\" nothing is re-ordered: Express stops that will be late are flagged on the Route tab."
+    "expressScannedFooter": "With the stop order \"As scanned\" nothing is re-ordered: Express stops that will be late are flagged on the Route tab.",
+    "logTitle": "Log",
+    "detailedLog": "Detailed log",
+    "detailedLogHint": "Also record why: each address lookup, what was read from each photo, how the order came about",
+    "exportLog": "Export log",
+    "exportFailed": "Could not export the log",
+    "exportUnavailable": "Sharing files is not available on this device.",
+    "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list, but no keys and no server address."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",
@@ -281,7 +291,10 @@
   },
   "planning": {
     "findingLocation": "Finding your location…",
-    "couldNotPlan": "Could not plan"
+    "couldNotPlan": "Could not plan",
+    "places": "Finding the addresses on the map…",
+    "roadTimes": "Getting road times…",
+    "ordering": "Putting the stops in order…"
   },
   "delivery": {
     "navigationError": "Navigation",

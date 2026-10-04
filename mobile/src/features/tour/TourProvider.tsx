@@ -13,7 +13,7 @@ import { createTourStore, type LocalStore, type PhoneFallback, type Saved, type 
 // Without the PC (no server set, 'Phone only', or it doesn't answer): plan and read lists on the phone.
 const phone: PhoneFallback = {
   mode: () => (noPc() ? 'phone' : 'auto'),
-  plan: req => planOnPhone(req, phoneDeps),
+  plan: (req, progress) => planOnPhone(req, phoneDeps, progress),
   parse: parseStops,
 };
 

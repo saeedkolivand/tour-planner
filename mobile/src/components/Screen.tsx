@@ -3,6 +3,7 @@ import { cantReachPc } from '@/features/tour/store';
 import { useTranslation, type Key } from '@/shared/i18n';
 import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Progress } from '@/components/ui/progress';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
@@ -20,17 +21,27 @@ export function ScreenHeader({ title, subtitle, right }: { title: string; subtit
   );
 }
 
-/** One line under the header: a spinner with what's running (`busy` is a translation key), the last error, or that the PC is out of reach. */
-export function StatusBanner({ busy, error, offline }: { busy: string | null; error: string | null; offline?: boolean }) {
+/**
+ * One line under the header: a spinner with what's running (`busy` is a translation key) and, when known, how far
+ * (3 / 12 with a bar); else the last error, or that the PC is out of reach.
+ */
+export function StatusBanner({ busy, progress, error, offline }: {
+  busy: string | null; progress?: { done: number; total: number } | null; error: string | null; offline?: boolean;
+}) {
   const { t } = useTranslation();
   if (!busy && !error && !offline) return null;
+  const step = busy && progress?.total ? progress : null;
   return (
-    <View className={cn('mx-5 mb-2 flex-row items-center gap-2 rounded-lg px-3 py-2', error && !busy ? 'bg-destructive/10' : 'bg-muted')}
+    <View className={cn('mx-5 mb-2 gap-2 rounded-lg px-3 py-2', error && !busy ? 'bg-destructive/10' : 'bg-muted')}
       accessibilityLiveRegion="polite">
-      {busy ? <ActivityIndicator size="small" /> : null}
-      <Text className={cn('flex-1 text-sm', error && !busy ? 'text-destructive font-medium' : 'text-muted-foreground')}>
-        {busy ? t(busy as Key) : error ? (cantReachPc(error) ? t('store.cantReachPc') : error) : t('common.offlineBanner')}
-      </Text>
+      <View className="flex-row items-center gap-2">
+        {busy ? <ActivityIndicator size="small" /> : null}
+        <Text className={cn('flex-1 text-sm', error && !busy ? 'text-destructive font-medium' : 'text-muted-foreground')}>
+          {busy ? t(busy as Key) : error ? (cantReachPc(error) ? t('store.cantReachPc') : error) : t('common.offlineBanner')}
+        </Text>
+        {step && <Text className="text-muted-foreground text-sm font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{step.done} / {step.total}</Text>}
+      </View>
+      {step && <Progress value={(step.done / step.total) * 100} className="h-1.5" aria-label={t(busy as Key)} />}
     </View>
   );
 }
