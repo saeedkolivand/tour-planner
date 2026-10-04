@@ -25,23 +25,28 @@ async function toDataUrl(uri: string): Promise<string> {
   });
 }
 
-/** Runs on-device OCR, or prepares base64 for the server, on already-captured photo file uris. */
-export async function readPhotos(uris: string[]): Promise<ScanInput> {
+/**
+ * Runs on-device OCR, or prepares base64 for the server, on already-captured photo file uris.
+ * `onRead(done)` after each photo, for a "3 of 12" line: a dozen screenshots take a while.
+ */
+export async function readPhotos(uris: string[], onRead: (done: number) => void = () => {}): Promise<ScanInput> {
   // ponytail: the PC reads photos only when it is in use at all; phone-only mode ignores the toggle
   const toPc = getSettings().serverOcr && !noPc();
+  let done = 0;
+  const each = <T,>(fn: (uri: string) => Promise<T>) => Promise.all(uris.map(async uri => { const r = await fn(uri); onRead(++done); return r; }));
   if (Ocr && onDeviceOcr && !toPc) {
     const t0 = Date.now();
-    const texts = await Promise.all(uris.map(async uri => (await Ocr.extractTextFromImage(uri.replace('file://', ''))).join('\n')));
+    const texts = await each(async uri => (await Ocr.extractTextFromImage(uri.replace('file://', ''))).join('\n'));
     L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0, texts });
     return { texts };
   }
   L.info('sending photos to server', { photos: uris.length, reason: toPc ? 'chosen in Settings' : Ocr ? 'OCR unsupported on device' : 'no native OCR in this build' });
-  const images = await Promise.all(uris.map(toDataUrl));
+  const images = await each(toDataUrl);
   return { images };
 }
 
-/** Picks screenshots of the scanner list from the photo library. null when the user cancels. */
-export async function pickScreenshots(): Promise<ScanInput | null> {
+/** Picks screenshots of the scanner list from the photo library: their file uris, null when the user cancels. */
+export async function pickScreenshots(): Promise<string[] | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
     L.warn('permission denied', { source: 'library' });
@@ -49,5 +54,5 @@ export async function pickScreenshots(): Promise<ScanInput | null> {
   }
   const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsMultipleSelection: true, quality: 0.8 });
   if (res.canceled) { L.info('cancelled', { source: 'library' }); return null; }
-  return readPhotos(res.assets.map(a => a.uri));
+  return res.assets.map(a => a.uri);
 }

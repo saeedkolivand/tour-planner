@@ -1,5 +1,6 @@
-import { RefreshCw, Trash2 } from 'lucide-react-native';
-import { Platform, ScrollView, View } from 'react-native';
+import { RefreshCw, Share, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
+import { Alert, Platform, ScrollView, View } from 'react-native';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ScreenHeader, StatusBanner } from '@/components/Screen';
 import { Button } from '@/components/ui/button';
@@ -17,17 +18,26 @@ import { setSettings, useSettings } from '@/features/settings/settings';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { UpdateSection } from '@/features/updates/UpdateSection';
 import { onDeviceOcr } from '@/services/scan';
+import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
+import { exportLog } from '@/shared/logExport';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const s = useSettings();
   const store = useTourStore();
-  const { tour, busy, error, offline } = useTourState();
+  const { tour, busy, progress, error, offline } = useTourState();
+  const [exporting, setExporting] = useState(false);
+  const shareLog = async () => {
+    haptic.tap();
+    setExporting(true);
+    try { await exportLog(tour); } catch (e) { haptic.error(); Alert.alert(t('settings.exportFailed'), (e as Error).message); }
+    finally { setExporting(false); }
+  };
   return (
     <View className="bg-background flex-1">
       <ScreenHeader title={t('tabs.settings')} />
-      <StatusBanner busy={busy} error={error} offline={offline} />
+      <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
       <ScrollView contentContainerClassName="gap-6 px-5 pb-16" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <SettingsSection title={t('settings.language')}>
           <LanguagePicker value={s.language} onChange={language => setSettings({ language })} />
@@ -116,6 +126,15 @@ export default function SettingsScreen() {
           : t('settings.orsKeyMissingFooter')}>
           <Input defaultValue={s.orsKey} autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder={t('settings.orsPlaceholder')}
             accessibilityLabel={t('settings.orsPlaceholder')} onChangeText={orsKey => setSettings({ orsKey: orsKey.trim() })} />
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.logTitle')} footer={t('settings.logFooter')}>
+          <SwitchRow label={t('settings.detailedLog')} hint={t('settings.detailedLogHint')} value={s.detailedLog} onChange={detailedLog => setSettings({ detailedLog })} />
+          <SettingsDivider />
+          <Button variant="outline" onPress={shareLog} disabled={exporting}>
+            <Icon as={Share} size={16} />
+            <Text>{t('settings.exportLog')}</Text>
+          </Button>
         </SettingsSection>
 
         <SettingsSection title={t('settings.tourSection')}>

@@ -29,6 +29,14 @@ export function useDelivery() {
     navigateTo(c.park, navApp, `${first.street} ${first.number}`).catch(e => Alert.alert(t('delivery.navigationError'), (e as Error).message));
   }, [store, navApp]);
 
+  /** A stop the plan could not place: the maps app looks the address up itself. */
+  const navigateAddress = useCallback((s: Stop) => {
+    haptic.tap();
+    store.depart();
+    navigateTo(`${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim(), navApp, `${s.street} ${s.number}`)
+      .catch(e => Alert.alert(t('delivery.navigationError'), (e as Error).message));
+  }, [store, navApp]);
+
   const lastDelivered = useRef(0);
   const markDelivered = useCallback((c: Cluster) => {
     lastDelivered.current = Date.now();
@@ -62,5 +70,5 @@ export function useDelivery() {
   const reopen = useCallback((c: Cluster) => { haptic.warn(); store.setDone(keysOf(c), false); }, [store]);
   const toggleStop = useCallback((s: Stop) => { if (s.key) store.toggleDone(s.key); }, [store]);
 
-  return { view, navigate, deliver, reopen, toggleStop, navLabel: NAV_APPS[navApp] };
+  return { view, navigate, navigateAddress, deliver, reopen, toggleStop, navLabel: NAV_APPS[navApp] };
 }

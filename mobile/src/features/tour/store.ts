@@ -7,10 +7,14 @@ export interface TourState {
   tour: Tour;
   /** What is running, for a spinner line; null when idle. Only user actions, never background syncs. */
   busy: string | null;
+  /** How far the running step is (photo 3 of 12, address 12 of 38); null when it can't say. */
+  progress: Progress | null;
   error: string | null;
   /** The last sync with the PC failed; changes are kept on the phone and sent when it's back. */
   offline: boolean;
 }
+
+export interface Progress { done: number; total: number }
 
 /** What survives an app kill: the tour, and whether the PC still has to receive it. */
 export interface Saved { tour: Tour; dirty: boolean; synced: boolean }
@@ -22,9 +26,12 @@ export type TourStore = ReturnType<typeof createTourStore>;
 /** Working without the PC: plan and read scanner text on the phone. Absent in tests that only exercise the PC path. */
 export interface PhoneFallback {
   mode(): 'auto' | 'phone';
-  plan(req: PlanRequest): Promise<Plan & { stops: Stop[] }>;
+  plan(req: PlanRequest, progress?: (stage: PlanStage, done?: number, total?: number) => void): Promise<Plan & { stops: Stop[] }>;
   parse(text: string): Stop[];
 }
+
+/** The stages of a plan made on the phone, each shown as its own line (`planning.<stage>`). */
+export type PlanStage = 'places' | 'roadTimes' | 'ordering';
 
 /** The PC didn't answer (vs. answered with an error about the input): the phone can take over. */
 export const unreachable = (e: unknown) => /network|fetch|timed? ?out|abort|resolve host|Server error 5\d\d/i.test((e as Error)?.message ?? '');
@@ -43,7 +50,7 @@ export function friendly(e: unknown) {
  * (so the web app and Siri see it). Until a change reached the PC, a reload never overwrites it.
  */
 export function createTourStore(api: TourApi, L: StoreLogger = silent, local: LocalStore = NO_LOCAL, phone?: PhoneFallback) {
-  let state: TourState = { tour: EMPTY_TOUR, busy: null, error: null, offline: false };
+  let state: TourState = { tour: EMPTY_TOUR, busy: null, progress: null, error: null, offline: false };
   /** Unsent changes; and whether we've seen the PC's tour yet (before that, a push could wipe it). */
   let dirty = false, synced = false;
   /** Bumped by every change: a reload that started before a change must not apply its older copy. */
@@ -92,6 +99,9 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
   /** The PC's /extract, done by rules on the phone: new rows merged into the list like the PC does. */
   const readOnPhone = (texts: string[]): ExtractResult => {
     const found = texts.map(t => phone!.parse(t));
+    // what the phone's rules made of each photo's text (the text itself is in the 'on-device OCR' entry)
+    found.forEach((rows, photo) => L.debug('photo read on the phone', { photo, rows: rows.map(s =>
+      `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
     const known = new Set(state.tour.stops.map(s => `${s.street}|${s.number}|${s.postcode}`.toLowerCase()));
     const fresh = found.flat().filter(s => !known.has(`${s.street}|${s.number}|${s.postcode}`.toLowerCase()) && known.add(`${s.street}|${s.number}|${s.postcode}`.toLowerCase()));
     return { stops: [...state.tour.stops, ...fresh], photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
@@ -100,7 +110,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
   /** Runs a user-started server call with busy/error state and a log line either way. Resolves undefined on failure. */
   async function run<T>(action: string, label: string, fn: () => Promise<T>): Promise<T | undefined> {
     const t0 = Date.now();
-    set({ busy: label, error: null });
+    set({ busy: label, progress: null, error: null });
     try {
       const out = await fn();
       L.info(`${action} ok`, { ms: Date.now() - t0 });
@@ -109,7 +119,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       L.error(`${action} failed`, { ms: Date.now() - t0, error: e });
       set({ error: friendly(e) });
       return undefined;
-    } finally { set({ busy: null }); }
+    } finally { set({ busy: null, progress: null }); }
   }
 
   /** Background sync: sends unsent changes first, then takes the PC's tour (Siri may have delivered stops). */
@@ -161,8 +171,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
   return {
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     getState: () => state,
-    /** For waits before a server call (a GPS fix), so the screen shows something is happening. */
-    setBusy: (busy: string | null) => set({ busy }),
+    /** For waits outside a store call (a GPS fix, reading photos), so the screen shows something is happening. */
+    setBusy: (busy: string | null, progress: Progress | null = null) => set({ busy, progress }),
 
     /** The phone's own copy, instantly and offline; then the PC's. */
     async start() {
@@ -201,12 +211,14 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     async plan(start: Place, end: Place | null, { pendingStart = false, ...opt }: PlanOptions & { pendingStart?: boolean } = {}) {
       const req: PlanRequest = { start, end, stops: state.tour.stops, lastNo: state.tour.plan?.lastNo, ...opt };
       const r = await run('plan', 'store.planningRoute', async () => {
-        if (phone?.mode() === 'phone') return phone.plan(req);
+        // the phone's plan takes minutes the first time (each new address looked up): say which step it's on
+        const stage = (st: PlanStage, done?: number, total?: number) => set({ busy: `planning.${st}`, progress: total ? { done, total } as Progress : null });
+        if (phone?.mode() === 'phone') return phone.plan(req, stage);
         try { return { ...await api.optimize(req), by: 'pc' as const }; }
         catch (e) {
           if (!phone || !unreachable(e)) throw e;
           L.warn('PC unreachable, planning on the phone', { error: e });
-          return phone.plan(req);
+          return phone.plan(req, stage);
         }
       });
       if (!r) return false;

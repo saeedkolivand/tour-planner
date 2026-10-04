@@ -8,7 +8,6 @@ import { StickyAction } from '@/components/StickyAction';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import type { ScanInput } from '@/features/tour/api';
 import { CaptureCard } from '@/features/tour/components/CaptureCard';
 import { CoverageCard } from '@/features/tour/components/CoverageCard';
 import { PhotoCapture } from '@/features/tour/components/PhotoCapture';
@@ -27,7 +26,7 @@ const today = (lang: Lang) => new Date().toLocaleDateString(lang === 'de' ? 'de-
 export default function StopsScreen() {
   const { t, lang } = useTranslation();
   const store = useTourStore();
-  const { tour, busy, error, offline } = useTourState();
+  const { tour, busy, progress, error, offline } = useTourState();
   const plan = usePlanning();
   const { stopOrder } = useSettings();
   const [msg, setMsg] = useState('');
@@ -35,16 +34,23 @@ export default function StopsScreen() {
   const [camera, setCamera] = useState(false);
   const cov = useMemo(() => coverage(tour), [tour]);
 
-  const capture = async (input: Promise<ScanInput | null>) => {
+  // reading a dozen photos takes a while: "Reading photos 3/12" from the moment they're picked or taken
+  const capture = async (uris: string[] | null) => {
+    if (!uris?.length) return;
     haptic.tap();
+    setMsg('');
+    const reading = (done: number) => store.setBusy('capture.readingPhotos', { done, total: uris.length });
     try {
-      const r = await input.then(i => i && store.scan(i));
+      reading(0);
+      const input = await readPhotos(uris, reading);
+      const r = await store.scan(input); // shows its own line while the PC (or the phone's parser) reads the text
       if (!r) return;
       (r.error ? haptic.warn : haptic.success)();
       setMsg(r.error ? t('scan.someFailed', { error: r.error })
         : t('scan.foundSummary', { rows: t('count.rows', { count: r.found }), newStopsPhrase: t('count.newStops', { count: r.added }) }));
-    } catch (e) { haptic.error(); setMsg((e as Error).message); }
+    } catch (e) { haptic.error(); store.setBusy(null); setMsg((e as Error).message); }
   };
+  const pickAndRead = () => pickScreenshots().then(capture, e => { haptic.error(); setMsg((e as Error).message); });
   const addStop = () => { store.addStop(); setEditing(tour.stops.length); };
   // a stop added with + and closed without an address is dropped: it can't be planned, only clutter
   // stable across renders (the rows are memoized); they read the stop at the moment of the swipe
@@ -78,7 +84,7 @@ export default function StopsScreen() {
           <Icon as={Plus} size={20} />
         </Button>
       } />
-      <StatusBanner busy={busy} error={error} offline={offline} />
+      <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
       <FlatList
         data={tour.stops}
         keyExtractor={(s, i) => s.key ?? `new-${i}`}
@@ -86,7 +92,7 @@ export default function StopsScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View className="mb-1 gap-3">
-            <CaptureCard onCamera={() => { haptic.tap(); setCamera(true); }} onLibrary={() => capture(pickScreenshots())} busy={!!busy} message={msg} />
+            <CaptureCard onCamera={() => { haptic.tap(); setCamera(true); }} onLibrary={pickAndRead} busy={!!busy} message={msg} />
             {tour.stops.length > 0 && <CoverageCard c={cov} expected={tour.expected} onExpected={store.setExpected} />}
             {tour.stops.length > 0 && <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">{t('stops.captured')}</Text>}
           </View>
@@ -102,7 +108,7 @@ export default function StopsScreen() {
         <StopEditDialog key={editing} stop={tour.stops[editing]} onClose={closeEditor}
           onSave={p => store.editStop(editing, p)} onDelete={() => store.removeStop(editing)} />
       )}
-      <PhotoCapture open={camera} onClose={() => setCamera(false)} onDone={uris => { setCamera(false); capture(readPhotos(uris)); }} />
+      <PhotoCapture open={camera} onClose={() => setCamera(false)} onDone={uris => { setCamera(false); capture(uris); }} />
     </View>
   );
 }

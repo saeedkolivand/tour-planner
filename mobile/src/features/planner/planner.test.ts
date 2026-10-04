@@ -5,6 +5,7 @@ import type { Stop } from '../tour/types.ts';
 import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
 import { parseStops } from './parseText.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
+import { alike, locate, nearbyNumbers, type Hit } from './locate.ts';
 import { descents, revisits, solveOrder } from './solve.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
@@ -302,4 +303,51 @@ test('Express margin: aims early, but "late" is still judged on the deadline its
   const early = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: stops(), departAt: tomorrow8, expressMarginMin: 5 }, deps);
   assert.deepEqual(early.clusters.map(c => c.stops[0].street), ['B', 'A'], 'a 5 min buffer pulls B first');
   assert.deepEqual(early.late, [], 'B is well before 08:08');
+});
+
+// OpenStreetMap's answers for the four stops the phone's geocoder could not place (2026-10-04), shaped like Photon's
+const koeln = { lat: 50.9500, lon: 6.9590 }; // 50670 Neustadt-Nord
+const hit = (street: string, number: string | undefined, postcode: string, lat: number, lon: number): Hit => ({ street, number, postcode, lat, lon });
+
+test('second geocoder, by the PC\'s rules: another town\'s Neusser Straße is refused; the street, then a neighbour, is used', async () => {
+  const answers: Record<string, Hit> = {
+    '50670 Köln': hit('', undefined, '50670', koeln.lat, koeln.lon),
+    'Neusser Str. 30, 50670 Köln': hit('Neusser Straße', '30', '41542', 51.09, 6.84), // Dormagen
+    'Neusser Str. 30, Köln': hit('Neusser Straße', '30', '41542', 51.09, 6.84),
+    'Neusser Str., Köln': hit('Neusser Straße', undefined, '50670', 50.9530, 6.9560),
+    'Neusser Str. 28, 50670 Köln': hit('Neusser Straße', '28', '50670', 50.9528, 6.9571),
+  };
+  const notes: string[] = [];
+  const g = await locate(s('Neusser Str.', '30', { postcode: '50670' }), async q => answers[q] ?? null, m => notes.push(m));
+  assert.deepEqual(g, { lat: 50.9528, lon: 6.9571, exact: true, street: 'Neusser Straße' });
+  assert.ok(notes.includes('photon: another place, ignored'));
+  assert.ok(notes.includes('photon: placed by a neighbouring number'));
+});
+
+test('second geocoder: a house is exact only when OpenStreetMap found that very number; else the street', async () => {
+  const answers: Record<string, Hit> = {
+    '50670 Köln': hit('', undefined, '50670', koeln.lat, koeln.lon),
+    'Weißenburgstr. 62, 50670 Köln': hit('Weißenburgstraße', '6', '50670', 50.9510, 6.9620),
+  };
+  const g = await locate(s('Weißenburgstr.', '62', { postcode: '50670' }), async q => answers[q] ?? null);
+  assert.deepEqual(g, { lat: 50.9510, lon: 6.9620, exact: false, street: 'Weißenburgstraße' }, 'number 6 is not 62: street only');
+  assert.ok(alike('Weißenburgstr.', 'Weißenburgstraße') && !alike('Neusser Str.', 'Neusser Wall'));
+  assert.deepEqual(nearbyNumbers('1A'), ['1', '3', '5', '2', '4']);
+});
+
+test('plan on the phone: a stop the phone\'s geocoder misses is placed by the second one; progress is reported', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': koeln, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 } };
+  const asked: string[] = [], stages: string[] = [], notes: string[] = [];
+  const deps = {
+    geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k,
+    locate: async (st: Stop, q: string) => { asked.push(q); return st.street === 'Wickrather Str.' ? { lat: 50.9562, lon: 6.9541, exact: true, street: 'Wickrather Straße' } : null; },
+    log: (m: string) => notes.push(m),
+  };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Ring', '1', { postcode: '50670' }), s('Wickrather Str.', '7', { postcode: '50670' }), s('Nirgendwo', '9', { postcode: '50670' })] },
+    deps, (st, done, total) => stages.push(total ? `${st} ${done}/${total}` : st));
+  assert.deepEqual(p.ungeocoded.map(x => x.street), ['Nirgendwo']);
+  assert.equal(p.stops.find(x => x.number === '7')?.street, 'Wickrather Str.', 'same street, the list\'s spelling stays');
+  assert.deepEqual(asked, ['Wickrather Str. 7, 50670 Köln', 'Nirgendwo 9, 50670 Köln'], 'only for what the phone could not place');
+  assert.deepEqual(stages, ['places 0/3', 'places 1/3', 'places 2/3', 'roadTimes', 'ordering']);
+  assert.deepEqual(notes.filter(n => n.startsWith('stop')), ['stop placed', 'stop placed', 'stop not placed']);
 });

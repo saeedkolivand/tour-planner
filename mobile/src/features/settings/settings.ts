@@ -48,10 +48,12 @@ export interface Settings {
   bothSides: boolean;
   /** UI language; 'system' follows the phone's language (German if set, else English). */
   language: 'system' | 'en' | 'de';
+  /** Also record the why of each step (every address lookup, each plan's order) for Settings > Export log. */
+  detailedLog: boolean;
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);

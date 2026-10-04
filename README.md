@@ -65,10 +65,11 @@ English and German. The app follows the phone's language (iOS and Android also l
 
 Expo SDK 57 · React Native 0.86 · Expo Router · **NativeWind 4 + React Native Reusables** (shadcn/ui for React Native) · lucide icons · Reanimated · haptics · light/dark. One code base builds both apps; the differences are listed further down.
 
-- **Stops**: a capture hero (camera or screenshots, read on the phone with Apple Vision on iOS and ML Kit on Android), a check of the stop count against the scanner, and stop rows that open a focused edit dialog.
-- **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: the map (draggable pins), the upcoming list, and a collapsed delivered list. Without a *Leave the depot at* time, arrival times count from your first **Navigate** or **Delivered**, not from when you planned.
+- **Stops**: a capture hero (camera or screenshots, read on the phone with Apple Vision on iOS and ML Kit on Android, with a "3 / 12" progress line), a check of the stop count against the scanner, and stop rows that open a focused edit dialog.
+- **Planning on the phone** (no PC): addresses go to Apple's or Google's geocoder first; one it cannot place (a street named after a town, like *Neusser Str.*, comes back as the town) goes to OpenStreetMap's public [Photon](https://photon.komoot.io), checked by the PC's rules (same street, near the postcode, else a neighbouring number, else the street). Road times come from OpenStreetMap's public router.
+- **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: stops the plan could not place (tap to fix the address; navigate there by address; tick off), the map (draggable pins), the upcoming list, and a collapsed delivered list. Without a *Leave the depot at* time, arrival times count from your first **Navigate** or **Delivered**, not from when you planned.
 - **Scan**: parcel labels, for loading numbers and the right parcel at the door.
-- **Settings**: stop order (*Fastest* or *As scanned*), route style and *Both sides in one pass*, Express (*on time* with a buffer of 0–20 min, *Express first*), navigation app, PC or phone-only planning.
+- **Settings**: stop order (*Fastest* or *As scanned*), route style and *Both sides in one pass*, Express (*on time* with a buffer of 0–20 min, *Express first*), navigation app, PC or phone-only planning, and *Log* (below).
 - **CarPlay (no CarPlay entitlement or paid account needed)**: see [CarPlay](#carplay) below.
 - **Architecture**: `src/features/tour` holds a framework-free store and pure selectors (unit-tested with `node --test`), `useDelivery` / `usePlanning` hooks, and small components. `src/components/ui` holds the Reusables primitives we own and extend (e.g. `Button` `xl` and `success`).
 - **Design preview on Windows**: `npx expo start --web`. The map is replaced by a placeholder on web.
@@ -136,6 +137,8 @@ Every push to `main` runs `release.yml`: [semantic-release](https://semantic-rel
 ## Logs
 
 [Pino](https://getpino.io) writes every request, reader decision (appliance vs Claude, timings), geocode miss, plan, pin, tick-off and client error to `data/logs/app.<date>.<n>.jsonl`. Files roll daily, and 30 days are kept. Each line is one JSON object with `level`, `t`, `src` (`server`/`web`/`ios`/`android`), `scope`, `msg` and details. Clients queue logs on the device and upload them, so logs written offline arrive later.
+
+The phone also keeps its own log (`logs/app.jsonl` in the app's documents, a few MB), which matters in phone-only mode, where nothing reaches the PC. **Settings › Log › Export log** shares it as one text file: a header (app version, phone, settings without the server address or keys), the day's tour, then every entry. Turn on **Detailed log** first to also record the why: each address lookup and what each geocoder answered, what the phone read from each photo, and how the order came about.
 
 ```powershell
 Get-Content (ls data/logs/app.*.jsonl | sort LastWriteTime)[-1] -Wait | ConvertFrom-Json | Format-Table t,level,src,scope,msg

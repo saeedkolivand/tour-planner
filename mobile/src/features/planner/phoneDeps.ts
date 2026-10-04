@@ -5,6 +5,7 @@ import { getSettings } from '@/features/settings/settings';
 import type { LatLon } from '@/features/tour/types';
 import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
+import { locate as locateBy, type Hit } from './locate';
 import { estimateMatrix, orsMatrix, osrmMatrix, type MatrixOptions } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
 import { fold, meters } from './stops';
@@ -49,12 +50,13 @@ async function pacedRetry<T>(fn: () => Promise<T>): Promise<T> {
  */
 async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null> {
   const c = await load(), k = q.toLowerCase();
-  if (c[k]) return c[k];
+  if (c[k]) { L.debug('geocode: remembered', { q, ...c[k] }); return c[k]; }
   // Android's geocoder needs location permission (iOS's doesn't, and asking again is free once granted)
   await Location.requestForegroundPermissionsAsync().catch(() => null);
   const hits = await pacedRetry(() => Location.geocodeAsync(q)).catch((e) => { L.warn('geocoder failed', { q, error: e }); return null; });
   if (!hits) return null; // the call itself failed (already logged) — don't also warn "not found"
   const [hit] = hits;
+  L.debug('geocode: phone answered', { q, hits: hits.length, first: hit && { lat: hit.latitude, lon: hit.longitude, kmFromKoeln: Math.round(meters(COLOGNE, { lat: hit.latitude, lon: hit.longitude }) / 1000) } });
   // the platform geocoders happily answer "somewhere in Germany": only take results in the Cologne region
   if (!hit || meters(COLOGNE, { lat: hit.latitude, lon: hit.longitude }) > 60_000) { L.warn('not found near Köln', { q }); return null; }
 
@@ -63,6 +65,7 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   let g: (LatLon & { exact?: boolean }) | null = { lat: hit.latitude, lon: hit.longitude, exact: true };
   if (street) {
     const [place] = await pacedRetry(() => Location.reverseGeocodeAsync({ latitude: hit.latitude, longitude: hit.longitude })).catch(() => []);
+    L.debug('geocode: what is there', { q, street: place?.street, name: place?.name, city: place?.city, postcode: place?.postalCode, matches: !!place && onStreet(place, street) });
     if (place && !onStreet(place, street)) {
       const rest = parts![2].replace(/\b\d{5}\b/, '').replace(/^[\s,]+/, '').replace(/\s+/g, ' ');
       const retryQ = `${street}, ${rest}`;
@@ -75,6 +78,35 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   if (!g) return null;
   c[k] = g;
   AsyncStorage.setItem(KEY, JSON.stringify(c)).catch(() => {});
+  return g;
+}
+
+// OpenStreetMap's public Photon (komoot), the same geocoder the PC runs itself: the second opinion for an address
+// the phone's own geocoder could not place. Asked only for those, so a handful of lookups per tour (fair use).
+const PHOTON = 'https://photon.komoot.io/api/';
+type PhotonFeature = { geometry: { coordinates: [number, number] }; properties: { name?: string; street?: string; housenumber?: string; postcode?: string; city?: string } };
+
+async function photon(q: string): Promise<Hit | null> {
+  const url = `${PHOTON}?q=${encodeURIComponent(q)}&lat=${COLOGNE.lat}&lon=${COLOGNE.lon}&limit=5&lang=de`;
+  const r = await fetch(url, { signal: AbortSignal.timeout?.(15_000) });
+  if (!r.ok) throw new Error(`Photon ${r.status}`);
+  const { features = [] } = (await r.json()) as { features?: PhotonFeature[] };
+  // the whole world's addresses: the first answer in the Cologne region, as the phone's geocoder is held to
+  const f = features.find(x => meters(COLOGNE, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 60_000);
+  const hit = f && { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], street: f.properties.street ?? f.properties.name ?? '', postcode: f.properties.postcode ?? '', number: f.properties.housenumber };
+  L.debug('photon answered', { q, answers: features.length, hit: hit && `${hit.street} ${hit.number ?? ''}, ${hit.postcode}` });
+  return hit ?? null;
+}
+
+/** A stop the phone's geocoder could not place, by OpenStreetMap; remembered like the phone's own answers. */
+async function locate(s: Parameters<NonNullable<PhoneDeps['locate']>>[0], q: string) {
+  const g = await locateBy(s, photon, (msg, data) => L.debug(msg, { q, ...data }));
+  L.info(g ? 'placed by OpenStreetMap' : 'not found by OpenStreetMap either', { q, ...(g && { exact: g.exact, street: g.street }) });
+  if (g) {
+    const c = await load();
+    c[q.toLowerCase()] = { lat: g.lat, lon: g.lon, exact: g.exact };
+    AsyncStorage.setItem(KEY, JSON.stringify(c)).catch(() => {});
+  }
   return g;
 }
 
@@ -100,4 +132,4 @@ async function knownStreets(): Promise<string[]> {
   return [...new Set(cased)];
 }
 
-export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets };
+export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets, locate, log: (msg, data) => L.debug(msg, data) };

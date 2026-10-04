@@ -105,7 +105,8 @@
     "screenshots": "Screenshots",
     "pickScreenshotsLabel": "Screenshots auswählen",
     "inAppHint": "Fotografiere die Scanner-Liste. Mehrere Seiten sind kein Problem.",
-    "takePhoto": "Foto aufnehmen"
+    "takePhoto": "Foto aufnehmen",
+    "readingPhotos": "Fotos werden gelesen… App offen lassen"
   },
   "coverage": {
     "unknown": "Gib die Stopp-Anzahl deines Scanners ein, um zu prüfen, dass nichts fehlt.",
@@ -130,8 +131,6 @@
     "shopCloses": "Shop schließt um {{time}}",
     "tourCompleteTitle": "Tour abgeschlossen",
     "tourCompleteBody": "Alle {{n}} Stopps zugestellt. Gut gemacht.",
-    "notPlanned": "Nicht geplant: {{list}}.",
-    "fixAddresses": " Adressen im Tab „Stopps\" korrigieren.",
     "deliverOnFoot": " Zu Fuß von einem nahen Stopp aus zustellen.",
     "noAddressStop": "ein Stopp ohne Adresse",
     "noRoadClosure": " (heute keine Straße dorthin: Sperrung)",
@@ -164,7 +163,11 @@
     "startStopsBtn_other": "{{count}} Stopps starten",
     "lateNoteScanned": "{{stops}} kommen in der Scanner-Reihenfolge zu spät: {{list}}{{more}}.",
     "inScannerOrder": "In der Reihenfolge deines Scanners, nichts umsortiert.",
-    "notStartedYet": "Noch nicht losgefahren: Zeiten zählen ab jetzt, bis du zum ersten Mal Navigation oder Zugestellt tippst."
+    "notStartedYet": "Noch nicht losgefahren: Zeiten zählen ab jetzt, bis du zum ersten Mal Navigation oder Zugestellt tippst.",
+    "notPlannedTitle_one": "{{count}} Stopp nicht auf der Route",
+    "notPlannedTitle_other": "{{count}} Stopps nicht auf der Route",
+    "notPlannedEditHint": "Öffnet den Stopp, um die Adresse zu korrigieren",
+    "notPlannedHint": "Tippe einen an, um die Adresse zu korrigieren, und plane dann neu. Die Navigation findet ihn trotzdem über die Adresse, abhaken kannst du ihn hier."
   },
   "count": {
     "parkingStops_one": "{{count}} Parkstopp übrig",
@@ -258,7 +261,14 @@
     "marginMinutesA11y": "{{n}} Minuten früher",
     "expressFirst": "Express zuerst",
     "expressFirstHint": "Alle Express-Stopps vor dem Rest zustellen",
-    "expressScannedFooter": "Bei der Reihenfolge „Wie gescannt\" wird nichts umsortiert: Express-Stopps, die zu spät kommen, werden im Tab „Route\" markiert."
+    "expressScannedFooter": "Bei der Reihenfolge „Wie gescannt\" wird nichts umsortiert: Express-Stopps, die zu spät kommen, werden im Tab „Route\" markiert.",
+    "logTitle": "Protokoll",
+    "detailedLog": "Ausführliches Protokoll",
+    "detailedLogHint": "Auch das Warum aufzeichnen: jede Adresssuche, was aus jedem Foto gelesen wurde, wie die Reihenfolge entstand",
+    "exportLog": "Protokoll exportieren",
+    "exportFailed": "Protokoll konnte nicht exportiert werden",
+    "exportUnavailable": "Dateien teilen ist auf diesem Gerät nicht möglich.",
+    "logFooter": "Etwas lief schief? Ausführliches Protokoll einschalten, nochmal scannen oder planen, dann exportieren und die Datei schicken. Sie enthält die Adressen und Namen deiner Scannerliste, aber keine Schlüssel und keine Serveradresse."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",
@@ -281,7 +291,10 @@
   },
   "planning": {
     "findingLocation": "Dein Standort wird gesucht…",
-    "couldNotPlan": "Planen fehlgeschlagen"
+    "couldNotPlan": "Planen fehlgeschlagen",
+    "places": "Adressen werden auf der Karte gesucht…",
+    "roadTimes": "Fahrzeiten werden geladen…",
+    "ordering": "Stopps werden sortiert…"
   },
   "delivery": {
     "navigationError": "Navigation",

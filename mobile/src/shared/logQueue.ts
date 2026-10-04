@@ -22,10 +22,13 @@ export function createLogQueue(deps: LogQueueDeps, initial: Entry[] = []) {
   let flushing = false;
   const now = deps.now ?? (() => new Date());
 
-  function add(level: Level, scope: string, msg: string, data: Record<string, unknown> | Error = {}) {
-    queue.push({ ...serialisable(data), t: now().toISOString(), level, scope, msg });
+  /** Queues one entry and returns it as it will be sent. */
+  function add(level: Level, scope: string, msg: string, data: Record<string, unknown> | Error = {}): Entry {
+    const e: Entry = { ...serialisable(data), t: now().toISOString(), level, scope, msg };
+    queue.push(e);
     if (queue.length > MAX) queue = queue.slice(-MAX);
     deps.persist(queue).catch(() => {});
+    return e;
   }
 
   async function flush() {
