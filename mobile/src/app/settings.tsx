@@ -129,6 +129,8 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection title={t('settings.logTitle')} footer={t('settings.logFooter')}>
+          <SwitchRow label={t('settings.keepHistory')} hint={t('settings.keepHistoryHint')} value={s.keepHistory} onChange={keepHistory => setSettings({ keepHistory })} />
+          <SettingsDivider />
           <SwitchRow label={t('settings.detailedLog')} hint={t('settings.detailedLogHint')} value={s.detailedLog} onChange={detailedLog => setSettings({ detailedLog })} />
           <SettingsDivider />
           <Button variant="outline" onPress={shareLog} disabled={exporting}>

@@ -263,12 +263,14 @@
     "expressFirstHint": "Deliver every Express stop before the rest",
     "expressScannedFooter": "With the stop order \"As scanned\" nothing is re-ordered: Express stops that will be late are flagged on the Route tab.",
     "logTitle": "Log",
+    "keepHistory": "Tour history",
+    "keepHistoryHint": "Keeps each day's stops, the order you delivered them in and where you were at each Delivered, on this phone only, to plan better later",
     "detailedLog": "Detailed log",
     "detailedLogHint": "Also record why: each address lookup, what was read from each photo, how the order came about",
     "exportLog": "Export log",
     "exportFailed": "Could not export the log",
     "exportUnavailable": "Sharing files is not available on this device.",
-    "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list, but no keys and no server address."
+    "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list and the tour history, but no keys and no server address."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",

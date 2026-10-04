@@ -158,6 +158,33 @@ test('reopening stamps undoneAt so the PC can tell it from a stale copy', () => 
   assert.ok(s.undoneAt);
 });
 
+test('where the phone was at Delivered goes on each stop of the parking stop; a reading that comes after a reopen is dropped', async () => {
+  const readings: ((p: { lat: number; lon: number; acc?: number } | null) => void)[] = [];
+  const where = () => new Promise<{ lat: number; lon: number; acc?: number } | null>(r => { readings.push(r); });
+  const store = createTourStore(fakeApi().api, undefined, undefined, undefined, where);
+  store.addStop(); store.addStop();
+  store.editStop(0, { key: 'a' } as Partial<Stop>);
+  store.editStop(1, { key: 'b' } as Partial<Stop>);
+  store.setDone(['a', 'b'], true);
+  assert.equal(store.getState().tour.stops[0].done, true, 'the tap does not wait for the GPS');
+  readings[0]({ lat: 50.94, lon: 6.95, acc: 8 });
+  await tick();
+  assert.deepEqual(store.getState().tour.stops.map(s => s.donePos), [{ lat: 50.94, lon: 6.95, acc: 8 }, { lat: 50.94, lon: 6.95, acc: 8 }]);
+
+  store.setDone(['a'], false);
+  assert.equal(store.getState().tour.stops[0].donePos, undefined, 'reopened: no longer delivered there');
+  store.setDone(['a'], true);
+  store.setDone(['a'], false);
+  readings[1]({ lat: 1, lon: 1 });
+  await tick();
+  assert.equal(store.getState().tour.stops[0].donePos, undefined, 'the late reading is not put on the reopened stop');
+  store.setDone(['b'], false);
+  store.setDone(['b'], true);
+  readings[2](null);
+  await tick();
+  assert.equal(store.getState().tour.stops[1].donePos, undefined, 'no fix: nothing recorded');
+});
+
 test('scanned labels: an unknown one becomes a stop once; more parcels for a stop raise its count', () => {
   const store = createTourStore(fakeApi().api);
   const label = { id: 'P1', street: 'Gereonswall', number: '114', postcode: '50670' };

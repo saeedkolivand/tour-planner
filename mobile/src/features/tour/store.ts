@@ -30,6 +30,12 @@ export interface PhoneFallback {
   parse(text: string): Stop[];
 }
 
+/**
+ * Where the phone is right now, for the tour history (Stop.donePos); null when it can't say. Never prompts and never
+ * keeps the GPS on: one reading per Delivered tap.
+ */
+export type Where = () => Promise<(LatLon & { acc?: number }) | null>;
+
 /** The stages of a plan made on the phone, each shown as its own line (`planning.<stage>`). */
 export type PlanStage = 'places' | 'roadTimes' | 'ordering';
 
@@ -49,7 +55,7 @@ export function friendly(e: unknown) {
  * The phone's copy is the working copy: every change is saved on the phone first, then sent to the PC
  * (so the web app and Siri see it). Until a change reached the PC, a reload never overwrites it.
  */
-export function createTourStore(api: TourApi, L: StoreLogger = silent, local: LocalStore = NO_LOCAL, phone?: PhoneFallback) {
+export function createTourStore(api: TourApi, L: StoreLogger = silent, local: LocalStore = NO_LOCAL, phone?: PhoneFallback, where?: Where) {
   let state: TourState = { tour: EMPTY_TOUR, busy: null, progress: null, error: null, offline: false };
   /** Unsent changes; and whether we've seen the PC's tour yet (before that, a push could wipe it). */
   let dirty = false, synced = false;
@@ -159,13 +165,20 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     setTour(t => (t.plan ? { ...t, plan: { ...t.plan, startedAt, late, pendingStart: undefined } } : t));
   }
 
-  /** Marks a whole parking stop delivered (or not) in one write. The first delivery sets the tour off. */
+  /**
+   * Marks a whole parking stop delivered (or not) in one write. The first delivery sets the tour off. Where the
+   * phone was is added when the reading comes in (a second write; the tap never waits for the GPS).
+   */
   function setDone(keys: string[], done: boolean) {
     if (done) depart();
     L.info(done ? 'delivered' : 'reopened', { keys });
     const set = new Set(keys), now = Date.now();
     editStops(ss => ss.map(s => !s.key || !set.has(s.key) ? s
-      : done ? { ...s, done, doneAt: s.doneAt ?? now, undoneAt: undefined } : { ...s, done, doneAt: undefined, undoneAt: now }));
+      : done ? { ...s, done, doneAt: s.doneAt ?? now, undoneAt: undefined } : { ...s, done, doneAt: undefined, undoneAt: now, donePos: undefined }));
+    if (done && where) void where().catch(() => null).then(donePos => {
+      // reopened (or delivered again) meanwhile: that tap's own reading counts, not this one
+      if (donePos) editStops(ss => ss.map(s => s.key && set.has(s.key) && s.done && s.doneAt === now && !s.donePos ? { ...s, donePos } : s));
+    });
   }
 
   return {

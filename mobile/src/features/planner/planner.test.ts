@@ -91,6 +91,16 @@ test('the DPD scanner layout: name + PRIO + count above the street, "50670HX", r
   assert.deepEqual(s.map(x => x.name), ['Gina Klein', 'Katholische junge Gemeinde…', 'netspirits GmbH & Co. KG', 'Thomas Voß', 'Kita Remmidemmi e.V.,', '3 PQ GmbH', 'Santesson GmbHComputer u…']);
   assert.deepEqual(s.map(x => x.type), ['private', 'business', 'business', 'private', 'business', 'business', 'business']);
   assert.equal(s[1].city, 'Köln');
+  // kept for the tour history: the letters after the postcode and the route code under it
+  assert.deepEqual(s.map(x => x.area), ['HY', 'HY', 'ID', 'HZ', 'HL', 'II', 'HL']);
+  assert.deepEqual(s.map(x => x.code ?? ''), ['G 12 T 387', '', '', '', '', '', '']);
+});
+
+test('no letters after the postcode, no area; a route code OCR read without spaces is spaced like the scanner', () => {
+  const s = parseStops(['Hohe Str. 68', '50667 Köln', 'G11T387'].join('\n'));
+  assert.equal(s[0].area, undefined);
+  assert.equal(s[0].city, 'Köln');
+  assert.equal(s[0].code, 'G 11 T 387');
 });
 
 test('a kiosk called "Späti 2" is a name, not a street; a shortened street is completed from earlier tours', async () => {

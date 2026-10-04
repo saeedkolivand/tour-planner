@@ -263,12 +263,14 @@
     "expressFirstHint": "Alle Express-Stopps vor dem Rest zustellen",
     "expressScannedFooter": "Bei der Reihenfolge „Wie gescannt\" wird nichts umsortiert: Express-Stopps, die zu spät kommen, werden im Tab „Route\" markiert.",
     "logTitle": "Protokoll",
+    "keepHistory": "Tourverlauf",
+    "keepHistoryHint": "Speichert für jeden Tag die Stopps, die Reihenfolge deiner Zustellungen und wo du bei jedem „Zugestellt“ warst, nur auf diesem Handy, um später besser zu planen",
     "detailedLog": "Ausführliches Protokoll",
     "detailedLogHint": "Auch das Warum aufzeichnen: jede Adresssuche, was aus jedem Foto gelesen wurde, wie die Reihenfolge entstand",
     "exportLog": "Protokoll exportieren",
     "exportFailed": "Protokoll konnte nicht exportiert werden",
     "exportUnavailable": "Dateien teilen ist auf diesem Gerät nicht möglich.",
-    "logFooter": "Etwas lief schief? Ausführliches Protokoll einschalten, nochmal scannen oder planen, dann exportieren und die Datei schicken. Sie enthält die Adressen und Namen deiner Scannerliste, aber keine Schlüssel und keine Serveradresse."
+    "logFooter": "Etwas lief schief? Ausführliches Protokoll einschalten, nochmal scannen oder planen, dann exportieren und die Datei schicken. Sie enthält die Adressen und Namen deiner Scannerliste und den Tourverlauf, aber keine Schlüssel und keine Serveradresse."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",
