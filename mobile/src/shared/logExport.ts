@@ -22,7 +22,8 @@ export async function exportLog(tour: Tour) {
   };
   L.info('exporting', { stops: tour.stops.length, planned: !!tour.plan, detailed: s.detailedLog });
   const entries = readLogFile();
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  // digits only ("202610040830"); not a [character class]: Tailwind would read one as a CSS class (nativeCss.test.ts)
+  const stamp = new Date().toISOString().slice(0, 16).replace(/\D/g, '');
   const f = new File(Paths.cache, `tour-planner-log-${stamp}.txt`);
   if (f.exists) f.delete();
   f.create();
