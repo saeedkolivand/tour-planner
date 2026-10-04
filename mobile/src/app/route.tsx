@@ -26,14 +26,15 @@ import { useTranslation } from '@/shared/i18n';
  */
 function LateNote({ plan, stops }: { plan: Plan; stops: Stop[] }) {
   const { t } = useTranslation();
-  const late = stops.filter(s => s.key && plan.late?.includes(s.key) && (s.express || s.opens));
+  // delivered ones are history, not a warning
+  const late = stops.filter(s => s.key && !s.done && plan.late?.includes(s.key) && (s.express || s.opens));
   if (!late.length) return null;
   const why = (s: Stop) => (s.express ? t('common.expressValue', { value: s.express }) : t('route.shopCloses', { time: s.opens!.split('-')[1] }));
   const shown = late.slice(0, 3).map(s => `#${s.no} ${s.street} ${s.number} (${why(s)})`).join(', ');
   const more = late.length > 3 ? t('route.moreCount', { n: late.length - 3 }) : '';
   return (
     <Text className="text-destructive text-sm font-medium">
-      {t('route.lateNote', { stops: t('count.stops', { count: late.length }), list: shown, more })}
+      {t(plan.order === 'scanned' ? 'route.lateNoteScanned' : 'route.lateNote', { stops: t('count.stops', { count: late.length }), list: shown, more })}
     </Text>
   );
 }
@@ -47,6 +48,7 @@ export default function RouteScreen() {
   const { view, navigate, deliver, reopen, toggleStop, navLabel } = useDelivery();
   const plan = usePlanning();
   const settings = useSettings();
+  const scanned = settings.stopOrder === 'scanned';
   const nextKeys = useMemo(() => new Set(view?.next?.stops.map(s => s.key)), [view]);
   const replan = (
     <View className="flex-row gap-2">
@@ -62,9 +64,9 @@ export default function RouteScreen() {
       <View className="bg-background flex-1">
         <ScreenHeader title={t('tabs.route')} />
         <StatusBanner busy={busy} error={error} offline={offline} />
-        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={t('route.emptyBody')}
+        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={scanned ? t('route.emptyBodyScanned') : t('route.emptyBody')}
           action={<Button size="xl" onPress={() => (tour.stops.length ? plan() : router.navigate('/'))} disabled={!!busy}>
-            <Text>{tour.stops.length ? t('route.planStopsBtn', { count: tour.stops.length }) : t('route.captureStopsBtn')}</Text>
+            <Text>{tour.stops.length ? t(scanned ? 'route.startStopsBtn' : 'route.planStopsBtn', { count: tour.stops.length }) : t('route.captureStopsBtn')}</Text>
           </Button>} />
       </View>
     );

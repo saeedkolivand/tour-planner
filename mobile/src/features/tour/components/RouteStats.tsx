@@ -27,6 +27,11 @@ export function RouteStats({ plan, view }: { plan: Plan; view: RouteView }) {
         </View>
         <Progress value={pct} className="bg-success/15 h-2.5" indicatorClassName="bg-success" aria-label={t('route.progressLabel')} />
       </View>
+      {(plan.pendingStart || plan.order === 'scanned') && (
+        <Text className="text-muted-foreground text-xs">
+          {[plan.order === 'scanned' && t('route.inScannerOrder'), plan.pendingStart && t('route.notStartedYet')].filter(Boolean).join(' ')}
+        </Text>
+      )}
       {plan.by?.startsWith('phone') && (
         <Text className="text-muted-foreground text-xs">
           {plan.by === 'phone-road' ? t('route.plannedPhoneRoad') : t('route.plannedPhoneEstimate', { note: plan.note ? ` (${plan.note})` : '' })}{t('route.roadworksPcOnly')}

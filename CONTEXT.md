@@ -9,7 +9,13 @@
 - **Loading number**: the big number on each stop, handed out once at the first plan and never changed. It's written on the parcel, which is why it stays fixed.
 - **Baseline order**: the order of the stops as they appeared on the scanner. Used only to show how much the plan saves.
 - **Re-plan**: re-ordering the stops not yet delivered, starting from the phone's current position.
-- **Express badge**: marks a stop with a DPD Express deadline (08:30, 10:00, 12:00, 18:00). It's for information only and never changes the order.
+- **Express badge**: marks a stop with a DPD Express deadline (08:30, 10:00, 12:00, 18:00). With *Express on time* the plan reaches it by then (ADR 5).
+- **Express buffer**: minutes before an Express deadline the plan aims to arrive. "Late" is still judged on the deadline itself.
+- **Express first**: every parking stop with an Express parcel comes before all the others.
+- **Stop order**: *Fastest* (the planner's order) or *As scanned* (the scanner list's order as photographed; only next-door neighbours on the list share a parking stop, nothing is re-ordered).
+- **Both sides in one pass**: the van stops on its own side of a street and the driver crosses on foot, so a street with stops on both sides is driven once. Off: always the door's kerb side (ADR 6).
+- **Stretch of street**: parking stops on the same street within 300 m. The plan avoids leaving one and coming back to it later (ADR 6).
+- **Departure**: when the tour sets off: the *Leave the depot at* time, or else the first Navigate or Delivered. ETAs and deadlines count from it.
 - **Ungeocoded stop**: a stop whose address could not be placed on the map. It's shown to the driver, never dropped silently.
 - **Next stop**: the first parking stop in route order that isn't fully delivered. The driving screen revolves around it.
 - **Auto-navigate**: after "Delivered", navigation to the next stop opens straight away in the chosen maps app, and so on CarPlay.

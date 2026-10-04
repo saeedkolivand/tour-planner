@@ -7,10 +7,12 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { ClosuresSection } from '@/features/roads/ClosuresSection';
+import { ExpressMarginPicker } from '@/features/settings/components/ExpressMarginPicker';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
 import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
+import { StopOrderPicker } from '@/features/settings/components/StopOrderPicker';
 import { setSettings, useSettings } from '@/features/settings/settings';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { UpdateSection } from '@/features/updates/UpdateSection';
@@ -47,12 +49,33 @@ export default function SettingsScreen() {
           </View>
         </SettingsSection>
 
-        <SettingsSection title={t('settings.routeStyle')} footer={t('settings.routeStyleFooter')}>
-          <RouteStylePicker value={s.routeStyle} onChange={routeStyle => setSettings({ routeStyle })} />
+        <SettingsSection title={t('settings.stopOrder')} footer={s.stopOrder === 'scanned' ? t('settings.orderScannedFooter') : t('settings.orderFastestFooter')}>
+          <StopOrderPicker value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
         </SettingsSection>
 
-        <SettingsSection title={t('settings.express')} footer={t('settings.expressFooter')}>
+        <SettingsSection title={t('settings.routeStyle')} footer={t('settings.routeStyleFooter')}>
+          <RouteStylePicker value={s.routeStyle} onChange={routeStyle => setSettings({ routeStyle })} />
+          <SettingsDivider />
+          <SwitchRow label={t('settings.bothSides')} hint={s.bothSides ? t('settings.bothSidesOnHint') : t('settings.bothSidesOffHint')}
+            value={s.bothSides} onChange={bothSides => setSettings({ bothSides })} />
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.express')} footer={s.stopOrder === 'scanned' ? t('settings.expressScannedFooter') : t('settings.expressFooter')}>
           <SwitchRow label={t('settings.expressOnTime')} hint={t('settings.expressOnTimeHint')} value={s.expressOnTime} onChange={expressOnTime => setSettings({ expressOnTime })} />
+          {s.expressOnTime && (
+            <>
+              <SettingsDivider />
+              <View className="gap-2">
+                <View className="gap-0.5">
+                  <Text className="font-medium">{t('settings.expressMargin')}</Text>
+                  <Text className="text-muted-foreground text-sm">{t('settings.expressMarginHint')}</Text>
+                </View>
+                <ExpressMarginPicker value={s.expressMarginMin} onChange={expressMarginMin => setSettings({ expressMarginMin })} />
+              </View>
+            </>
+          )}
+          <SettingsDivider />
+          <SwitchRow label={t('settings.expressFirst')} hint={t('settings.expressFirstHint')} value={s.expressFirst} onChange={expressFirst => setSettings({ expressFirst })} />
         </SettingsSection>
 
         <SettingsSection title={Platform.OS === 'ios' ? t('settings.navCarPlay') : t('settings.navAndroidAuto')}

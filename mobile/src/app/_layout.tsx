@@ -59,8 +59,8 @@ export default function RootLayout() {
             tabBarStyle: { backgroundColor: THEME[scheme].card, borderTopColor: THEME[scheme].border, height: 64 + bottom, paddingTop: 6, paddingBottom: bottom + 6 },
           }}>
           <Tabs.Screen name="index" options={{ title: t('tabs.stops'), tabBarIcon: tabIcon(ListChecks), tabBarLabel: tabLabel(t('tabs.stops')) }} />
-          <Tabs.Screen name="scan" options={{ title: t('tabs.scan'), tabBarIcon: tabIcon(ScanBarcode), tabBarLabel: tabLabel(t('tabs.scan')) }} />
           <Tabs.Screen name="route" options={{ title: t('tabs.route'), tabBarIcon: tabIcon(Navigation), tabBarLabel: tabLabel(t('tabs.route')) }} />
+          <Tabs.Screen name="scan" options={{ title: t('tabs.scan'), tabBarIcon: tabIcon(ScanBarcode), tabBarLabel: tabLabel(t('tabs.scan')) }} />
           <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: tabIcon(Settings), tabBarLabel: tabLabel(t('tabs.settings')) }} />
         </Tabs>
         <LiveSurfaces />

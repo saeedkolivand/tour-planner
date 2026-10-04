@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { setLanguage, type Lang } from '@/shared/i18n';
 import type { NavApp } from '@/services/navigation';
+import type { StopOrder } from '@/features/tour/types';
 
 export type RouteStyle = 'walk' | 'drive';
 /** Metres the driver walks from one parking spot, per route style. */
@@ -30,16 +31,27 @@ export interface Settings {
   orsKey: string;
   /** Express stops reached by their deadline (the rest stays fastest). Off = fastest tour, Express shown only. */
   expressOnTime: boolean;
-  /** "08:30": when you usually leave the depot; ETAs and Express deadlines count from it when planning earlier. */
+  /** Minutes before an Express deadline the plan aims to arrive (traffic, parking, finding the door). */
+  expressMarginMin: number;
+  /** Every parking stop with an Express parcel before all the others. */
+  expressFirst: boolean;
+  /**
+   * "08:30": when you usually leave the depot; ETAs and Express deadlines count from it when planning earlier.
+   * Empty: they count from the first Navigate or Delivered.
+   */
   leaveAt: string;
   /** 'walk': stops within 80 m share a parking spot (park & walk). 'drive': drive up to nearly every door, only next-door stops share. */
   routeStyle: RouteStyle;
+  /** 'fastest': the planner's order. 'scanned': the scanner list's order as captured, nothing re-ordered. */
+  stopOrder: StopOrder;
+  /** Both sides of a street in one pass (stop on the van's side, cross on foot); off = always the door's kerb side. */
+  bothSides: boolean;
   /** UI language; 'system' follows the phone's language (German if set, else English). */
   language: 'system' | 'en' | 'de';
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, leaveAt: '', language: 'system', routeStyle: 'walk' };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);

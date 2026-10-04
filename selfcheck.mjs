@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { fixNumber, fixPostcode, ground, untruncate } from './server/extract/ground.mjs';
 import { usable } from './server/extract/schema.mjs';
-import { cluster, meters, serviceSec, walkLoop } from './server/route/cluster.mjs';
+import { chain, cluster, meters, serviceSec, walkLoop } from './server/route/cluster.mjs';
+import { descents, revisits, streetMates } from './server/route/order.mjs';
 import { improve } from './server/route/improve.mjs';
 import { insertLate, timeline } from './server/route/lateness.mjs';
 import { roadFor } from './server/route/snap.mjs';
@@ -238,6 +239,41 @@ assert.deepEqual(cluster([{ lat: 50.94, lon: 6.96, road: { lat: 50.9401, lon: 6.
 // kerb side for every stop, free for start and end; the course only on the start
 assert.equal(osrmOptions(4, { hasEnd: true }), '&approaches=unrestricted;curb;curb;unrestricted');
 assert.equal(osrmOptions(3, { heading: 270.4 }), '&approaches=unrestricted;curb;curb&bearings=270,90;;');
+
+// both sides in one pass (the default): no kerb side anywhere, so a street with stops on both sides is driven once
+assert.equal(osrmOptions(3, { curb: false }), '&approaches=unrestricted;unrestricted;unrestricted');
+
+// as scanned: the list order stands; next-door neighbours on the list share a spot, a later one never jumps back
+{
+  const at = (lat, street) => ({ lat, lon: 6.96, street, type: 'private' });
+  const c = chain([at(50.9400, 'A'), at(50.9403, 'A'), at(50.9500, 'B'), at(50.9401, 'A')]);
+  assert.deepEqual(c.map(g => g.stops.length), [2, 1, 1]);
+  assert.deepEqual(c[2].stops[0].lat, 50.9401);
+}
+
+// Express margin: aimed earlier, never before departure while the deadline itself is still ahead
+{
+  const at8 = new Date(2026, 8, 28, 8, 0).getTime();
+  assert.deepEqual(arrivalWindow([{ express: '12:00' }], at8, true, 600), [0, 14400 - 600]);
+  assert.deepEqual(arrivalWindow([{ express: '08:05' }], at8, true, 600), [0, 1]);
+  assert.equal(arrivalWindow([{ express: '12:00' }], at8, false, 600), null, 'Express not kept');
+}
+
+// a stretch of street left and come back to is counted; the same street far away is another stretch
+{
+  const g = (street, lat) => ({ park: { lat, lon: 6.96 }, stops: [{ street, lat, lon: 6.96 }] });
+  const mates = [[], ...streetMates([g('Hohe Str.', 50.94), g('Ring', 50.9405), g('Hohe Straße', 50.9415), g('Hohe Str.', 50.96)]).map(ms => ms.map(j => j + 1))];
+  assert.deepEqual(mates, [[], [3], [], [1], []]);
+  assert.equal(revisits([1, 2, 3, 4], mates), 1, 'Hohe Str. left for the Ring, then back');
+  assert.equal(revisits([1, 3, 2, 4], mates), 0);
+  assert.equal(descents([2, 1, 3], [0, 0, 1, 0]), 1, 'an ordinary stop before an Express one');
+  // the local search with the re-visit charge finishes the street first when that costs less than the charge
+  const m = [[0, 100, 400, 400], [100, 0, 100, 160], [400, 100, 0, 100], [400, 160, 100, 0]];
+  const drive = r => r.reduce((t, i, k) => t + m[k ? r[k - 1] : 0][i], 0);
+  const sideMates = [[], [3], [], [1]];
+  assert.deepEqual(improve([1, 2, 3], drive, { budgetMs: 50 }), [1, 2, 3]);
+  assert.deepEqual(improve([1, 2, 3], r => drive(r) + 90 * revisits(r, sideMates), { budgetMs: 50 }), [1, 3, 2]);
+}
 
 // every server module loads (catches duplicate names and bad imports before a restart does)
 await import('./server/api.mjs');

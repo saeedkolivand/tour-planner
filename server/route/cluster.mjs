@@ -59,3 +59,21 @@ export function cluster(stops, radius = CLUSTER_RADIUS_M) {
     return { ...c, stops: walk.order, service: c.stops.reduce((t, s) => t + serviceSec(s), 0) + walk.meters / WALK_MPS };
   });
 }
+
+/**
+ * The scanner's order, as captured: nothing is moved. A stop within `radius` of the parking spot before it (a
+ * next-door neighbour on the list) shares that spot and is walked to in list order. Same rule on the phone (stops.ts).
+ */
+export function chain(stops, radius = CLUSTER_RADIUS_M) {
+  const out = [];
+  for (const s of stops) {
+    const last = out.at(-1);
+    if (last?.walkable && s.exact !== false && meters(last.park, s) <= radius) last.stops.push(s);
+    else out.push({ park: road(s), stops: [s], walkable: s.exact !== false });
+  }
+  return out.map(({ walkable: _, ...c }) => {
+    const path = [c.park, ...c.stops, c.park];
+    const walked = path.slice(1).reduce((t, p, i) => t + meters(path[i], p), 0);
+    return { ...c, service: c.stops.reduce((t, s) => t + serviceSec(s), 0) + walked / WALK_MPS };
+  });
+}

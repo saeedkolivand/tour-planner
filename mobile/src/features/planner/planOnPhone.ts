@@ -1,9 +1,9 @@
 // "Plan my tour" without the PC: the same result shape as POST /optimize, computed on the phone.
-import type { LatLon, Place, Plan, Stop } from '../tour/types.ts';
+import type { LatLon, Place, Plan, PlanRequest, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
 import { solveOrder } from './solve.ts';
 import { untruncate } from './parseText.ts';
-import { cluster, dedupe, meters, umlautVariants } from './stops.ts';
+import { chain, cluster, dedupe, meters, streetMates, umlautVariants } from './stops.ts';
 
 export interface PhoneDeps {
   /** Address -> position, null when not found. exact:false when only the street (not the house number) was placed. */
@@ -28,7 +28,10 @@ export function dueSec(express: string | undefined, departAt: number) {
   return s > 0 ? s : null;
 }
 
-export async function planOnPhone(req: { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number }, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
+/** A deadline `marginSec` earlier, but never in the past while the deadline itself is still ahead (then: as soon as possible). */
+const early = (due: number | null, marginSec: number) => (due == null ? null : Math.max(1, due - marginSec));
+
+export async function planOnPhone(req: PlanRequest, deps: PhoneDeps): Promise<Plan & { stops: Stop[] }> {
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
   const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
   const start = await place(req.start);
@@ -64,16 +67,21 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   }
   if (!placed.length) throw new Error(deps.t('plan.noStopsPlaced'));
 
-  const groups = cluster(placed, req.walkM);
+  // as scanned: the list's order stands, only next-door neighbours share a parking spot; nothing is solved
+  const scanned = req.order === 'scanned';
+  const groups = scanned ? chain(placed, req.walkM) : cluster(placed, req.walkM);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];
-  const m = await deps.matrix(points, { hasEnd: !!end, heading: req.heading });
+  const m = await deps.matrix(points, { hasEnd: !!end, heading: req.heading, curb: req.bothSides === false });
   const endIdx = end ? points.length - 1 : undefined;
+  const margin = Math.max(0, req.expressMarginMin ?? 0) * 60;
   const due = req.expressOnTime === false ? [] : [null, ...groups.map(g => {
-    // Express deadlines and a Paketshop's closing time; ponytail: opening time not modelled on the phone (the PC waits for it)
-    const d = g.stops.flatMap(s => [dueSec(s.express, departAt), dueSec(s.opens?.split('-')[1], departAt)]).filter((x): x is number => x != null);
+    // Express deadlines (aimed `margin` early) and a Paketshop's closing time; ponytail: opening time not modelled on the phone (the PC waits for it)
+    const d = g.stops.flatMap(s => [early(dueSec(s.express, departAt), margin), dueSec(s.opens?.split('-')[1], departAt)]).filter((x): x is number => x != null);
     return d.length ? Math.min(...d) : null;
   })];
-  const order = solveOrder(m.seconds, endIdx, { service: [0, ...groups.map(g => g.service)], due });
+  const rank = req.expressFirst ? [0, ...groups.map(g => (g.stops.some(s => s.express) ? 0 : 1)), 0] : [];
+  const order = scanned ? groups.map((_, i) => i + 1)
+    : solveOrder(m.seconds, endIdx, { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] });
 
   let t = 0, km = 0, at = 0, served = 0;
   const clusters = order.map(i => {
@@ -86,6 +94,7 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   if (endIdx != null) { t += m.seconds[at][endIdx]; km += m.meters[at][endIdx] / 1000; }
 
   // the scanner's order (as captured), same matrix and same stop time: what "you save" compares against
+  // (nothing to compare when the plan is that order)
   const firstSeen = [...new Set(placed.map(s => groups.findIndex(g => g.stops.includes(s)) + 1))];
   const path = [0, ...firstSeen, ...(endIdx != null ? [endIdx] : [])];
   const base = path.slice(1).reduce((a, p, i) => ({ s: a.s + m.seconds[path[i]][p], km: a.km + m.meters[path[i]][p] / 1000 }), { s: 0, km: 0 });
@@ -99,7 +108,8 @@ export async function planOnPhone(req: { start: Place; end: Place | null; stops:
   })).flatMap(c => c.stops.map(s => s.key!));
   return {
     clusters, km, late, min: Math.round((t + served) / 60),
-    baseline: { km: base.km, min: (base.s + served) / 60 },
+    baseline: scanned ? null : { km: base.km, min: (base.s + served) / 60 },
     ungeocoded, start, end, startedAt: departAt, stops: all, lastNo: next, by: m.by === 'road' ? 'phone-road' : 'phone-estimate', ...(m.why && { note: m.why }),
+    ...(scanned && { order: 'scanned' as const }),
   };
 }
