@@ -1,6 +1,7 @@
 import type { ExtractResult, ScanInput, TourApi } from './api.ts';
+import { lateKeys } from './selectors.ts';
 import { silent, type StoreLogger } from './storeLogger.ts';
-import { EMPTY_TOUR, newStop, type LatLon, type Place, type Plan, type Stop, type Tour } from './types.ts';
+import { EMPTY_TOUR, newStop, type LatLon, type Place, type Plan, type PlanOptions, type PlanRequest, type Stop, type Tour } from './types.ts';
 
 export interface TourState {
   tour: Tour;
@@ -18,7 +19,6 @@ const NO_LOCAL: LocalStore = { read: async () => null, write: () => {} };
 
 export type TourStore = ReturnType<typeof createTourStore>;
 
-export type PlanRequest = { start: Place; end: Place | null; stops: Stop[]; lastNo?: number; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number };
 /** Working without the PC: plan and read scanner text on the phone. Absent in tests that only exercise the PC path. */
 export interface PhoneFallback {
   mode(): 'auto' | 'phone';
@@ -130,10 +130,28 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     set({ tour: { ...EMPTY_TOUR, ...t }, offline: false });
     persist();
     L.info('tour loaded', { ms: Date.now() - t0, stops: t.stops?.length ?? 0, planned: !!t.plan });
+    if (state.tour.stops.some(s => s.done)) depart(); // Siri delivered while the app was closed: the tour has set off
   }
 
-  /** Marks a whole parking stop delivered (or not) in one write. */
+  /**
+   * The tour sets off now: a plan made without a departure time counts its ETAs and deadlines from this moment
+   * instead of from when it was planned (often an hour earlier, while loading). Once per plan; a no-op otherwise.
+   */
+  function depart(now = Date.now()) {
+    const p = state.tour.plan;
+    if (!p?.pendingStart) return;
+    // already delivered (by Siri, with the app closed): it left about one drive before the first delivery
+    const doneAt = new Map(state.tour.stops.filter(s => s.done && s.doneAt).map(s => [s.key, s.doneAt!]));
+    const left = p.clusters.flatMap(c => c.stops.flatMap(s => (doneAt.has(s.key) ? [doneAt.get(s.key)! - c.eta * 60_000] : [])));
+    const startedAt = Math.max(p.startedAt, Math.min(now, ...left));
+    const late = lateKeys(p.clusters, startedAt, p.expressOnTime !== false);
+    L.info('tour started', { plannedMinAgo: Math.round((now - p.startedAt) / 60_000), late: late.length });
+    setTour(t => (t.plan ? { ...t, plan: { ...t.plan, startedAt, late, pendingStart: undefined } } : t));
+  }
+
+  /** Marks a whole parking stop delivered (or not) in one write. The first delivery sets the tour off. */
   function setDone(keys: string[], done: boolean) {
+    if (done) depart();
     L.info(done ? 'delivered' : 'reopened', { keys });
     const set = new Set(keys), now = Date.now();
     editStops(ss => ss.map(s => !s.key || !set.has(s.key) ? s
@@ -179,7 +197,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       return result;
     },
 
-    async plan(start: Place, end: Place | null, opt: { departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number } = {}) {
+    /** `pendingStart`: no departure time was given, so the tour's clock starts at the first Navigate or Delivered. */
+    async plan(start: Place, end: Place | null, { pendingStart = false, ...opt }: PlanOptions & { pendingStart?: boolean } = {}) {
       const req: PlanRequest = { start, end, stops: state.tour.stops, lastNo: state.tour.plan?.lastNo, ...opt };
       const r = await run('plan', 'store.planningRoute', async () => {
         if (phone?.mode() === 'phone') return phone.plan(req);
@@ -191,9 +210,12 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
         }
       });
       if (!r) return false;
-      const { stops, ...plan } = r; // stops come back keyed, geocoded and numbered
+      const { stops, ...planned } = r; // stops come back keyed, geocoded and numbered
+      // mid-tour (something delivered) the clock is already running
+      const waits = pendingStart && !stops.some(s => s.done);
+      const plan: Plan = { ...planned, expressOnTime: opt.expressOnTime !== false, ...(waits && { pendingStart: true }) };
       setTour(t => ({ ...t, stops, plan }));
-      L.info('planned', { fromGps: 'lat' in start, by: plan.by, note: plan.note, stops: stops.length, clusters: plan.clusters.length, km: plan.km, min: plan.min, ungeocoded: plan.ungeocoded.length, unplaced: plan.ungeocoded.map(s => `${s.street} ${s.number}`) });
+      L.info('planned', { fromGps: 'lat' in start, by: plan.by, order: opt.order, pendingStart: waits, note: plan.note, stops: stops.length, clusters: plan.clusters.length, km: plan.km, min: plan.min, ungeocoded: plan.ungeocoded.length, unplaced: plan.ungeocoded.map(s => `${s.street} ${s.number}`) });
       return true;
     },
 
@@ -220,6 +242,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       setDone([key], done);
     },
     setDone,
+    depart,
     /** A scanned parcel belongs to this stop: the next scan of it needs no address reading, and it counts as a parcel. */
     linkParcel(key: string, id: string) {
       if (state.tour.stops.some(s => s.key === key && s.parcelIds?.includes(id))) return;

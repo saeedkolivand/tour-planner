@@ -24,9 +24,10 @@ export function useDelivery() {
 
   const navigate = useCallback((c: Cluster) => {
     haptic.tap();
+    store.depart(); // the first Navigate is when the tour sets off (if no departure time was set)
     const first = c.stops[0];
     navigateTo(c.park, navApp, `${first.street} ${first.number}`).catch(e => Alert.alert(t('delivery.navigationError'), (e as Error).message));
-  }, [navApp]);
+  }, [store, navApp]);
 
   const lastDelivered = useRef(0);
   const markDelivered = useCallback((c: Cluster) => {

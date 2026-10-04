@@ -64,7 +64,8 @@
     "removeStop": "Remove stop",
     "addParcel": "+1 parcel",
     "openHint": "Opens the stop to edit it",
-    "streetOnly": "Street only"
+    "streetOnly": "Street only",
+    "startScanned": "Start as scanned"
   },
   "stopType": {
     "private": "Private",
@@ -157,7 +158,13 @@
     "onFootPhrase": "+{{n}} on foot",
     "arriveLabel": "arrive",
     "couldNotOpen": "Could not open {{app}}",
-    "progressLabel": "Delivery progress"
+    "progressLabel": "Delivery progress",
+    "emptyBodyScanned": "Capture your stops, then start. They appear here in your scanner's order, nothing re-ordered.",
+    "startStopsBtn_one": "Start {{count}} stop",
+    "startStopsBtn_other": "Start {{count}} stops",
+    "lateNoteScanned": "{{stops}} will be late in the scanner's order: {{list}}{{more}}.",
+    "inScannerOrder": "In your scanner's order, nothing re-ordered.",
+    "notStartedYet": "Not started yet: times count from now until your first Navigate or Delivered."
   },
   "count": {
     "parkingStops_one": "{{count}} parking stop left",
@@ -185,10 +192,10 @@
     "returnToDepot": "Return to depot",
     "returnToDepotHint": "Plan the drive back as part of the route",
     "leaveAt": "Leave the depot at",
-    "leaveAtHint": "ETAs and Express count from here when you plan while loading",
+    "leaveAtHint": "ETAs and Express count from here. Empty: from your first Navigate or Delivered",
     "leaveAtA11y": "Usual departure time",
     "express": "Express",
-    "expressFooter": "On: Express stops are reached by their deadline, everything else stays fastest (usually costs a few minutes). Off: the fastest tour, Express only shown.",
+    "expressFooter": "On time: Express stops are reached by their deadline, minus the buffer; everything else stays fastest (usually costs a few minutes). Off: the fastest tour, Express only shown. Express first: all Express stops before the rest, whatever their deadline.",
     "expressOnTime": "Express on time",
     "expressOnTimeHint": "Plan around 10:00 / 12:00 / 14:00 deadlines",
     "navCarPlay": "Navigation & CarPlay",
@@ -236,7 +243,22 @@
     "checkUpdates": "Check for updates",
     "getUpdate": "Get version {{v}}",
     "updateHintAndroid": "A newer release is out. Download the APK and open it to install over this app.",
-    "updateHintIos": "A newer release is out. Download the .ipa from the release page on your PC and sideload it with Sideloadly."
+    "updateHintIos": "A newer release is out. Download the .ipa from the release page on your PC and sideload it with Sideloadly.",
+    "stopOrder": "Stop order",
+    "orderFastest": "Fastest",
+    "orderScanned": "As scanned",
+    "orderFastestFooter": "The app plans the quickest order, grouped into parking stops. Takes effect at the next plan.",
+    "orderScannedFooter": "The stops stay in the order of your scanner photos and screenshots; nothing is re-ordered. Only next-door neighbours on the list share a parking spot. Navigate, Delivered and arrival times work as usual. Takes effect at the next plan.",
+    "bothSides": "Both sides in one pass",
+    "bothSidesOnHint": "Stop on your side and cross on foot: each street is driven once",
+    "bothSidesOffHint": "Always stop on the door's side: a street with stops on both sides is driven twice",
+    "expressMargin": "Arrive early by (min)",
+    "expressMarginHint": "A buffer before each Express deadline for traffic, parking and finding the door",
+    "marginNone": "No buffer",
+    "marginMinutesA11y": "{{n}} minutes early",
+    "expressFirst": "Express first",
+    "expressFirstHint": "Deliver every Express stop before the rest",
+    "expressScannedFooter": "With the stop order \"As scanned\" nothing is re-ordered: Express stops that will be late are flagged on the Route tab."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",

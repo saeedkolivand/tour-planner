@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Plus, ScanLine, Sparkles } from 'lucide-react-native';
+import { ListOrdered, Plus, ScanLine, Sparkles } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -17,6 +17,7 @@ import { StopListItem } from '@/features/tour/components/StopListItem';
 import { coverage } from '@/features/tour/selectors';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { usePlanning } from '@/features/tour/usePlanning';
+import { useSettings } from '@/features/settings/settings';
 import { pickScreenshots, readPhotos } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
 import { useTranslation, type Lang } from '@/shared/i18n';
@@ -28,6 +29,7 @@ export default function StopsScreen() {
   const store = useTourStore();
   const { tour, busy, error, offline } = useTourState();
   const plan = usePlanning();
+  const { stopOrder } = useSettings();
   const [msg, setMsg] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [camera, setCamera] = useState(false);
@@ -93,7 +95,8 @@ export default function StopsScreen() {
         ListEmptyComponent={<EmptyState icon={ScanLine} title={t('stops.emptyTitle')} body={t('stops.emptyBody')} />}
       />
       {tour.stops.length > 0 && (
-        <StickyAction label={`${t('stops.planRoute')} · ${t('count.stops', { count: tour.stops.length })}`} icon={Sparkles} onPress={planAndGo} disabled={!!busy} />
+        <StickyAction label={`${stopOrder === 'scanned' ? t('stops.startScanned') : t('stops.planRoute')} · ${t('count.stops', { count: tour.stops.length })}`}
+          icon={stopOrder === 'scanned' ? ListOrdered : Sparkles} onPress={planAndGo} disabled={!!busy} />
       )}
       {editing != null && tour.stops[editing] && (
         <StopEditDialog key={editing} stop={tour.stops[editing]} onClose={closeEditor}

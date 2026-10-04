@@ -1,9 +1,10 @@
 // Stop order: VROOM over a travel-time table from the self-hosted OSRM road graph.
 // Objective = the driver's total time; the only constraint is Express: on time when asked to (ADR 0005).
 import { log } from '../log.mjs';
-import { CLUSTER_RADIUS_M, cluster } from './cluster.mjs';
+import { CLUSTER_RADIUS_M, chain, cluster } from './cluster.mjs';
 import { improve } from './improve.mjs';
 import { insertLate, timeline } from './lateness.mjs';
+import { FIRST_PENALTY, REVISIT_SEC, descents, revisits, streetMates } from './order.mjs';
 
 const OSRM = process.env.OSRM_URL || 'http://localhost:5050';
 const VROOM = process.env.VROOM_URL || 'http://localhost:3001';
@@ -29,16 +30,17 @@ function secondsAfter(hhmm, departAt) {
 
 /**
  * When a parking stop may be reached, as [earliest, latest] seconds after departure, or null (any time):
- * a Paketshop's opening hours ("09:00-20:00") narrowed by any Express deadline. A shop that has already
- * closed for the day, or hours that can't overlap the deadline, give no window (planned anyway, flagged).
+ * a Paketshop's opening hours ("09:00-20:00") narrowed by any Express deadline, aimed `marginSec` early (but
+ * never before departure while the deadline itself is still ahead). A shop that has already closed for the day,
+ * or hours that can't overlap the deadline, give no window (planned anyway, flagged).
  */
-export function arrivalWindow(stops, departAt, expressOnTime = true) {
+export function arrivalWindow(stops, departAt, expressOnTime = true, marginSec = 0) {
   let lo = 0, hi = Infinity;
   for (const s of stops) {
     const [open, close] = String(s.opens ?? '').split('-').map(t => secondsAfter(t, departAt));
     if (open != null && close != null && close > 0) { lo = Math.max(lo, open); hi = Math.min(hi, close); }
     const d = expressOnTime ? dueSec(s.express, departAt) : null;
-    if (d != null) hi = Math.min(hi, d);
+    if (d != null) hi = Math.min(hi, Math.max(1, d - marginSec));
   }
   return Number.isFinite(hi) && hi > lo ? [lo, hi] : null;
 }
@@ -69,12 +71,13 @@ async function postJson(url, body) {
 
 /**
  * Road-direction options for a list of points (start, parking stops, optional end):
- * every parking stop is reached at the right-hand kerb (the van's side in Germany), so no stop is planned
- * across the road or behind a U-turn; `heading` (the van's course when re-planning on the move) makes the
- * first leg start the way it is already going instead of "turn around first".
+ * with `curb`, every parking stop is reached at the right-hand kerb (the van's side in Germany), so no stop is
+ * planned across the road, at the price of driving a street twice when it has stops on both sides; without it
+ * the van stops on its own side and the driver crosses on foot (ADR 0006). `heading` (the van's course when
+ * re-planning on the move) makes the first leg start the way it is already going instead of "turn around first".
  */
-export function osrmOptions(n, { hasEnd = false, heading } = {}) {
-  const approaches = Array.from({ length: n }, (_, i) => (i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
+export function osrmOptions(n, { hasEnd = false, heading, curb = true } = {}) {
+  const approaches = Array.from({ length: n }, (_, i) => (!curb || i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
   const bearings = Number.isFinite(heading) ? `&bearings=${Math.round(heading)},${BEARING_RANGE}${';'.repeat(n - 1)}` : '';
   return `&approaches=${approaches.join(';')}${bearings}`;
 }
@@ -107,15 +110,21 @@ export async function routeOf(points, opts) {
 /**
  * Geocoded stops -> clusters in driving order, each with an ETA in minutes after departure.
  * `expressOnTime`: Express stops must be reached by their deadline; those no order can make are planned the
- * fastest way and reported in `late`.
+ * fastest way and reported in `late`. `keepOrder`: the stops' own (the scanner's) order, nothing solved.
  */
 export async function solve(stops, start, end, { walkM, ...opts } = {}) {
-  return solveClusters(cluster(stops, walkM ?? CLUSTER_RADIUS_M), start, end, opts);
+  const radius = walkM ?? CLUSTER_RADIUS_M;
+  return solveClusters(opts.keepOrder ? chain(stops, radius) : cluster(stops, radius), start, end, opts);
 }
 
-/** As `solve`, for parking stops already formed (the benchmark compares clusterings this way). */
-export async function solveClusters(clusters, start, end, { departAt = Date.now(), expressOnTime = true, heading } = {}) {
-  let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])], { hasEnd: !!end, heading });
+/**
+ * As `solve`, for parking stops already formed (the benchmark compares clusterings this way).
+ * `bothSides`: the van may stop on either side (no kerb-side approach); `expressMarginMin`: Express deadlines
+ * aimed that much early (lateness is still reported against the deadline); `expressFirst`: Express parking stops
+ * before all others.
+ */
+export async function solveClusters(clusters, start, end, { departAt = Date.now(), expressOnTime = true, heading, bothSides = true, expressMarginMin = 0, expressFirst = false, keepOrder = false } = {}) {
+  let m = await table([start, ...clusters.map(c => c.park), ...(end ? [end] : [])], { hasEnd: !!end, heading, curb: !bothSides });
 
   // A closure can cut a pocket of streets off completely: no road in or out. Those parking stops are left
   // out (the driver sees them under "not planned") instead of failing the whole tour.
@@ -129,28 +138,41 @@ export async function solveClusters(clusters, start, end, { departAt = Date.now(
   }
   if (!clusters.length) throw Object.assign(new Error('no stop can be reached by road'), { status: 422 });
 
-  const win = clusters.map(c => arrivalWindow(c.stops, departAt, expressOnTime));
-  let sol = await retryOnce(() => postJson(VROOM, vroomJob(clusters, m, !!end, win)));
-  if (sol.code !== 0) throw new Error('vroom: ' + sol.error);
-
-  // Matrix indices: 0 = start, 1..n = parking stops, n+1 = end. VROOM's order keeps every deadline it can;
-  // the stops it couldn't fit go back in where they cost least (lateness.mjs), instead of anywhere at all.
+  const margin = Math.max(0, expressMarginMin) * 60;
+  const win = clusters.map(c => arrivalWindow(c.stops, departAt, expressOnTime, margin));
+  // Matrix indices: 0 = start, 1..n = parking stops, n+1 = end.
   const dur = m.durations.map(row => row.map(d => d ?? 1e7));
   const endIdx = end ? clusters.length + 1 : undefined;
   const service = [0, ...clusters.map(c => Math.round(c.service))], windows = [null, ...win];
-  let order = sol.routes[0].steps.filter(st => st.type === 'job').map(st => st.id + 1);
-  const missing = (sol.unassigned ?? []).map(u => u.id + 1);
-  if (missing.length) {
-    L.warn('express deadlines that cannot be kept', { stops: missing.map(i => clusters[i - 1].stops.map(s => s.key)) });
-    order = insertLate(order, missing, dur, service, windows, endIdx);
+  let order = clusters.map((_, i) => i + 1), missing = [], solverMs;
+  if (!keepOrder) {
+    const sol = await retryOnce(() => postJson(VROOM, vroomJob(clusters, m, !!end, win)));
+    if (sol.code !== 0) throw new Error('vroom: ' + sol.error);
+    solverMs = sol.summary?.computing_times?.solving;
+    // VROOM's order keeps every deadline it can; the stops it couldn't fit go back in where they cost least
+    // (lateness.mjs), instead of anywhere at all.
+    order = sol.routes[0].steps.filter(st => st.type === 'job').map(st => st.id + 1);
+    missing = (sol.unassigned ?? []).map(u => u.id + 1);
+    if (missing.length) {
+      L.warn('express deadlines that cannot be kept', { stops: missing.map(i => clusters[i - 1].stops.map(s => s.key)) });
+      order = insertLate(order, missing, dur, service, windows, endIdx);
+    }
+    // VROOM symmetrises the matrix for one vehicle; kerb sides and one-ways make ours anything but (improve.mjs).
+    // The local search also weighs the driver's preferences (order.mjs): a street driven once, Express first.
+    const mates = [[], ...streetMates(clusters).map(ms => ms.map(j => j + 1)), []];
+    const rank = expressFirst ? [0, ...clusters.map(c => (c.stops.some(s => s.express) ? 0 : 1)), 0] : null;
+    if (rank) order = [...order.filter(i => rank[i] === 0), ...order.filter(i => rank[i] !== 0)];
+    const cost = r => timeline(r, dur, service, windows, endIdx).cost + REVISIT_SEC * revisits(r, mates) + (rank ? FIRST_PENALTY * descents(r, rank) : 0);
+    const before = cost(order);
+    order = improve(order, cost, { budgetMs: IMPROVE_MS });
+    const saved = before - cost(order);
+    if (saved > 1) L.info('order improved after VROOM', { savedMin: +(saved / 60).toFixed(1), revisits: revisits(order, mates) });
   }
-  // VROOM symmetrises the matrix for one vehicle; kerb sides and one-ways make ours anything but (improve.mjs)
-  const before = timeline(order, dur, service, windows, endIdx).cost;
-  order = improve(order, r => timeline(r, dur, service, windows, endIdx).cost, { budgetMs: IMPROVE_MS });
   const t = timeline(order, dur, service, windows, endIdx);
-  if (before - t.cost > 1) L.info('order improved after VROOM', { savedMin: +((before - t.cost) / 60).toFixed(1) });
   const ordered = order.map((i, k) => ({ ...clusters[i - 1], eta: Math.round(t.arrive[k] / 60) }));
-  const late = order.filter((i, k) => windows[i] && t.arrive[k] > windows[i][1]);
+  // late = after the deadline itself, not after the margin
+  const due = margin ? [null, ...clusters.map(c => arrivalWindow(c.stops, departAt, expressOnTime))] : windows;
+  const late = order.filter((i, k) => due[i] && t.arrive[k] > due[i][1]);
   const path = [0, ...order, ...(endIdx != null ? [endIdx] : [])];
   const km = path.slice(1).reduce((sum, i, k) => sum + (m.distances[path[k]][i] ?? 0), 0) / 1000;
   const lastI = order.at(-1);
@@ -158,6 +180,6 @@ export async function solveClusters(clusters, start, end, { departAt = Date.now(
     clusters: ordered, unreachable, late: late.flatMap(i => clusters[i - 1].stops.map(s => s.key)),
     km, min: Math.round((t.arrive.at(-1) + service[lastI] + (endIdx != null ? dur[lastI][endIdx] : 0)) / 60),
   };
-  L.info('solved', { stops: clusters.reduce((n, c) => n + c.stops.length, 0), clusters: clusters.length, km: +plan.km.toFixed(1), min: plan.min, windows: win.filter(Boolean).length, missed: missing.length, late: late.length, solverMs: sol.summary?.computing_times?.solving });
+  L.info('solved', { stops: clusters.reduce((n, c) => n + c.stops.length, 0), clusters: clusters.length, km: +plan.km.toFixed(1), min: plan.min, windows: win.filter(Boolean).length, missed: missing.length, late: late.length, solverMs, keepOrder, bothSides, expressFirst, expressMarginMin });
   return plan;
 }

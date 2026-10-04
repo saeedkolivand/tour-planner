@@ -196,3 +196,59 @@ test('phone only: a dragged pin is kept on the stop (pinned) without calling the
   const s = store.getState().tour.stops[0];
   assert.deepEqual([s.lat, s.pinned, store.getState().error], [50.95, true, null]);
 });
+
+test('no departure time given: the plan waits for the first Navigate or Delivered, then counts from it', async () => {
+  const optimize: TourApi['optimize'] = async req => ({
+    stops: req.stops.map((s, i) => ({ ...s, key: `k${i}`, no: i + 1 })),
+    clusters: [{ park: { lat: 0, lon: 0 }, stops: [{ ...req.stops[0], key: 'k0' }], service: 60, eta: 20 }],
+    km: 1, min: 21, baseline: null, ungeocoded: [], start: { lat: 0, lon: 0 }, end: null, startedAt: Date.now() - 3_600_000, late: [],
+  });
+  const store = createTourStore(fakeApi({ optimize }).api);
+  store.addStop();
+  store.editStop(0, { express: '08:30' });
+  await store.plan({ q: 'Depot' }, null, { pendingStart: true, expressOnTime: true });
+  const planned = store.getState().tour.plan!;
+  assert.equal(planned.pendingStart, true);
+  assert.equal(planned.expressOnTime, true);
+  const before = Date.now();
+  store.depart();
+  const p = store.getState().tour.plan!;
+  assert.equal(p.pendingStart, undefined);
+  assert.ok(p.startedAt >= before, 'counts from now, not from planning an hour ago');
+  store.depart(Date.now() + 600_000);
+  assert.equal(store.getState().tour.plan!.startedAt, p.startedAt, 'once per plan');
+});
+
+test('the first delivery sets the tour off; a plan made mid-tour or with a departure time does not wait', async () => {
+  const { api } = fakeApi();
+  const store = createTourStore(api);
+  store.addStop(); store.addStop();
+  await store.plan({ q: 'Depot' }, null, { pendingStart: true });
+  assert.equal(store.getState().tour.plan?.pendingStart, true);
+  store.editStop(0, { key: 'a' } as Partial<Stop>);
+  store.setDone(['a'], true);
+  assert.equal(store.getState().tour.plan?.pendingStart, undefined);
+  assert.ok(store.getState().tour.plan!.startedAt > 0);
+  await store.plan({ q: 'Depot' }, null, { pendingStart: true });
+  assert.equal(store.getState().tour.plan?.pendingStart, undefined, 'something is delivered already: the clock runs');
+  const fresh = createTourStore(api);
+  fresh.addStop();
+  await fresh.plan({ q: 'Depot' }, null, { departAt: Date.now() + 3_600_000 });
+  assert.equal(fresh.getState().tour.plan?.pendingStart, undefined);
+});
+
+test('delivered by Siri while the app was closed: the departure is put one drive before that delivery', async () => {
+  const deliveredAt = Date.now() - 30 * 60_000;
+  const server: Partial<Tour> = {
+    stops: [stop('Ring', { key: 'a', no: 1, done: true, doneAt: deliveredAt }), stop('Hohe', { key: 'b', no: 2 })],
+    plan: {
+      clusters: [{ park: { lat: 0, lon: 0 }, stops: [stop('Ring', { key: 'a' })], service: 60, eta: 15 }, { park: { lat: 0, lon: 0 }, stops: [stop('Hohe', { key: 'b' })], service: 60, eta: 30 }],
+      km: 1, min: 31, baseline: null, ungeocoded: [], start: { lat: 0, lon: 0 }, end: null, startedAt: deliveredAt - 3_600_000, pendingStart: true,
+    },
+  };
+  const store = createTourStore(fakeApi({ getTour: async () => server }).api);
+  await store.load();
+  const p = store.getState().tour.plan!;
+  assert.equal(p.pendingStart, undefined);
+  assert.equal(p.startedAt, deliveredAt - 15 * 60_000);
+});

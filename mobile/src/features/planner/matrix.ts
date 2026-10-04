@@ -6,7 +6,11 @@ import type { LatLon } from '../tour/types.ts';
 import { meters } from './stops.ts';
 
 export interface Matrix { seconds: number[][]; meters: number[][]; by: 'road' | 'estimate'; /** why road times weren't used */ why?: string }
-export interface MatrixOptions { /** the last point is a fixed end (the depot): reached from any side */ hasEnd?: boolean; /** the van's course in degrees while moving */ heading?: number }
+export interface MatrixOptions {
+  /** the last point is a fixed end (the depot): reached from any side */ hasEnd?: boolean;
+  /** the van's course in degrees while moving */ heading?: number;
+  /** arrive with each stop on the right-hand kerb (default); false = from either direction, crossing on foot */ curb?: boolean;
+}
 
 // Fitted on OSRM x 1.3 (2026-09): roads run ~1.5x the straight line; every leg costs ~2.5 min (start, lights,
 // parking), then ~22 km/h in town and ~40 km/h beyond 4 km (arterials, Autobahn to/from the depot).
@@ -26,9 +30,9 @@ const OSRM = ['https://routing.openstreetmap.de/routed-car', 'https://router.pro
 export const OSRM_MAX_POINTS = 100;
 const CITY_FACTOR = 1.3, BEARING_RANGE = 90;
 
-/** Same road-direction options as the PC (server/route/solve.mjs): kerb side at every stop, the course at the start. */
-export function osrmOptions(n: number, { hasEnd = false, heading }: MatrixOptions = {}) {
-  const approaches = Array.from({ length: n }, (_, i) => (i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
+/** Same road-direction options as the PC (server/route/solve.mjs): kerb side at every stop (unless off), the course at the start. */
+export function osrmOptions(n: number, { hasEnd = false, heading, curb = true }: MatrixOptions = {}) {
+  const approaches = Array.from({ length: n }, (_, i) => (!curb || i === 0 || (hasEnd && i === n - 1) ? 'unrestricted' : 'curb'));
   const bearings = Number.isFinite(heading) ? `&bearings=${Math.round(heading!)},${BEARING_RANGE}${';'.repeat(n - 1)}` : '';
   return `&approaches=${approaches.join(';')}${bearings}`;
 }

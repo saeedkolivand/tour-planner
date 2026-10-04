@@ -64,7 +64,8 @@
     "removeStop": "Stopp entfernen",
     "addParcel": "+1 Paket",
     "openHint": "Öffnet den Stopp zum Bearbeiten",
-    "streetOnly": "Nur Straße"
+    "streetOnly": "Nur Straße",
+    "startScanned": "Wie gescannt starten"
   },
   "stopType": {
     "private": "Privat",
@@ -157,7 +158,13 @@
     "onFootPhrase": "+{{n}} zu Fuß",
     "arriveLabel": "Ankunft",
     "couldNotOpen": "{{app}} konnte nicht geöffnet werden",
-    "progressLabel": "Zustellfortschritt"
+    "progressLabel": "Zustellfortschritt",
+    "emptyBodyScanned": "Erfasse deine Stopps und starte dann. Sie erscheinen hier in der Reihenfolge deines Scanners, nichts wird umsortiert.",
+    "startStopsBtn_one": "{{count}} Stopp starten",
+    "startStopsBtn_other": "{{count}} Stopps starten",
+    "lateNoteScanned": "{{stops}} kommen in der Scanner-Reihenfolge zu spät: {{list}}{{more}}.",
+    "inScannerOrder": "In der Reihenfolge deines Scanners, nichts umsortiert.",
+    "notStartedYet": "Noch nicht losgefahren: Zeiten zählen ab jetzt, bis du zum ersten Mal Navigation oder Zugestellt tippst."
   },
   "count": {
     "parkingStops_one": "{{count}} Parkstopp übrig",
@@ -185,10 +192,10 @@
     "returnToDepot": "Zum Depot zurück",
     "returnToDepotHint": "Die Rückfahrt als Teil der Route einplanen",
     "leaveAt": "Depot verlassen um",
-    "leaveAtHint": "ETAs und Express zählen ab hier, wenn du beim Laden planst",
+    "leaveAtHint": "ETAs und Express zählen ab hier. Leer: ab dem ersten Tippen auf Navigation oder Zugestellt",
     "leaveAtA11y": "Übliche Abfahrtszeit",
     "express": "Express",
-    "expressFooter": "An: Express-Stopps werden fristgerecht erreicht, alles andere bleibt am schnellsten (kostet meist ein paar Minuten). Aus: die schnellste Tour, Express wird nur angezeigt.",
+    "expressFooter": "Pünktlich: Express-Stopps werden bis zu ihrer Frist (abzüglich Puffer) erreicht, alles andere bleibt am schnellsten (kostet meist ein paar Minuten). Aus: die schnellste Tour, Express wird nur angezeigt. Express zuerst: alle Express-Stopps vor dem Rest, egal welche Frist.",
     "expressOnTime": "Express pünktlich",
     "expressOnTimeHint": "Um die Fristen 10:00 / 12:00 / 14:00 herum planen",
     "navCarPlay": "Navigation & CarPlay",
@@ -236,7 +243,22 @@
     "checkUpdates": "Nach Updates suchen",
     "getUpdate": "Version {{v}} laden",
     "updateHintAndroid": "Eine neuere Version ist da. APK laden und öffnen, um sie über diese App zu installieren.",
-    "updateHintIos": "Eine neuere Version ist da. Lade die .ipa von der Release-Seite auf deinen PC und installiere sie mit Sideloadly."
+    "updateHintIos": "Eine neuere Version ist da. Lade die .ipa von der Release-Seite auf deinen PC und installiere sie mit Sideloadly.",
+    "stopOrder": "Reihenfolge",
+    "orderFastest": "Schnellste",
+    "orderScanned": "Wie gescannt",
+    "orderFastestFooter": "Die App plant die schnellste Reihenfolge, gruppiert in Parkstopps. Gilt ab der nächsten Planung.",
+    "orderScannedFooter": "Die Stopps bleiben in der Reihenfolge deiner Scanner-Fotos und Screenshots, nichts wird umsortiert. Nur direkte Nachbarn auf der Liste teilen sich einen Parkplatz. Navigation, Zugestellt und Ankunftszeiten funktionieren wie gewohnt. Gilt ab der nächsten Planung.",
+    "bothSides": "Beide Seiten in einem Zug",
+    "bothSidesOnHint": "Auf deiner Seite halten und zu Fuß rübergehen: jede Straße wird einmal gefahren",
+    "bothSidesOffHint": "Immer auf der Seite der Haustür halten: eine Straße mit Stopps auf beiden Seiten wird zweimal gefahren",
+    "expressMargin": "Früher ankommen um (Min.)",
+    "expressMarginHint": "Puffer vor jeder Express-Frist für Verkehr, Parken und die Suche nach der Tür",
+    "marginNone": "Kein Puffer",
+    "marginMinutesA11y": "{{n}} Minuten früher",
+    "expressFirst": "Express zuerst",
+    "expressFirstHint": "Alle Express-Stopps vor dem Rest zustellen",
+    "expressScannedFooter": "Bei der Reihenfolge „Wie gescannt\" wird nichts umsortiert: Express-Stopps, die zu spät kommen, werden im Tab „Route\" markiert."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",

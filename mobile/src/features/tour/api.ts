@@ -1,5 +1,5 @@
 import { request } from '../../shared/http.ts';
-import type { LatLon, Place, Plan, Stop, Tour } from './types.ts';
+import type { LatLon, Plan, PlanRequest, Stop, Tour } from './types.ts';
 
 export interface ExtractResult { stops: Stop[]; photos: { photo: number; found: number; by?: string; error?: string }[] }
 export type ScanInput = { images: string[] } | { texts: string[] };
@@ -9,7 +9,7 @@ export interface TourApi {
   getTour(): Promise<Partial<Tour>>;
   saveTour(tour: Tour): Promise<void>;
   extract(input: ScanInput, known: Stop[]): Promise<ExtractResult>;
-  optimize(req: { start: Place; end: Place | null; stops: Stop[]; departAt?: number; expressOnTime?: boolean; walkM?: number; heading?: number }): Promise<Plan & { stops: Stop[] }>;
+  optimize(req: PlanRequest): Promise<Plan & { stops: Stop[] }>;
   pin(key: string, at: LatLon): Promise<void>;
 }
 

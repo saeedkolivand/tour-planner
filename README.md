@@ -27,7 +27,9 @@ web app (photos) ──────────────────┼─►
         Tailscale HTTPS ───────────┘                       └─ VROOM → OSRM, Köln road graph (WSL, :3001 / :5050)
 ```
 
-The order respects how a van actually moves: one-way streets and turn restrictions from the road graph, arrival at the right-hand kerb of every stop (no stop across the road or behind a U-turn), each stop parked on its own street rather than the nearer alley round the corner, and, when you re-plan on the move, the direction you are already driving.
+The order respects how a van actually moves: one-way streets and turn restrictions from the road graph, each street driven once (the van stops on its side and you cross on foot, instead of a second pass for the other side; or always at the door's kerb, if you prefer), no coming back to a stretch of street already done, each stop parked on its own street rather than the nearer alley round the corner, and, when you re-plan on the move, the direction you are already driving ([ADR 6](docs/adr/0006-drive-each-street-once.md)).
+
+Don't want the app to re-order anything? **Settings › Stop order › As scanned** keeps the stops exactly as your scanner photos and screenshots list them, with the same navigation, Delivered button and arrival times.
 
 ## Run
 
@@ -64,7 +66,9 @@ English and German. The app follows the phone's language (iOS and Android also l
 Expo SDK 57 · React Native 0.86 · Expo Router · **NativeWind 4 + React Native Reusables** (shadcn/ui for React Native) · lucide icons · Reanimated · haptics · light/dark. One code base builds both apps; the differences are listed further down.
 
 - **Stops**: a capture hero (camera or screenshots, read on the phone with Apple Vision on iOS and ML Kit on Android), a check of the stop count against the scanner, and stop rows that open a focused edit dialog.
-- **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: the map (draggable pins), the upcoming list, and a collapsed delivered list.
+- **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: the map (draggable pins), the upcoming list, and a collapsed delivered list. Without a *Leave the depot at* time, arrival times count from your first **Navigate** or **Delivered**, not from when you planned.
+- **Scan**: parcel labels, for loading numbers and the right parcel at the door.
+- **Settings**: stop order (*Fastest* or *As scanned*), route style and *Both sides in one pass*, Express (*on time* with a buffer of 0–20 min, *Express first*), navigation app, PC or phone-only planning.
 - **CarPlay (no CarPlay entitlement or paid account needed)**: see [CarPlay](#carplay) below.
 - **Architecture**: `src/features/tour` holds a framework-free store and pure selectors (unit-tested with `node --test`), `useDelivery` / `usePlanning` hooks, and small components. `src/components/ui` holds the Reusables primitives we own and extend (e.g. `Button` `xl` and `success`).
 - **Design preview on Windows**: `npx expo start --web`. The map is replaced by a placeholder on web.

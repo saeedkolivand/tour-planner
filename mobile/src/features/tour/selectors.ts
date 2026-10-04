@@ -20,7 +20,8 @@ export interface RouteView {
   savedMin: number;
   /**
    * What ETAs count from: the plan's start, pushed back by however late the driver is for the next stop,
-   * so a delay moves every remaining ETA instead of showing arrival times that already passed.
+   * so a delay moves every remaining ETA instead of showing arrival times that already passed. Before a pending
+   * plan sets off: now.
    */
   etaBase: number;
 }
@@ -39,9 +40,26 @@ export function routeView(tour: Tour, now = Date.now()): RouteView | null {
     completed: clusters.filter(c => c.cluster.stops.every(isDone)),
     delivered: numbered.filter(isDone).length,
     total: numbered.length,
-    etaBase: tour.plan.startedAt + Math.max(0, open[0] ? now - (tour.plan.startedAt + open[0].cluster.eta * 60_000) : 0),
+    // not set off yet (no departure time was given): the tour leaves no earlier than now
+    etaBase: tour.plan.pendingStart ? Math.max(tour.plan.startedAt, now)
+      : tour.plan.startedAt + Math.max(0, open[0] ? now - (tour.plan.startedAt + open[0].cluster.eta * 60_000) : 0),
     savedMin: tour.plan.baseline ? Math.max(0, Math.round(tour.plan.baseline.min - tour.plan.min)) : 0,
   };
+}
+
+/**
+ * The parking stops (their keys) that arrive after a deadline when the tour leaves at `startedAt`: an Express time
+ * (if the plan keeps them) or a Paketshop's closing time. A deadline already gone by then counts as missed.
+ */
+export function lateKeys(clusters: Cluster[], startedAt: number, expressOnTime = true): string[] {
+  const today = (hhmm?: string) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm ?? '');
+    return m ? new Date(startedAt).setHours(Number(m[1]), Number(m[2]), 0, 0) : null;
+  };
+  return clusters.filter(c => c.stops.some(s => [expressOnTime ? s.express : '', s.opens?.split('-')[1]].some(hhmm => {
+    const due = today(hhmm);
+    return due != null && startedAt + c.eta * 60_000 > due;
+  }))).flatMap(c => c.stops.flatMap(s => (s.key ? [s.key] : [])));
 }
 
 /** How complete the capture is against the count the scanner shows. */

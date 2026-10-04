@@ -32,7 +32,7 @@ export function clean(stops) {
   }));
 }
 
-export async function planTour({ start, end, stops, departAt, expressOnTime = true, walkM, heading } = {}) {
+export async function planTour({ start, end, stops, departAt, expressOnTime = true, walkM, heading, order, bothSides, expressMarginMin, expressFirst } = {}) {
   if (!start || !isPlace(start) || !isPlace(end)) throw bad('start (and end) must be {lat, lon} or {q}');
   const all = dedupe(clean(stops));
   const [s, e] = [await resolvePlace(start), await resolvePlace(end)];
@@ -53,11 +53,20 @@ export async function planTour({ start, end, stops, departAt, expressOnTime = tr
   const walk = Number.isFinite(walkM) ? Math.min(300, Math.max(0, walkM)) : undefined;
   // heading: the van's course in degrees when re-planning on the move (absent when standing or at the depot)
   const course = Number.isFinite(heading) ? ((heading % 360) + 360) % 360 : undefined;
-  const { unreachable, ...plan } = await solve(placed, s, e, { departAt: depart, expressOnTime: expressOnTime !== false, walkM: walk, heading: course });
+  // order 'scanned': the stops as the scanner listed them, nothing re-ordered (the app's "As scanned")
+  const scanned = order === 'scanned';
+  // bothSides (default): the van stops on its own side and the driver crosses, so a street is driven once (ADR 0006)
+  const curb = bothSides === false;
+  const opts = {
+    departAt: depart, expressOnTime: expressOnTime !== false, walkM: walk, heading: course, keepOrder: scanned, bothSides: !curb,
+    expressMarginMin: Number.isFinite(expressMarginMin) ? Math.min(60, Math.max(0, expressMarginMin)) : 0, expressFirst: expressFirst === true,
+  };
+  const { unreachable, ...plan } = await solve(placed, s, e, opts);
   ungeocoded.push(...unreachable.map(x => ({ ...x, unreachable: true })));
-  // stop time is the same in any order, so the scanner's order pays it too (else "saved" compares drive vs drive+stops)
+  // stop time is the same in any order, so the scanner's order pays it too (else "saved" compares drive vs drive+stops);
+  // nothing to compare when the plan is the scanner's order
   const serviceMin = plan.clusters.reduce((t, c) => t + c.service, 0) / 60;
-  const baseline = await routeOf([s, ...placed.filter(x => !unreachable.includes(x)), ...(e ? [e] : [])], { hasEnd: !!e, heading: course })
+  const baseline = scanned ? null : await routeOf([s, ...placed.filter(x => !unreachable.includes(x)), ...(e ? [e] : [])], { hasEnd: !!e, heading: course, curb })
     .then(b => ({ km: b.km, min: b.min + serviceMin }))
     .catch(err => { L.warn('baseline failed', { error: err }); return null; });
 
@@ -69,7 +78,7 @@ export async function planTour({ start, end, stops, departAt, expressOnTime = tr
   L.info('planned', {
     stops: all.length, todo: todo.length, ungeocoded: ungeocoded.length, km: +plan.km.toFixed(1), min: plan.min,
     baselineMin: baseline && Math.round(baseline.min), fromGps: start?.lat != null, heading: course, endAtDepot: !!e,
-    onStreet: placed.filter(x => x.road).length,
+    onStreet: placed.filter(x => x.road).length, order: scanned ? 'scanned' : 'fastest',
   });
-  return { ...plan, stops: all, baseline, ungeocoded, start: s, end: e, startedAt: depart };
+  return { ...plan, stops: all, baseline, ungeocoded, start: s, end: e, startedAt: depart, ...(scanned && { order: 'scanned' }) };
 }

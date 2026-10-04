@@ -57,7 +57,42 @@ export interface Plan {
   note?: string;
   /** Who planned it: the PC (road graph + roadworks), or the phone (road times from ORS, or an estimate). */
   by?: 'pc' | 'phone-road' | 'phone-estimate';
+  /** 'scanned': the stops kept the scanner list's order (nothing re-ordered). Absent = the fastest order. */
+  order?: StopOrder;
+  /**
+   * Planned with no departure time set: until the first Navigate or Delivered, ETAs count from now; then
+   * `startedAt` becomes that moment and this flag goes (see store.depart).
+   */
+  pendingStart?: boolean;
+  /** Whether the plan kept Express deadlines (the setting at planning time): `late` is recomputed the same way. */
+  expressOnTime?: boolean;
 }
+
+/** 'fastest': the planner picks the order. 'scanned': the order of the scanner list, as photographed. */
+export type StopOrder = 'fastest' | 'scanned';
+
+/** How to plan: the driver's settings, sent to the PC or to the phone's own planner. */
+export interface PlanOptions {
+  /** When the tour leaves (ms); ETAs and deadlines count from it. Absent or past = now. */
+  departAt?: number;
+  expressOnTime?: boolean;
+  /** Plan Express to arrive this many minutes before its deadline (a late arrival is still judged on the deadline). */
+  expressMarginMin?: number;
+  /** Every parking stop with an Express parcel comes before all the others. */
+  expressFirst?: boolean;
+  /** Metres walked from one parking spot (the route style). */
+  walkM?: number;
+  /** The van's course in degrees while moving (re-plan on the move). */
+  heading?: number;
+  order?: StopOrder;
+  /**
+   * Stop on the van's own side of a street and cross on foot, so a street with stops on both sides is driven once.
+   * false = always arrive on the door's side (the right-hand kerb), which can mean driving a street twice.
+   */
+  bothSides?: boolean;
+}
+
+export type PlanRequest = { start: Place; end: Place | null; stops: Stop[]; lastNo?: number } & PlanOptions;
 
 export interface Tour { stops: Stop[]; plan: Plan | null; expected: string }
 

@@ -5,8 +5,8 @@ import type { Stop } from '../tour/types.ts';
 import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
 import { parseStops } from './parseText.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
-import { solveOrder } from './solve.ts';
-import { cluster, dedupe, meters } from './stops.ts';
+import { descents, revisits, solveOrder } from './solve.ts';
+import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
 const s = (street: string, number: string, extra: Partial<Stop> = {}): Stop => ({ street, number, postcode: '50667', type: 'private', parcels: 1, ...extra });
 
@@ -220,4 +220,86 @@ test('plan on the phone: geocoder rejecting a stop drops its stored position; a 
   assert.ok(p.ungeocoded.some(x => x.number === '1'), 'rejected stop ends up ungeocoded');
   const pinned = p.stops.find(x => x.number === '2');
   assert.deepEqual({ lat: pinned?.lat, lon: pinned?.lon }, stored, 'pinned stop stays placed');
+});
+
+test('as scanned: the list order stands; only next-door neighbours on the list share a parking spot', () => {
+  const at = (lat: number, x: Stop) => ({ ...x, lat, lon: 6.95 });
+  // A1 and A3 next door (33 m), B far away, then A5 next door to A1 again but after B: it may not jump back
+  const c = chain([at(50.94, s('A', '1')), at(50.9403, s('A', '3')), at(50.95, s('B', '1')), at(50.9401, s('A', '5'))]);
+  assert.deepEqual(c.map(g => g.stops.map(x => `${x.street}${x.number}`).join('+')), ['A1+A3', 'B1', 'A5']);
+  assert.deepEqual(c[0].park, { lat: 50.94, lon: 6.95 }, 'parked at the first one, a plain position');
+  assert.ok(c[0].service > 2 * 120, 'the walk is in the stop time');
+});
+
+test('plan on the phone, as scanned: nothing re-ordered, no "you save", Express late flagged in that order', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = {
+    'Depot, Köln': { lat: 50.94, lon: 6.90 },
+    'A 1, 50667 Köln': { lat: 50.94, lon: 6.95 }, 'B 1, 50667 Köln': { lat: 50.94, lon: 6.92 }, 'C 1, 50667 Köln': { lat: 50.94, lon: 6.98 },
+  };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('C', '1'), s('A', '1'), s('B', '1')], order: 'scanned' }, deps);
+  assert.deepEqual(p.clusters.map(c => c.stops[0].street), ['C', 'A', 'B'], 'the fastest would be B, A, C');
+  assert.deepEqual(p.clusters.flatMap(c => c.stops.map(x => x.no)), [1, 2, 3]);
+  assert.equal(p.baseline, null);
+  assert.equal(p.order, 'scanned');
+  assert.ok(p.clusters[1].eta > p.clusters[0].eta, 'ETAs follow the list');
+});
+
+test('both sides in one pass: the public router is asked for no kerb side; off keeps the kerb side', async () => {
+  assert.equal(osrmOptions(4, { hasEnd: true, curb: false }), '&approaches=unrestricted;unrestricted;unrestricted;unrestricted');
+  const seen: (boolean | undefined)[] = [];
+  const deps = {
+    geocode: async (q: string) => (q.startsWith('Depot') ? { lat: 50.94, lon: 6.90 } : { lat: 50.94, lon: 6.95 }),
+    matrix: async (p: { lat: number; lon: number }[], o?: { curb?: boolean }) => { seen.push(o?.curb); return estimateMatrix(p); },
+    t: (k: string) => k,
+  };
+  await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('A', '1')], bothSides: true }, deps);
+  await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('A', '1')], bothSides: false }, deps);
+  assert.deepEqual(seen, [false, true]);
+});
+
+test('a stretch of street is driven once: coming back to it has to save more than REVISIT_SEC', () => {
+  // start 0; 1 and 3 park on the same street, 2 on a side street. Going 1 -> 2 -> 3 saves 60 s of driving
+  // over 1 -> 3 -> 2, but leaves the street and comes back to it.
+  const m = [
+    [0, 100, 400, 400],
+    [100, 0, 100, 160],
+    [400, 100, 0, 100],
+    [400, 160, 100, 0],
+  ];
+  const mates = [[], [3], [], [1]];
+  assert.deepEqual(solveOrder(m), [1, 2, 3], 'by the clock alone');
+  assert.equal(revisits([1, 2, 3], mates), 1);
+  assert.deepEqual(solveOrder(m, undefined, { mates }), [1, 3, 2], 'the street first, then the side street');
+  // a detour that costs far more than the re-visit is still not taken
+  const far = m.map(r => [...r]); far[1][3] = 900;
+  assert.deepEqual(solveOrder(far, undefined, { mates }), [1, 2, 3]);
+});
+
+test('street mates: the same street within a short stretch, by the stop the van parks at', () => {
+  const g = (street: string, lat: number) => ({ park: { lat, lon: 6.95 }, stops: [{ ...s(street, '1'), lat, lon: 6.95 }] });
+  assert.deepEqual(streetMates([g('Hohe Str.', 50.94), g('Hohe Straße', 50.9415), g('Ring', 50.9405), g('Hohe Str.', 50.96)]), [[1], [0], [], []]);
+});
+
+test('Express first: every Express parking stop before the others, even when it costs driving', () => {
+  const xs = [0, 1, 2, 5], m = xs.map(a => xs.map(b => Math.abs(a - b) * 60));
+  assert.deepEqual(solveOrder(m).map(i => xs[i]), [1, 2, 5]);
+  const rank = [0, 1, 1, 0]; // the far one (x=5) is Express
+  const order = solveOrder(m, undefined, { rank });
+  assert.deepEqual(order.map(i => xs[i]), [5, 2, 1]);
+  assert.equal(descents(order, rank), 0);
+});
+
+test('Express margin: aims early, but "late" is still judged on the deadline itself', async () => {
+  // start, A, B; A then B is the fastest drive and reaches B (Express) 2 min before its deadline
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'A 1, 50667 Köln': { lat: 50.94, lon: 6.91 }, 'B 1, 50667 Köln': { lat: 50.94, lon: 6.95 } };
+  const seconds = [[0, 60, 300], [60, 0, 240], [300, 240, 0]];
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async () => ({ seconds, meters: seconds, by: 'road' as const }), t: (k: string) => k };
+  const tomorrow8 = new Date(Date.now() + 86_400_000).setHours(8, 0, 0, 0);
+  const stops = () => [s('A', '1'), s('B', '1', { express: '08:08' as Stop['express'] })];
+  const plain = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: stops(), departAt: tomorrow8 }, deps);
+  assert.deepEqual(plain.clusters.map(c => c.stops[0].street), ['A', 'B'], 'on time without a buffer: fastest');
+  const early = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: stops(), departAt: tomorrow8, expressMarginMin: 5 }, deps);
+  assert.deepEqual(early.clusters.map(c => c.stops[0].street), ['B', 'A'], 'a 5 min buffer pulls B first');
+  assert.deepEqual(early.late, [], 'B is well before 08:08');
 });

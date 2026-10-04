@@ -48,8 +48,9 @@ const WALK_MPS = 1.3, RADIUS_M = 80;
 export const serviceSec = (s: Stop) => (SERVICE_MIN[s.type] ?? 2) * 60 + 30 * Math.max(0, (s.parcels || 1) - 1);
 
 const walkSum = (p: LatLon, stops: LatLon[]) => stops.reduce((t, s) => t + meters(p, s), 0);
+const at = (p: LatLon): LatLon => ({ lat: p.lat, lon: p.lon });
 /** The parking spot for a group: the most central stop (the PC snaps it onto the street; the phone has no road graph). */
-const medoid = (stops: (Stop & LatLon)[]): LatLon => stops.reduce((b, p) => (walkSum(p, stops) < walkSum(b, stops) ? p : b));
+const medoid = (stops: (Stop & LatLon)[]): LatLon => at(stops.reduce((b, p) => (walkSum(p, stops) < walkSum(b, stops) ? p : b)));
 
 /** The walk from the parking spot past every door and back: nearest first, then 2-opt. Doors in walking order + metres. */
 export function walkLoop<T extends LatLon>(park: LatLon, doors: T[]): { order: T[]; meters: number } {
@@ -79,10 +80,44 @@ export function cluster(stops: (Stop & LatLon)[], radius = RADIUS_M): Omit<Clust
   for (const s of stops) {
     let best: (typeof out)[number] | null = null, bd = Infinity;
     if (s.exact !== false) for (const c of out) { const dd = c.walkable ? meters(c.park, s) : Infinity; if (dd <= radius && dd < bd) { best = c; bd = dd; } }
-    if (best) { best.stops.push(s); best.park = medoid(best.stops); } else out.push({ park: { lat: s.lat, lon: s.lon }, stops: [s], walkable: s.exact !== false });
+    if (best) { best.stops.push(s); best.park = medoid(best.stops); } else out.push({ park: at(s), stops: [s], walkable: s.exact !== false });
   }
   return out.map(({ walkable: _, ...c }) => {
     const walk = walkLoop(c.park, c.stops);
     return { ...c, stops: walk.order, service: c.stops.reduce((t, s) => t + serviceSec(s), 0) + walk.meters / WALK_MPS };
   });
+}
+
+/**
+ * The scanner's order, as captured (the PC's chain() in cluster.mjs): nothing is moved. A stop within `radius` of
+ * the parking spot before it (a next-door neighbour on the list) shares that spot, walked in list order.
+ */
+export function chain(stops: (Stop & LatLon)[], radius = RADIUS_M): Omit<Cluster, 'eta'>[] {
+  const out: { park: LatLon; stops: (Stop & LatLon)[]; walkable: boolean }[] = [];
+  for (const s of stops) {
+    const last = out[out.length - 1];
+    if (last?.walkable && s.exact !== false && meters(last.park, s) <= radius) last.stops.push(s);
+    else out.push({ park: at(s), stops: [s], walkable: s.exact !== false });
+  }
+  return out.map(({ walkable: _, ...c }) => {
+    const path = [c.park, ...c.stops, c.park];
+    const walked = path.slice(1).reduce((t, p, i) => t + meters(path[i], p), 0);
+    return { ...c, service: c.stops.reduce((t, s) => t + serviceSec(s), 0) + walked / WALK_MPS };
+  });
+}
+
+/** Two parking spots on one street closer than this are one stretch of it: driving it twice is what drivers notice. */
+const STRETCH_M = 300;
+
+/**
+ * For each parking spot, the others on the same stretch of the same street (the street the van parks on: its
+ * stop nearest the spot). The solver charges for leaving a stretch and coming back to it later (solve.ts).
+ */
+export function streetMates(groups: Pick<Cluster, 'park' | 'stops'>[]): number[][] {
+  const parkedAt = (g: Pick<Cluster, 'park' | 'stops'>) => {
+    const d = (s: Stop) => (s.lat != null && s.lon != null ? meters({ lat: s.lat, lon: s.lon }, g.park) : Infinity);
+    return g.stops.reduce((b, s) => (d(s) < d(b) ? s : b));
+  };
+  const street = groups.map(g => fold(parkedAt(g).street));
+  return groups.map((a, i) => groups.flatMap((b, j) => (i !== j && street[i] && street[i] === street[j] && meters(a.park, b.park) <= STRETCH_M ? [j] : [])));
 }
