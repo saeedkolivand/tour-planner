@@ -138,7 +138,9 @@ Every push to `main` runs `release.yml`: [semantic-release](https://semantic-rel
 
 [Pino](https://getpino.io) writes every request, reader decision (appliance vs Claude, timings), geocode miss, plan, pin, tick-off and client error to `data/logs/app.<date>.<n>.jsonl`. Files roll daily, and 30 days are kept. Each line is one JSON object with `level`, `t`, `src` (`server`/`web`/`ios`/`android`), `scope`, `msg` and details. Clients queue logs on the device and upload them, so logs written offline arrive later.
 
-The phone also keeps its own log (`logs/app.jsonl` in the app's documents, a few MB), which matters in phone-only mode, where nothing reaches the PC. **Settings › Log › Export log** shares it as one text file: a header (app version, phone, settings without the server address or keys), the day's tour, then every entry. Turn on **Detailed log** first to also record the why: each address lookup and what each geocoder answered, what the phone read from each photo, and how the order came about.
+The phone also keeps its own log (`logs/app.jsonl` in the app's documents, a few MB), which matters in phone-only mode, where nothing reaches the PC. **Settings › Log › Export log** shares it as one text file: a header (app version, phone, settings without the server address or keys), the day's tour, the tour history, then every entry. Turn on **Detailed log** first to also record the why: each address lookup and what each geocoder answered, what the phone read from each photo, and how the order came about.
+
+**Tour history** (on by default, Settings › Log) keeps one record per day on the phone (`history/<date>.json`, 120 days): every stop with its place in the scanner list and on the plan, the scanner's area letters and route code, when it was delivered, and where the phone was at that Delivered tap (one reading per tap, no background tracking). Nothing plans by it yet; it's the data for learning the driver's own area (ADR 7).
 
 ```powershell
 Get-Content (ls data/logs/app.*.jsonl | sort LastWriteTime)[-1] -Wait | ConvertFrom-Json | Format-Table t,level,src,scope,msg

@@ -50,10 +50,15 @@ export interface Settings {
   language: 'system' | 'en' | 'de';
   /** Also record the why of each step (every address lookup, each plan's order) for Settings > Export log. */
   detailedLog: boolean;
+  /**
+   * Keep each day's tour on the phone (stops, plan, delivery times, where each Delivered was tapped) to plan better
+   * later. Off: no history is written and no position is read at Delivered.
+   */
+  keepHistory: boolean;
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false, keepHistory: true };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);

@@ -35,6 +35,12 @@ export interface Stop {
   unreachable?: boolean;
   /** Paketshop opening hours, "09:00-20:00": the plan reaches it while it's open. */
   opens?: string;
+  /** The letters the scanner prints after the postcode ("50670HY" -> "HY"); likely a small area of it. Kept to learn from. */
+  area?: string;
+  /** The scanner row's route code, "G 12 T 387" (meaning unknown). Kept to learn from. */
+  code?: string;
+  /** Where the phone was when this stop was marked delivered (one reading at the tap, metres of accuracy). */
+  donePos?: LatLon & { acc?: number };
 }
 
 /** One parking spot: the first stop is where the van stops, the rest are walked to. */

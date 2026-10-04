@@ -24,3 +24,6 @@
 - **Traffic-calendar entry**: the city's own notice of a closure, narrowing or event for today. A full closure is avoided completely; the rest are slow-downs.
 - **Roadworks slow-down**: a City of Cologne roadworks permit near a street. The route prefers other streets there, but may still use it.
 - **Pin**: a stop position the driver fixed by hand. It overrides the geocoder for that address from then on.
+- **Area letters**: the two letters the DPD scanner prints after a postcode ("50670**HY**"). Kept on the stop; they look like a small area within the postcode, which the tour history should confirm.
+- **Route code**: the scanner row's "G 12 T 387" line. Meaning unknown; kept on the stop for the tour history.
+- **Tour history**: one record per day on the phone of what the tour actually did: each stop's place in the scanner list and on the plan, when and where it was delivered, and the day's plans. Used to learn the driver's area; the plan never changes mid-tour (ADR 7).

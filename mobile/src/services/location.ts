@@ -33,6 +33,22 @@ export async function currentPosition(): Promise<Position> {
   return { lat: p.coords.latitude, lon: p.coords.longitude, ...(moving && { heading: p.coords.heading! }) };
 }
 
+/**
+ * Where the phone is at a Delivered tap, for the tour history. Never asks for permission (planning on the phone
+ * already did; a prompt at a door would be in the way) and never waits long: with navigation running the last fix is
+ * seconds old, otherwise one fix within 10 s. null when there's no permission or no fix.
+ */
+export async function quietPosition(): Promise<(LatLon & { acc?: number }) | null> {
+  try {
+    if (!(await Location.getForegroundPermissionsAsync()).granted) return null;
+    const p = await Location.getLastKnownPositionAsync({ maxAge: 30_000, requiredAccuracy: 50 })
+      ?? await within(10_000, Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })).catch(() => null);
+    if (!p) return null;
+    const { latitude, longitude, accuracy } = p.coords;
+    return { lat: +latitude.toFixed(6), lon: +longitude.toFixed(6), ...(accuracy != null && { acc: Math.round(accuracy) }) };
+  } catch { return null; }
+}
+
 /** Where the phone points (0 = north, clockwise). For "no entry this way": the driver aims the phone down the street. */
 export async function currentHeading(): Promise<number> {
   const h = await Location.getHeadingAsync();

@@ -3,13 +3,15 @@
 // street + number, "50670HX Köln" (postcode + two letters that are NOT part of it), a route code "G 11 T 387" and
 // the planned slot "09:11 / 11:11" (which is not a deadline). OCR returns roughly that order, so the lines after a
 // street are its trailer while they look like attributes; what remains before the next street is that next stop's
-// header: its name, PRIO and count.
+// header: its name, PRIO and count. The letters and the code are kept on the stop (`area`, `code`) for the tour
+// history; nothing plans by them yet.
 // ponytail: rules, not a model; the PC reads messy photos better. Labels (Scan tab) need neither.
 import type { Express, Stop, StopType } from '../tour/types.ts';
 
 // "Hohe Str. 68", "Konrad-Adenauer-Ufer 3-5", "An der Linde 12 a", "Venloer Straße 211, 50823 Köln", "Gereonsm…engasse 26"
 const ADDRESS = /^(\p{Lu}[\p{L}.…'’\- ]*?\p{L}\.?)\s+(\d{1,4}(?:\s?[a-zA-Z](?![\p{L}]))?(?:\s?[-–/]\s?\d{1,4}[a-zA-Z]?)?)(?=$|[\s,])/u;
-const POSTCODE = /\b(\d{5})(?:[A-Z]{1,2})?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
+const POSTCODE = /\b(\d{5})([A-Z]{1,2})?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
+const ROUTE_CODE = /^G\s?(\d+)\s?T\s?(\d+)\b/im;
 const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete)/i;
 // lines that describe the stop above them rather than name the one below
 const TRAILER = /^(?:\d{5}[A-Z]{0,2}\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
@@ -67,7 +69,7 @@ export function parseStops(text: string): Stop[] {
   const stops = starts.map(({ i, m }, k) => {
     const head = lines.slice(k ? trailerEnd[k - 1] : 0, i).filter(l => !NOT_A_STREET.test(l));
     const tail = lines.slice(i, trailerEnd[k]).join('\n');
-    const pc = POSTCODE.exec(tail);
+    const pc = POSTCODE.exec(tail), code = ROUTE_CODE.exec(tail);
     const count = head.find(l => COUNT.test(l));
     const parcelsText = /(\d{1,2})\s*(?:pakete|packst|colli|stk|pcs|x\s*paket)/i.exec(tail);
     const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !/^prio$/i.test(l) && /\p{L}{3}/u.test(l));
@@ -76,7 +78,8 @@ export function parseStops(text: string): Stop[] {
     const block = `${name ?? ''}\n${tail}`;
     const type = typeIn(block);
     return {
-      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[2]?.trim().replace(/,.*$/, '') || 'Köln',
+      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '') || 'Köln',
+      ...(pc?.[2] && { area: pc[2] }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
       ...(name && { name }), ...(express && { express }), ...(hours && type === 'shop' && { opens: `${hours[1]}-${hours[2]}` }),
     } as Stop;
