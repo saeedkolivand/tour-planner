@@ -67,10 +67,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: TourPlanner-apk
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: TourPlanner-unsigned-ipa
       - run: ls -la TourPlanner.apk TourPlanner-unsigned.ipa
