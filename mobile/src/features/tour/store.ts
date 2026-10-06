@@ -1,5 +1,6 @@
 import type { ExtractResult, ScanInput, TourApi } from './api.ts';
 import { dedupe } from '../planner/stops.ts';
+import { keepOrder, moveCluster, withSeq } from './manualOrder.ts';
 import { lateKeys } from './selectors.ts';
 import { silent, type StoreLogger } from './storeLogger.ts';
 import { EMPTY_TOUR, newStop, type LatLon, type Place, type Plan, type PlanOptions, type PlanRequest, type Stop, type Tour } from './types.ts';
@@ -235,13 +236,34 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
         }
       });
       if (!r) return false;
-      const { stops, ...planned } = r; // stops come back keyed, geocoded and numbered
+      const { stops: got, ...planned } = r; // stops come back keyed, geocoded and numbered
       // mid-tour (something delivered) the clock is already running
-      const waits = pendingStart && !stops.some(s => s.done);
-      const plan: Plan = { ...planned, expressOnTime: opt.expressOnTime !== false, ...(waits && { pendingStart: true }) };
+      const waits = pendingStart && !got.some(s => s.done);
+      const fresh: Plan = { ...planned, expressOnTime: opt.expressOnTime !== false, ...(waits && { pendingStart: true }) };
+      // an order the driver set by hand stands; new parking stops are fitted in
+      const seq = new Map(state.tour.stops.flatMap(s => (s.key && s.seq != null ? [[s.key, s.seq] as const] : [])));
+      const kept = seq.size ? keepOrder(fresh, seq) : null;
+      const plan = kept ?? fresh;
+      const stops = kept ? withSeq(got.map(({ seq: _, ...s }) => s), kept) : got;
+      if (kept) L.info('order kept from the driver', { parkingStops: kept.clusters.length, placedByHand: seq.size });
       setTour(t => ({ ...t, stops, plan }));
       L.info('planned', { fromGps: 'lat' in start, by: plan.by, order: opt.order, pendingStart: waits, note: plan.note, stops: stops.length, clusters: plan.clusters.length, km: plan.km, min: plan.min, ungeocoded: plan.ungeocoded.length, unplaced: plan.ungeocoded.map(s => `${s.street} ${s.number}`) });
       return true;
+    },
+
+    /** The driver moves a parking stop (indices in plan.clusters); from then on, re-plans keep the driver's order. */
+    moveCluster(from: number, to: number) {
+      const p = state.tour.plan;
+      if (!p || from === to || !p.clusters[from] || !p.clusters[to]) return;
+      const plan = moveCluster(p, from, to);
+      L.info('moved by hand', { from, to, stop: p.clusters[from].stops[0].key, min: plan.min, was: p.min, late: plan.late?.length ?? 0 });
+      setTour(t => ({ ...t, plan, stops: withSeq(t.stops, plan) }));
+    },
+
+    /** Forgets the driver's order: the next plan is the planner's own. */
+    resetOrder() {
+      L.info('order by hand dropped');
+      editStops(ss => ss.map(({ seq: _, ...s }) => s));
     },
 
     async pin(stop: Stop, at: LatLon) {

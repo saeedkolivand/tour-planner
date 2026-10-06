@@ -279,3 +279,23 @@ test('delivered by Siri while the app was closed: the departure is put one drive
   assert.equal(p.pendingStart, undefined);
   assert.equal(p.startedAt, deliveredAt - 15 * 60_000);
 });
+
+test('a parking stop moved by hand stays there when the tour is planned again; reset gives the planner its order back', async () => {
+  // the "planner" always answers a, b, c, ~700 m apart in a line
+  const optimize: TourApi['optimize'] = async req => ({
+    stops: req.stops.map((s, i) => ({ ...s, key: s.street, no: i + 1 })),
+    clusters: req.stops.map((s, i) => ({ park: { lat: 50.94, lon: 6.91 + i * 0.01 }, stops: [{ ...s, key: s.street }], service: 60, eta: 5 + i * 6 })),
+    km: 6, min: 18, baseline: null, ungeocoded: [], start: { lat: 50.94, lon: 6.90 }, end: null, startedAt: Date.now(),
+  });
+  const store = createTourStore(fakeApi({ optimize }).api);
+  for (const street of ['a', 'b', 'c']) { store.addStop(); store.editStop(store.getState().tour.stops.length - 1, { street }); }
+  await store.plan({ q: 'Depot' }, null);
+  const order = () => store.getState().tour.plan!.clusters.map(c => c.stops[0].key);
+  store.moveCluster(2, 0);
+  assert.deepEqual(order(), ['c', 'a', 'b']);
+  await store.plan({ q: 'Depot' }, null);
+  assert.deepEqual(order(), ['c', 'a', 'b'], 'the re-plan keeps it');
+  store.resetOrder();
+  await store.plan({ q: 'Depot' }, null);
+  assert.deepEqual(order(), ['a', 'b', 'c']);
+});

@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { LocateFixed, PartyPopper, Route as RouteIcon } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import ReorderableList, { useReorderableDrag } from 'react-native-reorderable-list';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader, StatusBanner } from '@/components/Screen';
 import { Button } from '@/components/ui/button';
@@ -10,16 +11,18 @@ import { Text } from '@/components/ui/text';
 import { ReportClosureButton } from '@/features/roads/ReportClosureButton';
 import { ClusterRow } from '@/features/tour/components/ClusterRow';
 import { CompletedSection } from '@/features/tour/components/CompletedSection';
+import { MoveDialog } from '@/features/tour/components/MoveDialog';
 import { NextStopCard } from '@/features/tour/components/NextStopCard';
 import { NotPlannedSection } from '@/features/tour/components/NotPlannedSection';
 import { StopEditDialog } from '@/features/tour/components/StopEditDialog';
 import { RouteMap } from '@/features/tour/components/RouteMap';
 import { RouteStats } from '@/features/tour/components/RouteStats';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
-import type { Plan, Stop } from '@/features/tour/types';
+import type { Cluster, Plan, Stop } from '@/features/tour/types';
 import { useDelivery } from '@/features/tour/useDelivery';
 import { usePlanning } from '@/features/tour/usePlanning';
 import { noPc, useSettings } from '@/features/settings/settings';
+import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
 
 /**
@@ -41,6 +44,12 @@ function LateNote({ plan, stops }: { plan: Plan; stops: Stop[] }) {
   );
 }
 
+/** A later parking stop in the Route list: hold to drag it elsewhere, tap to move it to a position. */
+function UpcomingRow(props: Omit<Parameters<typeof ClusterRow>[0], 'onLongPress'>) {
+  const drag = useReorderableDrag();
+  return <View className="pb-2.5"><ClusterRow {...props} onLongPress={() => { haptic.select(); drag(); }} /></View>;
+}
+
 const Label = ({ children }: { children: string }) => <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">{children}</Text>;
 
 export default function RouteScreen() {
@@ -50,6 +59,8 @@ export default function RouteScreen() {
   const { view, navigate, navigateAddress, deliver, reopen, toggleStop, navLabel } = useDelivery();
   // a stop the plan could not place, opened to fix its address
   const [editing, setEditing] = useState<string | null>(null);
+  // a parking stop being moved to a position (its index in the plan)
+  const [moving, setMoving] = useState<{ cluster: Cluster; index: number } | null>(null);
   const editIndex = editing ? tour.stops.findIndex(s => s.key === editing) : -1;
   const plan = usePlanning();
   const settings = useSettings();
@@ -82,12 +93,15 @@ export default function RouteScreen() {
     <View className="bg-background flex-1">
       <ScreenHeader title={t('tabs.route')} subtitle={view.next ? t('count.parkingStops', { count: view.upcoming.length + 1 }) : t('route.allDone')} right={replan} />
       <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
-      <FlatList
+      <ReorderableList
         data={view.upcoming}
         keyExtractor={u => u.cluster.stops[0].key ?? String(u.index)}
-        contentContainerClassName="gap-2.5 px-5 pb-10"
+        dragEnabled={!busy}
+        onReorder={({ from, to }) => store.moveCluster(view.upcoming[from].index, view.upcoming[to].index)}
+        // spacing on the rows, not as gap: the list measures its cells to drag them
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         ListHeaderComponent={
-          <View className="mb-1 gap-4">
+          <View className="mb-3.5 gap-4">
             <RouteStats plan={p} view={view} />
             {view.next ? (
               <NextStopCard cluster={view.next} index={view.nextIndex} total={p.clusters.length} startedAt={view.etaBase} navLabel={navLabel}
@@ -101,11 +115,22 @@ export default function RouteScreen() {
               onEdit={s => s.key && setEditing(s.key)} onNavigate={navigateAddress} onToggle={toggleStop} />
             <RouteMap start={p.start} stops={tour.stops.filter(s => s.no != null)} nextKeys={nextKeys} onMove={store.pin} />
             {view.upcoming.length > 0 && <Label>{t('route.upNext')}</Label>}
+            {tour.stops.some(s => s.seq != null) ? (
+              <Text className="text-muted-foreground -mt-2 text-xs">
+                {t('route.ownOrder')}{'  '}
+                <Text className="text-primary text-xs font-semibold" onPress={() => { store.resetOrder(); plan(true); }}>{t('route.ownOrderReset')}</Text>
+              </Text>
+            ) : view.upcoming.length > 1 && <Text className="text-muted-foreground -mt-2 text-xs">{t('route.moveHint')}</Text>}
           </View>
         }
-        renderItem={({ item }) => <ClusterRow cluster={item.cluster} index={item.index} startedAt={view.etaBase} onNavigate={navigate} onToggle={deliver} />}
+        renderItem={({ item }) => <UpcomingRow cluster={item.cluster} index={item.index} startedAt={view.etaBase} onNavigate={navigate} onToggle={deliver}
+          onPress={() => setMoving(item)} />}
         ListFooterComponent={<CompletedSection items={view.completed} startedAt={p.startedAt} onReopen={reopen} />}
       />
+      {moving && (
+        <MoveDialog cluster={moving.cluster} at={moving.index + 1} first={view.nextIndex + 1} last={p.clusters.length}
+          onMove={to => store.moveCluster(moving.index, to - 1)} onClose={() => setMoving(null)} />
+      )}
       {editIndex >= 0 && (
         <StopEditDialog key={editing} stop={tour.stops[editIndex]} onClose={() => setEditing(null)}
           onSave={patch => store.editStop(editIndex, patch)} onDelete={() => store.removeStop(editIndex)} />

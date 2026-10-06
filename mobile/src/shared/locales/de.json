@@ -119,6 +119,15 @@
     "progressLabel": "Erfasste Stopps im Vergleich zur Scanner-Anzahl"
   },
   "route": {
+    "moveHint": "Stopp halten zum Ziehen, oder antippen, um ihn an eine Position zu setzen.",
+    "moveTitle": "{{address}} verschieben",
+    "moveEarlier": "Früher",
+    "moveLater": "Später",
+    "moveNext": "Als Nächstes",
+    "moveLast": "Als Letztes",
+    "moveBtn": "Auf {{n}} setzen",
+    "ownOrder": "Deine Reihenfolge: bleibt beim Neuplanen.",
+    "ownOrderReset": "Reihenfolge des Planers nehmen",
     "emptyTitle": "Noch keine Route",
     "emptyBody": "Erfasse deine Stopps und plane dann. Die schnellste Reihenfolge, gruppiert in Park-und-Lauf-Stopps, erscheint hier.",
     "planStopsBtn_one": "{{count}} Stopp planen",

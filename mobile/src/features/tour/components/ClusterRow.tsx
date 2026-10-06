@@ -1,7 +1,7 @@
 import { Check, CircleCheck, Navigation, RotateCcw } from 'lucide-react-native';
 import { memo } from 'react';
 import { useTranslation } from '@/shared/i18n';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { SwipeRow } from '@/components/SwipeRow';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,11 @@ import type { Cluster } from '../types';
 /**
  * A later (or finished) parking stop: order, address, loading numbers, ETA, quick actions.
  * Swipe right: Delivered (a full swipe does it). Swipe left: Navigate, or Undo on a delivered one.
+ * In the Route list, hold to drag it elsewhere (`onLongPress`) or tap to move it to a position (`onPress`).
  */
-export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, done, onNavigate, onToggle }: {
+export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, done, onNavigate, onToggle, onPress, onLongPress }: {
   cluster: Cluster; index: number; startedAt: number; done?: boolean; onNavigate(c: Cluster): void; onToggle(c: Cluster): void;
+  onPress?(c: Cluster): void; onLongPress?(): void;
 }) {
   const { t } = useTranslation();
   const first = cluster.stops[0];
@@ -33,7 +35,9 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
       left={done ? [] : [{ label: t('common.delivered'), icon: CircleCheck, tone: 'success', onPress: () => onToggle(cluster) }]}
       right={done ? [{ label: t('common.undo'), icon: RotateCcw, tone: 'muted', onPress: () => onToggle(cluster) }]
         : [{ label: t('common.navigate'), icon: Navigation, tone: 'primary', onPress: () => onNavigate(cluster) }]}>
-    <View className={cn('bg-card border-border flex-row items-center gap-3 rounded-lg border p-3', done && 'opacity-50')}>
+    <Pressable disabled={!onPress && !onLongPress} onPress={() => onPress?.(cluster)} onLongPress={onLongPress} delayLongPress={350}
+      accessibilityHint={onPress ? t('route.moveHint') : undefined}
+      className={cn('bg-card border-border flex-row items-center gap-3 rounded-lg border p-3', done && 'opacity-50')}>
       <View className={cn('size-9 items-center justify-center rounded-full', done ? 'bg-success/15' : 'bg-muted')}>
         {done ? <Icon as={Check} size={18} className="text-success" />
           : <Text className="text-sm font-bold" style={{ fontVariant: ['tabular-nums'] }}>{index + 1}</Text>}
@@ -56,7 +60,7 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
       <Button variant="ghost" size="icon" onPress={() => onToggle(cluster)} accessibilityLabel={done ? t('route.markNotDelivered') : t('route.markDelivered')}>
         <Icon as={done ? RotateCcw : Check} size={18} className={done ? 'text-muted-foreground' : 'text-success'} />
       </Button>
-    </View>
+    </Pressable>
     </SwipeRow>
     </Animated.View>
   );
