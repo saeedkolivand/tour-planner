@@ -5,7 +5,7 @@ import type { Stop } from '../tour/types.ts';
 import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
 import { parseStops } from './parseText.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
-import { alike, locate, nearbyNumbers, type Hit } from './locate.ts';
+import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
 import { descents, revisits, solveOrder } from './solve.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
@@ -114,6 +114,33 @@ test('a kiosk called "Späti 2" is a name, not a street; a shortened street is c
   assert.equal(p.stops[0].street, 'Gereonsmühlengasse');
 });
 
+test('real Apple Vision text (2026-10-04/06): "00000AA" is no postcode, OCR-mangled area letters still are one, a kiosk before its hours is a name', () => {
+  const s = parseStops(['Kühn', 'Wickrather Str. 7', '00000AA Köln', 'Jonas', 'Balthasarstr. 65', '50670ll Köln, Neustadt-Nord',
+    'Spati 2 Klosk im Agnes', '07:00-22:00', 'Weißenburgstr. 68', '506701J Köln, Neustadt-Nord', '0221 1234567', 'Niehler Str. 3a'].join('\n'));
+  assert.deepEqual(s.map(x => `${x.street} ${x.number} ${x.postcode} ${x.area ?? ''}`.trim()),
+    ['Wickrather Str. 7', 'Balthasarstr. 65 50670 LL', 'Weißenburgstr. 68 50670 IJ', 'Niehler Str. 3a']);
+  assert.equal(s[2].name, 'Spati 2 Klosk im Agnes');
+});
+
+test('a dropped umlaut ("Lubecker") is the same street: merged on scan, accepted from a geocoder', () => {
+  assert.equal(dedupe([s('Lübecker Str.', '14'), s('Lubecker Straße', '14', { postcode: '' })]).length, 1);
+  assert.ok(alike('Lubecker Str.', 'Lübecker Straße'));
+  assert.ok(!alike('Kretelder Wall', 'Krefelder Weg'));
+});
+
+test('a misread street snaps to the one street placed before that is a letter or two off; two candidates or a known name stay', async () => {
+  const known = ['Krefelder Wall', 'Lübecker Str.', 'Blumenstr.', 'Bremer Str.', 'Brener Str.'];
+  assert.equal(snapStreet('Kretelder Wall', known), 'Krefelder Wall');
+  assert.equal(snapStreet('Lubecker Str.', known), 'Lubecker Str.', 'umlaut-only: already the same street');
+  assert.equal(snapStreet('Blumenstr.', known), 'Blumenstr.');
+  assert.equal(snapStreet('Brezer Str.', known), 'Brezer Str.', 'two candidates');
+  assert.equal(snapStreet('Brunnenstr.', known), 'Brunnenstr.', 'too far from Blumenstr.');
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'Krefelder Wall 44, 50670 Köln': { lat: 50.9547, lon: 6.9555 } };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, knownStreets: async () => known };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Kretelder Wall', '44', { postcode: '50670' }), s('Krefelder Wall', '44', { postcode: '50670' })] }, deps);
+  assert.deepEqual(p.stops.map(x => x.key), ['krefelderwall|44|50670']);
+});
+
 test('plan on the phone: grouped, ordered, numbered once, and compared with the scanner order', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
     'Depot, Köln': { lat: 50.94, lon: 6.90 },
@@ -152,6 +179,18 @@ test('plan on the phone: an address found in another town (not near its postcode
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Ring', '1', { postcode: '50670' }), s('Agnesstraße', '69', { postcode: '50670' })] }, deps);
   assert.deepEqual(p.ungeocoded.map(x => x.street), ['Agnesstraße']);
+});
+
+test('plan on the phone: a stop with no postcode is looked up in the tour\'s usual one, never Porz\'s street of that name', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = {
+    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 }, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 },
+    'Neusser Str. 30, Köln': { lat: 50.891, lon: 7.073 }, 'Neusser Str. 30, 50670 Köln': { lat: 50.9526, lon: 6.9574 },
+  };
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Ring', '1', { postcode: '50670' }), s('Neusser Str.', '30', { postcode: '' })] }, deps);
+  assert.equal(p.ungeocoded.length, 0);
+  assert.equal(p.stops[1].lat, 50.9526);
+  assert.equal(p.stops[1].postcode, '', 'the guess is not written onto the stop');
 });
 
 test('plan on the phone: a street-only hit (exact: false) parks alone, even next door to an exact one', async () => {

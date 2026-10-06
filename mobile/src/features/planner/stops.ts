@@ -7,7 +7,11 @@ export const fold = (s: string) => String(s ?? '').normalize('NFC').toLowerCase(
   .replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
   .replace(/strasse\b|str\b\.?/g, 'str').replace(/[^a-z0-9]/g, '');
 
+/** OCR drops umlauts ("Lubecker Str." for Lübecker): for comparing only, "ue" and "u" are one letter. Keys keep `fold`. */
+export const bare = (s: string) => fold(s).replace(/([aou])e/g, '$1');
+
 const address = (s: Stop) => `${fold(s.street)}|${String(s.number).toLowerCase().replace(/\s/g, '')}`;
+const loose = (s: Stop) => `${bare(s.street)}|${String(s.number).toLowerCase().replace(/\s/g, '')}`;
 const plz = (s: Stop) => String(s.postcode ?? '').replace(/\D/g, '');
 export const stopKey = (s: Stop) => address(s) + (plz(s) ? `|${plz(s)}` : '');
 
@@ -25,7 +29,7 @@ export function umlautVariants(street: string): string[] {
 export function dedupe(stops: Stop[]): Stop[] {
   const out: Stop[] = [];
   for (const s of stops) {
-    const had = out.find(o => address(o) === address(s) && (!plz(o) || !plz(s) || plz(o) === plz(s)));
+    const had = out.find(o => loose(o) === loose(s) &&(!plz(o) || !plz(s) || plz(o) === plz(s)));
     if (!had) { out.push({ ...s, key: s.key ?? stopKey(s) }); continue; }
     Object.assign(had, {
       parcels: Math.max(had.parcels || 1, s.parcels || 1), postcode: had.postcode || s.postcode,

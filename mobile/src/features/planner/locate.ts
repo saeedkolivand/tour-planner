@@ -4,7 +4,7 @@
 // that answer and the stop went unplanned. Photon answers with the street's own name and postcode, so each hit is
 // checked to be that street, near that postcode, before it counts.
 import type { LatLon, Stop } from '../tour/types.ts';
-import { fold } from './stops.ts';
+import { bare } from './stops.ts';
 
 /** One geocoder answer: where, and what it says is there. `number`: the house number it found, if any. */
 export interface Hit extends LatLon { street: string; postcode: string; number?: string }
@@ -19,7 +19,7 @@ export const label = (s: Pick<Stop, 'street' | 'number' | 'postcode' | 'city'>) 
  * single character off in a long name. Same as the PC's `alike` (server/route/stops.mjs).
  */
 export function alike(a: string, b: string) {
-  const x = fold(a), y = fold(b);
+  const x = bare(a), y = bare(b);
   if (x === y) return true;
   if (x.length >= 6 && y.length >= 6 && (x.startsWith(y) || y.startsWith(x))) return true;
   return x.length >= 12 && y.length >= 12 && x.slice(0, 3) === y.slice(0, 3) && editDistance(x, y) <= 1;
@@ -32,6 +32,19 @@ function editDistance(a: string, b: string) {
     prev = cur;
   }
   return prev[b.length];
+}
+
+/**
+ * OCR misreads a letter or two ("Kretelder Wall"): a street the phone has never placed takes the one street it has
+ * placed before (`known`) that is that close: one letter in a name under 10 letters, two in a longer one, same first
+ * letter. Two such streets, or none: left as read.
+ */
+export function snapStreet(street: string, known: string[]): string {
+  const x = bare(street);
+  if (x.length < 6 || known.some(k => bare(k) === x)) return street;
+  const near = new Map(known.map(k => [bare(k), k] as const).filter(([y]) =>
+    y[0] === x[0] && Math.abs(y.length - x.length) <= 2 && editDistance(x, y) <= (Math.min(x.length, y.length) < 10 ? 1 : 2)));
+  return near.size === 1 ? [...near.values()][0] : street;
 }
 
 /** House numbers OSM may have instead: "12a" / "3-5" -> 12 / 3, then the same side (±2, ±4), then across (±1, ±3). */
