@@ -119,6 +119,15 @@
     "progressLabel": "Stops captured vs. the scanner count"
   },
   "route": {
+    "moveHint": "Hold a stop to drag it, or tap it to move it to a position.",
+    "moveTitle": "Move {{address}}",
+    "moveEarlier": "Earlier",
+    "moveLater": "Later",
+    "moveNext": "Make it next",
+    "moveLast": "Make it last",
+    "moveBtn": "Move to {{n}}",
+    "ownOrder": "Your order: kept when you plan again.",
+    "ownOrderReset": "Use the planner's order",
     "emptyTitle": "No route yet",
     "emptyBody": "Capture your stops, then plan. The fastest order, grouped into park-and-walk stops, appears here.",
     "planStopsBtn_one": "Plan {{count}} stop",

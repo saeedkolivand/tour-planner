@@ -39,6 +39,8 @@ export interface Stop {
   area?: string;
   /** The scanner row's route code, "G 12 T 387" (meaning unknown). Kept to learn from. */
   code?: string;
+  /** Its place in the order the driver set by hand (manualOrder.ts); a re-plan keeps that order. Absent = the planner's. */
+  seq?: number;
   /** Where the phone was when this stop was marked delivered (one reading at the tap, metres of accuracy). */
   donePos?: LatLon & { acc?: number };
 }
