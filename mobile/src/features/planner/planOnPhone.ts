@@ -1,7 +1,7 @@
 // "Plan my tour" without the PC: the same result shape as POST /optimize, computed on the phone.
 import type { LatLon, Place, Plan, PlanRequest, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
-import { label, type Located } from './locate.ts';
+import { label, snapStreet, type Located } from './locate.ts';
 import { solveOrder } from './solve.ts';
 import { untruncate } from './parseText.ts';
 import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } from './stops.ts';
@@ -46,7 +46,13 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
   if (!start) throw new Error(deps.t('plan.startNotFound'));
   const end = await place(req.end);
 
-  const all = untruncate(dedupe(req.stops), (await deps.knownStreets?.().catch(() => [])) ?? []);
+  const known = (await deps.knownStreets?.().catch(() => [])) ?? [];
+  // snapped before dedupe, so "Kretelder Wall 44" merges with "Krefelder Wall 44" and keys on the real name
+  const all = dedupe(untruncate(req.stops, known).map(s => {
+    const street = s.done || s.pinned ? s.street : snapStreet(s.street, known);
+    if (street !== s.street) note('street snapped to one placed before', { read: s.street, street });
+    return street === s.street ? s : { ...s, street };
+  }));
   const todo = all.filter(s => !s.done && complete(s));
   const ungeocoded: Stop[] = all.filter(s => !s.done && !complete(s));
   const placed: (Stop & LatLon)[] = [];
@@ -61,25 +67,30 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     if (!centres.has(pc)) centres.set(pc, await deps.geocode(`${pc} ${s.city || 'Köln'}`).catch(() => null));
     return centres.get(pc) ?? null;
   };
+  // no postcode ("00000AA", the scanner's unknown area, or cut off the photo): looked up and checked in the tour's usual
+  // one, or "Neusser Str. 30, Köln" lands on Porz's Neusser Straße, 12 km off
+  const pcs = todo.map(s => String(s.postcode ?? '').replace(/\D/g, '')).filter(p => /^\d{5}$/.test(p));
+  const usual = pcs.sort((a, b) => pcs.filter(x => x === b).length - pcs.filter(x => x === a).length)[0] ?? '';
   for (const [i, s] of todo.entries()) {
     progress('places', i, todo.length);
+    const q = { ...s, postcode: s.postcode || usual };
     const inArea = async (g: (LatLon & { exact?: boolean }) | null, by: string) => {
-      const c = g && await centre(s);
+      const c = g && await centre(q);
       const km = g && c ? Math.round(meters(g, c) / 100) / 10 : null;
       if (g && km != null && km > 3) note('placed too far from its postcode, ignored', { stop: label(s), by, km });
       return g && (km == null || km <= 3) ? g : null;
     };
     const kept = s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null;
-    let g = s.pinned ? kept : await inArea(await deps.geocode(label(s)).catch(() => null), 'phone');
+    let g = s.pinned ? kept : await inArea(await deps.geocode(label(q)).catch(() => null), 'phone');
     // a street read with the wrong umlaut is retried with the others; the stop takes the spelling that exists
     if (!g && !s.pinned) for (const street of umlautVariants(s.street)) {
-      g = await inArea(await deps.geocode(label({ ...s, street })).catch(() => null), 'phone, umlaut swapped');
+      g = await inArea(await deps.geocode(label({ ...q, street })).catch(() => null), 'phone, umlaut swapped');
       if (g) { note('placed with an umlaut swapped', { stop: label(s), street }); s.street = street; break; }
     }
     // the phone's geocoder takes a street named after a town ("Neusser Str.") for the town, or lacks the house:
     // OpenStreetMap's, by the PC's rules (locate.ts); the stop takes the spelling it found if that differs
     if (!g && !s.pinned && deps.locate) for (const street of [s.street, ...umlautVariants(s.street)]) {
-      const h = await deps.locate({ ...s, street }, label({ ...s, street })).catch(e => { note('second geocoder failed', { stop: label(s), error: (e as Error).message }); return null; });
+      const h = await deps.locate({ ...q, street }, label({ ...q, street })).catch(e => { note('second geocoder failed', { stop: label(s), error: (e as Error).message }); return null; });
       g = await inArea(h && { lat: h.lat, lon: h.lon, exact: h.exact }, 'openstreetmap');
       if (g) { if (fold(h!.street) !== fold(s.street)) s.street = h!.street; break; }
     }

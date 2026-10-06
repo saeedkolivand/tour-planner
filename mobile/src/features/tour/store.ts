@@ -1,4 +1,5 @@
 import type { ExtractResult, ScanInput, TourApi } from './api.ts';
+import { dedupe } from '../planner/stops.ts';
 import { lateKeys } from './selectors.ts';
 import { silent, type StoreLogger } from './storeLogger.ts';
 import { EMPTY_TOUR, newStop, type LatLon, type Place, type Plan, type PlanOptions, type PlanRequest, type Stop, type Tour } from './types.ts';
@@ -108,9 +109,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     // what the phone's rules made of each photo's text (the text itself is in the 'on-device OCR' entry)
     found.forEach((rows, photo) => L.debug('photo read on the phone', { photo, rows: rows.map(s =>
       `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
-    const known = new Set(state.tour.stops.map(s => `${s.street}|${s.number}|${s.postcode}`.toLowerCase()));
-    const fresh = found.flat().filter(s => !known.has(`${s.street}|${s.number}|${s.postcode}`.toLowerCase()) && known.add(`${s.street}|${s.number}|${s.postcode}`.toLowerCase()));
-    return { stops: [...state.tour.stops, ...fresh], photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
+    // overlapping photos, "Str."/"Straße", a postcode on one row only, a dropped umlaut: one stop, as the planner keys it
+    return { stops: dedupe([...state.tour.stops, ...found.flat()]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
   };
 
   /** Runs a user-started server call with busy/error state and a log line either way. Resolves undefined on failure. */

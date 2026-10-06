@@ -10,11 +10,12 @@ import type { Express, Stop, StopType } from '../tour/types.ts';
 
 // "Hohe Str. 68", "Konrad-Adenauer-Ufer 3-5", "An der Linde 12 a", "Venloer Straße 211, 50823 Köln", "Gereonsm…engasse 26"
 const ADDRESS = /^(\p{Lu}[\p{L}.…'’\- ]*?\p{L}\.?)\s+(\d{1,4}(?:\s?[a-zA-Z](?![\p{L}]))?(?:\s?[-–/]\s?\d{1,4}[a-zA-Z]?)?)(?=$|[\s,])/u;
-const POSTCODE = /\b(\d{5})([A-Z]{1,2})?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
+// OCR reads the two letters as "IH", "ll", "1J" (an I as a 1): at least one letter, so a phone number is no postcode
+const POSTCODE = /\b(\d{5})([A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
 const ROUTE_CODE = /^G\s?(\d+)\s?T\s?(\d+)\b/im;
 const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete)/i;
 // lines that describe the stop above them rather than name the one below
-const TRAILER = /^(?:\d{5}[A-Z]{0,2}\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
+const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
 const COUNT = /^\d{1,2}$/;
 const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
 
@@ -61,15 +62,16 @@ export function parseStops(text: string): Stop[] {
     return e;
   });
   // a name can look like an address ("Späti 2", a kiosk): a street has a postcode after it (or on its line); an
-  // address-like line with neither, followed by another address, is the next stop's name
+  // address-like line with neither, followed by another address (past its opening hours, at most), is the next stop's name
   const cands = lines.map((l, i) => ({ i, m: NOT_A_STREET.test(l) ? null : ADDRESS.exec(l) })).filter(x => x.m);
   const candEnd = trailerOf(cands);
-  const starts = cands.filter((x, k) => !(cands[k + 1] && candEnd[k] === x.i + 1 && !POSTCODE.test(lines[x.i])));
+  const starts = cands.filter((x, k) => !(cands[k + 1] && lines.slice(x.i + 1, candEnd[k]).every(l => TIME.test(l)) && !POSTCODE.test(lines[x.i])));
   const trailerEnd = trailerOf(starts);
   const stops = starts.map(({ i, m }, k) => {
     const head = lines.slice(k ? trailerEnd[k - 1] : 0, i).filter(l => !NOT_A_STREET.test(l));
     const tail = lines.slice(i, trailerEnd[k]).join('\n');
-    const pc = POSTCODE.exec(tail), code = ROUTE_CODE.exec(tail);
+    const read = POSTCODE.exec(tail), code = ROUTE_CODE.exec(tail);
+    const pc = read?.[1] === '00000' ? null : read; // "00000AA": the scanner's "Unknown area", not a postcode 9 km away
     const count = head.find(l => COUNT.test(l));
     const parcelsText = /(\d{1,2})\s*(?:pakete|packst|colli|stk|pcs|x\s*paket)/i.exec(tail);
     const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !/^prio$/i.test(l) && /\p{L}{3}/u.test(l));
@@ -79,7 +81,7 @@ export function parseStops(text: string): Stop[] {
     const type = typeIn(block);
     return {
       street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '') || 'Köln',
-      ...(pc?.[2] && { area: pc[2] }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
+      ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
       ...(name && { name }), ...(express && { express }), ...(hours && type === 'shop' && { opens: `${hours[1]}-${hours[2]}` }),
     } as Stop;
