@@ -25,6 +25,9 @@ export interface DayStop {
   exact?: boolean;
   pinned?: boolean;
   doneAt?: number;
+  /** When the phone came within ~100 m of its parking stop (arrival details on): splits a stop's time into getting
+   *  there and at the door. */
+  arrivedAt?: number;
   /** Where the phone was at the Delivered tap. */
   donePos?: Stop['donePos'];
 }
@@ -69,7 +72,15 @@ const sameOrder = (a: DayPlan, b: DayPlan) => JSON.stringify(a.parks.map(x => x.
  * cleared) is not today's. A plan with a new order is added; the same order (its clock moved by the departure) replaces
  * the last one. null when there is nothing to record yet: no plan, so no keys and no order.
  */
-export function mergeDay(prev: Day | null, tour: Tour, now: number): Day | null {
+/** Arrival times by stop key: the day's first arrival at each stop, earlier days dropped. */
+export type Arrivals = Record<string, number>;
+export function withArrival(prev: Arrivals, keys: string[], at: number): Arrivals {
+  const today = Object.fromEntries(Object.entries(prev).filter(([, t]) => dayOf(t) === dayOf(at)));
+  for (const k of keys) today[k] ??= at;
+  return today;
+}
+
+export function mergeDay(prev: Day | null, tour: Tour, now: number, arrivals: Arrivals = {}): Day | null {
   const date = dayOf(now);
   const base: Day = prev?.date === date ? prev : { date, stops: [], plans: [] };
   if (!tour.plan) return prev?.date === date ? prev : null;
@@ -84,6 +95,7 @@ export function mergeDay(prev: Day | null, tour: Tour, now: number): Day | null 
       type: s.type, parcels: s.parcels, express: s.express || undefined,
       lat: round6(s.lat), lon: round6(s.lon), exact: s.exact, pinned: s.pinned,
       doneAt: s.done ? s.doneAt : undefined, donePos: s.done ? s.donePos : undefined,
+      arrivedAt: arrivals[s.key] != null && dayOf(arrivals[s.key]) === date ? arrivals[s.key] : stops.get(s.key)?.arrivedAt,
     });
   });
 
@@ -94,7 +106,11 @@ export function mergeDay(prev: Day | null, tour: Tour, now: number): Day | null 
 
 /** A delivered stop with its time: minutes since the Delivered tap before it (the drive or walk there included, the
  *  first stop has none), and how much later (+) or earlier (-) than the plan it was delivered. */
-export interface StopTime { stop: DayStop; gapMin?: number; vsPlanMin?: number }
+export interface StopTime {
+  stop: DayStop; gapMin?: number; vsPlanMin?: number;
+  /** With an arrival time: the gap split into getting there (drive, park) and at the stop (walk, door, scanner). */
+  driveMin?: number; atStopMin?: number;
+}
 
 const minutes = (ms: number) => Math.round(ms / 6_000) / 10;
 
@@ -109,6 +125,11 @@ export function stopTimes(day: Day): StopTime[] {
     return {
       stop,
       ...(i > 0 && { gapMin: minutes(stop.doneAt! - done[i - 1].doneAt!) }),
+      ...(i > 0 && stop.arrivedAt != null && stop.arrivedAt <= stop.doneAt! && {
+        // a walk-up shares its parking stop's arrival: all of its time is at the stop
+        driveMin: minutes(Math.max(0, stop.arrivedAt - done[i - 1].doneAt!)),
+        atStopMin: minutes(stop.doneAt! - Math.max(stop.arrivedAt, done[i - 1].doneAt!)),
+      }),
       ...(plan && park && { vsPlanMin: Math.round((stop.doneAt! - (plan.startedAt + park.eta * 60_000)) / 60_000) }),
     };
   });
@@ -141,6 +162,9 @@ export interface DaySummary {
   byType: Partial<Record<DayStop['type'], number>>;
   /** The last delivery against its planned time: + later, - earlier. */
   vsPlanMin?: number;
+  /** Mean minutes getting to a stop and at it, over the stops with an arrival time. */
+  driveMin?: number;
+  atStopMin?: number;
 }
 
 export function summarize(day: Day): DaySummary {
@@ -170,5 +194,7 @@ function timing(day: Day, delivered: number) {
     ...(hours > 0 && { stopsPerHour: Math.round(delivered / hours * 10) / 10, parcelsPerHour: Math.round(times.reduce((n, x) => n + (x.stop.parcels || 1), 0) / hours * 10) / 10 }),
     byType: Object.fromEntries(types.map(type => [type, mean(times.filter(x => x.stop.type === type && x.gapMin != null).map(x => x.gapMin!))]).filter(([, v]) => v != null)),
     vsPlanMin: times[times.length - 1]?.vsPlanMin,
+    driveMin: mean(times.flatMap(x => (x.driveMin != null ? [x.driveMin] : []))),
+    atStopMin: mean(times.flatMap(x => (x.atStopMin != null ? [x.atStopMin] : []))),
   };
 }

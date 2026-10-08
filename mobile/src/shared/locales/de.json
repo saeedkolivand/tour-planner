@@ -367,7 +367,9 @@
     "vsPlanEarlier": "Letzter Stopp {{n}} Min. früher als geplant",
     "vsPlanOn": "Letzter Stopp genau nach Plan",
     "usual": "Dein Durchschnitt über {{n}} Tage",
-    "gapHint": "Die Zeiten laufen von einem „Zugestellt“-Tippen zum nächsten, die Fahrt oder der Weg zum Stopp zählt also mit.",
-    "gap": "+{{n}} Min."
+    "gapHint": "Die Zeiten laufen von einem „Zugestellt“-Tippen zum nächsten, der Weg zum Stopp zählt also mit. Mit Ankunftsdetails zeigt jeder Stopp zusätzlich, wie viel davon Anfahrt und wie viel am Stopp war.",
+    "gap": "+{{n}} Min.",
+    "split": "Anfahrt ⌀ {{drive}} Min. · am Stopp ⌀ {{at}} Min.",
+    "splitShort": "Fahrt {{drive}} · Stopp {{at}}"
   }
 }

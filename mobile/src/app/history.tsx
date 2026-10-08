@@ -22,7 +22,7 @@ import { useTranslation } from '@/shared/i18n';
 const hhmm = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
 const longDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
-function StopLine({ x }: { x: StopTime | { stop: DayStop; gapMin?: undefined; vsPlanMin?: undefined } }) {
+function StopLine({ x }: { x: Pick<StopTime, 'stop'> & Partial<StopTime> }) {
   const { t } = useTranslation();
   const s = x.stop;
   return (
@@ -32,6 +32,7 @@ function StopLine({ x }: { x: StopTime | { stop: DayStop; gapMin?: undefined; vs
         <Text className="text-sm font-medium">{s.street} {s.number}{s.express ? `  ·  Express ${s.express}` : ''}</Text>
         {!!s.name && <Text className="text-muted-foreground text-xs">{s.name}</Text>}
         {!s.doneAt && <Text className="text-destructive text-xs">{t('history.notDelivered')}</Text>}
+        {x.driveMin != null && <Text className="text-muted-foreground text-xs">{t('history.splitShort', { drive: x.driveMin, at: x.atStopMin })}</Text>}
       </View>
       <View className="w-16 items-end">
         {x.gapMin != null && <Text className="text-sm" style={{ fontVariant: ['tabular-nums'] }}>{t('history.gap', { n: x.gapMin })}</Text>}
@@ -71,6 +72,7 @@ function average(xs: DaySummary[]): { days: number; summary: DaySummary } | null
     express: 0, expressMissed: [], avgMin: m(s => s.avgMin), medianMin: m(s => s.medianMin), stopsPerHour: m(s => s.stopsPerHour),
     parcelsPerHour: m(s => s.parcelsPerHour), vsPlanMin: m(s => s.vsPlanMin) != null ? Math.round(m(s => s.vsPlanMin)!) : undefined,
     byType: Object.fromEntries(types.map(type => [type, m(s => s.byType[type])]).filter(([, v]) => v != null)),
+    driveMin: m(s => s.driveMin), atStopMin: m(s => s.atStopMin),
   } };
 }
 

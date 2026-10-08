@@ -367,7 +367,9 @@
     "vsPlanEarlier": "Last stop {{n}} min earlier than planned",
     "vsPlanOn": "Last stop right on plan",
     "usual": "Your average over {{n}} days",
-    "gapHint": "Times run from one Delivered tap to the next, so the drive or walk to a stop counts towards it.",
-    "gap": "+{{n}} min"
+    "gapHint": "Times run from one Delivered tap to the next, so getting to a stop counts towards it. With arrival details on, each stop also shows how much of that was getting there and how much at the stop.",
+    "gap": "+{{n}} min",
+    "split": "Getting there ⌀ {{drive}} min · at the stop ⌀ {{at}} min",
+    "splitShort": "drive {{drive}} · stop {{at}}"
   }
 }

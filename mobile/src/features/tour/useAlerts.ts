@@ -7,6 +7,8 @@ import * as Speech from 'expo-speech';
 import * as TaskManager from 'expo-task-manager';
 import { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
+import { withArrival } from '@/features/history/history';
+import { ARRIVALS, readArrivals } from '@/features/history/historyFile';
 import { useSettings } from '@/features/settings/settings';
 import { log } from '@/shared/log';
 import { storage } from '@/shared/storage';
@@ -35,10 +37,12 @@ const permitted = () => (allowed ??= (async () => {
 // not on the web preview, which has no background tasks
 if (Platform.OS !== 'web') TaskManager.defineTask<{ eventType: Location.GeofencingEventType; region: Location.LocationRegion }>(TASK, async ({ data, error }) => {
   if (error || data.eventType !== Location.GeofencingEventType.Enter) return;
-  const texts = JSON.parse((await storage.getItem(TEXTS)) ?? '{}') as Record<string, { title: string; body: string }>;
-  const text = texts[data.region.identifier ?? ''];
-  if (!text) return;
+  const texts = JSON.parse((await storage.getItem(TEXTS)) ?? '{}') as Record<string, { title: string; body: string; keys?: string[] }>;
+  const { keys = [], ...text } = texts[data.region.identifier ?? ''] ?? {};
+  if (!text.title) return;
   L.info('arrived', { at: text.title });
+  // the arrival time, for Past deliveries: getting to a stop vs time at it
+  await storage.setItem(ARRIVALS, JSON.stringify(withArrival(readArrivals(), keys, Date.now()))).catch(() => {});
   await Notifications.scheduleNotificationAsync({ content: { ...text, sound: true }, trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null });
 });
 
@@ -85,7 +89,7 @@ async function syncFences(clusters: Parameters<typeof arrivalText>[0][]) {
   if (!bg.granted && bg.canAskAgain) bg = await Location.requestBackgroundPermissionsAsync();
   if (!bg.granted) { L.info('arrival alerts need location "Always"'); return; }
   const id = (c: (typeof clusters)[number]) => c.stops[0].key ?? `${c.park.lat},${c.park.lon}`;
-  await storage.setItem(TEXTS, JSON.stringify(Object.fromEntries(clusters.map(c => [id(c), arrivalText(c)]))));
+  await storage.setItem(TEXTS, JSON.stringify(Object.fromEntries(clusters.map(c => [id(c), { ...arrivalText(c), keys: c.stops.flatMap(s => (s.key ? [s.key] : [])) }]))));
   await Location.startGeofencingAsync(TASK, clusters.map(c => ({ identifier: id(c), latitude: c.park.lat, longitude: c.park.lon, radius: RADIUS_M, notifyOnExit: false })));
   L.info('arrival alerts set', { stops: clusters.length });
 }

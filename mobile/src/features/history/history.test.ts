@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Plan, Stop, Tour } from '../tour/types.ts';
-import { dayOf, mergeDay, stopTimes, summarize } from './history.ts';
+import { dayOf, mergeDay, stopTimes, summarize, withArrival } from './history.ts';
 
 const at = (h: number, m = 0, day = 5) => new Date(2026, 9, day, h, m).getTime();
 const stop = (key: string, extra: Partial<Stop> = {}): Stop => ({ key, street: key, number: '1', postcode: '50670', type: 'private', parcels: 1, lat: 50.9, lon: 6.9, ...extra });
@@ -98,4 +98,19 @@ test('time per stop: minutes since the tap before, against the plan; the pace of
   const s = summarize(day);
   assert.deepEqual([s.avgMin, s.medianMin, s.stopsPerHour, s.parcelsPerHour, s.vsPlanMin], [15, 15, 6, 8, 20]);
   assert.deepEqual(s.byType, { private: 26, business: 4 });
+});
+
+test('arrival times split a stop: getting there vs at the stop; the first arrival of the day counts, a walk-up is all at the stop', () => {
+  let arr = withArrival({ old: at(9, 0, 4) }, ['a', 'b'], at(8, 6));
+  arr = withArrival(arr, ['a'], at(8, 9)); // passing by again
+  arr = withArrival(arr, ['c'], at(8, 30));
+  assert.deepEqual(arr, { a: at(8, 6), b: at(8, 6), c: at(8, 30) }, 'yesterday dropped, a kept its first arrival');
+  const tour: Tour = {
+    stops: [stop('a', { done: true, doneAt: at(8, 10) }), stop('b', { done: true, doneAt: at(8, 14) }), stop('c', { done: true, doneAt: at(8, 40) })],
+    plan: plan(['a', 'b'], ['c']), expected: '',
+  };
+  const day = mergeDay(null, tour, at(9), arr)!;
+  assert.deepEqual(stopTimes(day).map(x => [x.stop.key, x.driveMin, x.atStopMin]), [['a', undefined, undefined], ['b', 0, 4], ['c', 16, 10]]);
+  const s = summarize(day);
+  assert.deepEqual([s.driveMin, s.atStopMin], [8, 7]);
 });
