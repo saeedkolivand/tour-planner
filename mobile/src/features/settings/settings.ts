@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { setLanguage, type Lang } from '@/shared/i18n';
 import type { NavApp } from '@/services/navigation';
 import type { StopOrder } from '@/features/tour/types';
+import { fromSystem, toSystem, watchSystem } from './systemSettings';
 
 export type RouteStyle = 'walk' | 'drive';
 /** Metres the driver walks from one parking spot, per route style. */
@@ -105,11 +106,18 @@ export function setSettings(patch: Partial<Settings>) {
   listeners.forEach(l => l());
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => storage.setItem(KEY, JSON.stringify(current)).catch(() => {}), 300);
+  toSystem(patch);
 }
 
 export async function loadSettings() {
   const s = stored(await storage.getItem(KEY).catch(() => null));
-  if (Object.keys(s).length) setSettings(s);
+  // iPhone: what was changed on the app's page in the Settings app wins (the app writes its own changes there at once,
+  // so a difference was made there). Read before anything is written there; then the page shows the app's values,
+  // and later changes there come straight in.
+  const changed = fromSystem({ ...current, ...s });
+  if (Object.keys(s).length || Object.keys(changed).length) setSettings({ ...s, ...changed });
+  toSystem(current);
+  watchSystem(getSettings, setSettings);
 }
 
 export const useSettings = () => useSyncExternalStore(subscribe, getSettings);
