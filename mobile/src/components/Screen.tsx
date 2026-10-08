@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { cantReachPc } from '@/features/tour/store';
 import { useTranslation, type Key } from '@/shared/i18n';
-import { ChevronLeft } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ArrowLeft, ChevronLeft } from 'lucide-react-native';
+import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Progress } from '@/components/ui/progress';
@@ -23,9 +23,10 @@ export function ScreenHeader({ title, subtitle, right, back }: { title: string; 
         <View className="min-h-11 flex-row items-center justify-between">
           {back ? (
             <Pressable onPress={back.onPress} accessibilityRole="button" accessibilityLabel={back.label} hitSlop={8}
-              className="-ml-1.5 min-h-11 flex-row items-center active:opacity-60">
-              <Icon as={ChevronLeft} size={26} className="text-primary" />
-              <Text className="text-primary text-[17px]">{back.label}</Text>
+              className="-ml-1.5 min-h-11 min-w-11 flex-row items-center active:opacity-60">
+              {/* iOS: "‹ Settings"; Android (Material top app bar): the arrow alone */}
+              {Platform.OS === 'android' ? <Icon as={ArrowLeft} size={24} className="text-foreground" />
+                : <><Icon as={ChevronLeft} size={26} className="text-primary" /><Text className="text-primary text-[17px]">{back.label}</Text></>}
             </Pressable>
           ) : <View />}
           {right}
