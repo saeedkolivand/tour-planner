@@ -32,7 +32,7 @@ export function dedupe(stops: Stop[]): Stop[] {
     const had = out.find(o => loose(o) === loose(s) &&(!plz(o) || !plz(s) || plz(o) === plz(s)));
     if (!had) { out.push({ ...s, key: s.key ?? stopKey(s) }); continue; }
     Object.assign(had, {
-      parcels: Math.max(had.parcels || 1, s.parcels || 1), postcode: had.postcode || s.postcode,
+      parcels: Math.max(had.parcels || 1, s.parcels || 1), postcode: had.postcode || s.postcode, area: had.area || s.area,
       express: had.express || s.express, name: had.name || s.name,
       parcelIds: [...new Set([...(had.parcelIds ?? []), ...(s.parcelIds ?? [])])],
     });
