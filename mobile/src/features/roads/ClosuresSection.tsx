@@ -42,7 +42,7 @@ function ClosuresList() {
       {closures.length === 0 && <Text className="text-muted-foreground">{t('settings.noClosures')}</Text>}
       {closures.map(c => (
         <View key={c.id} className="flex-row items-center gap-3">
-          <Icon as={c.heading != null ? Ban : Construction} size={18} className="text-express" />
+          <Icon as={c.heading != null ? Ban : Construction} size={18} className="text-express-ink" />
           <View className="flex-1">
             <Text className="font-medium" numberOfLines={1}>{c.note || `${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}`}</Text>
             <Text className="text-muted-foreground text-xs">{c.heading != null ? t('settings.noEntryHeading', { dir: toward(c.heading) }) : ''}{t('settings.reportedAgo', { time: ago(c.at) })}</Text>

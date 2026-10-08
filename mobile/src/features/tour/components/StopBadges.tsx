@@ -21,8 +21,8 @@ export function StopBadges({ stop }: { stop: Stop }) {
       )}
       {!!stop.opens && (
         <Badge variant="outline">
-          <Icon as={Clock} size={12} className="text-success" />
-          <Text className="text-success">{t('common.openHours', { hours: stop.opens.replace(/:00/g, '').replace('-', '–') })}</Text>
+          <Icon as={Clock} size={12} className="text-success-ink" />
+          <Text className="text-success-ink">{t('common.openHours', { hours: stop.opens.replace(/:00/g, '').replace('-', '–') })}</Text>
         </Badge>
       )}
       {!!stop.slot && (

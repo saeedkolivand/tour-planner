@@ -41,7 +41,7 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
       accessibilityHint={onPress ? t('route.moveHint') : undefined}
       className={cn('bg-card border-border flex-row items-center gap-3 rounded-lg border p-3', done && 'opacity-50')}>
       <View className={cn('size-9 items-center justify-center rounded-full', done ? 'bg-success/15' : 'bg-muted')}>
-        {done ? <Icon as={Check} size={18} className="text-success" />
+        {done ? <Icon as={Check} size={18} className="text-success-ink" />
           : <Text className="text-sm font-bold" style={{ fontVariant: ['tabular-nums'] }}>{index + 1}</Text>}
       </View>
       <View className="flex-1 gap-0.5">
@@ -51,9 +51,9 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
         {!!names && <Text className="text-muted-foreground text-sm" numberOfLines={1}>{names}</Text>}
         <Text className="text-muted-foreground text-xs" style={{ fontVariant: ['tabular-nums'] }} numberOfLines={2}>
           {nos}{done ? '' : <Text className={cn('text-xs', late ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{` · ~${eta}`}</Text>}
-          {!done && !!express && <Text className="text-express text-xs font-semibold">{` · ${prio ? 'PRIO' : t('common.expressValue', { value: express })}`}</Text>}
+          {!done && !!express && <Text className="text-express-ink text-xs font-semibold">{` · ${prio ? 'PRIO' : t('common.expressValue', { value: express })}`}</Text>}
           {!done && !!first.slot && <Text className="text-muted-foreground text-xs">{` · ${first.slot.replace('-', '–')}`}</Text>}
-          {!done && !!shop && <Text className="text-success text-xs">{` · ${t('common.shopHours', { time: shop.replace(/:00/g, '').replace('-', '‑') })}`}</Text>}
+          {!done && !!shop && <Text className="text-success-ink text-xs">{` · ${t('common.shopHours', { time: shop.replace(/:00/g, '').replace('-', '‑') })}`}</Text>}
         </Text>
       </View>
       {!done && (
@@ -62,7 +62,7 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
         </Button>
       )}
       <Button variant="ghost" size="icon" onPress={() => onToggle(cluster)} accessibilityLabel={done ? t('route.markNotDelivered') : t('route.markDelivered')}>
-        <Icon as={done ? RotateCcw : Check} size={18} className={done ? 'text-muted-foreground' : 'text-success'} />
+        <Icon as={done ? RotateCcw : Check} size={18} className={done ? 'text-muted-foreground' : 'text-success-ink'} />
       </Button>
     </Pressable>
     </SwipeRow>

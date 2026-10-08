@@ -43,7 +43,7 @@ export function NotPlannedSection({ stops, onEdit, onNavigate, onToggle }: {
             )}
             {!!s.key && (
               <Button variant="ghost" size="icon" onPress={() => onToggle(s)} accessibilityLabel={s.done ? t('route.markNotDelivered') : t('route.markDelivered')}>
-                <Icon as={s.done ? RotateCcw : Check} size={18} className={s.done ? 'text-muted-foreground' : 'text-success'} />
+                <Icon as={s.done ? RotateCcw : Check} size={18} className={s.done ? 'text-muted-foreground' : 'text-success-ink'} />
               </Button>
             )}
           </Pressable>
