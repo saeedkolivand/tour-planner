@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils';
 export function StatTile({ icon, value, label, tone = 'default' }: { icon: LucideIcon; value: string; label: string; tone?: 'default' | 'success' }) {
   return (
     <View className="bg-card border-border flex-1 gap-1.5 rounded-lg border p-3" accessible accessibilityLabel={`${label}: ${value}`}>
-      <Icon as={icon} size={16} className={tone === 'success' ? 'text-success' : 'text-muted-foreground'} />
-      <Text className={cn('text-xl font-bold tracking-tight', tone === 'success' && 'text-success')} style={{ fontVariant: ['tabular-nums'] }}>
+      <Icon as={icon} size={16} className={tone === 'success' ? 'text-success-ink' : 'text-muted-foreground'} />
+      <Text className={cn('text-xl font-bold tracking-tight', tone === 'success' && 'text-success-ink')} style={{ fontVariant: ['tabular-nums'] }}>
         {value}
       </Text>
       <Text className="text-muted-foreground text-xs font-medium">{label}</Text>

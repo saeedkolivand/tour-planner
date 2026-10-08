@@ -6,7 +6,7 @@ export const THEME = {
   light: {
     background: 'hsl(40 14% 97%)', foreground: 'hsl(240 10% 6%)', card: 'hsl(0 0% 100%)',
     primary: 'hsl(346 100% 43%)', muted: 'hsl(240 5% 94%)', mutedForeground: 'hsl(240 4% 44%)',
-    border: 'hsl(240 6% 90%)', destructive: 'hsl(0 72% 51%)', success: 'hsl(152 62% 36%)', express: 'hsl(38 92% 50%)',
+    border: 'hsl(240 6% 90%)', destructive: 'hsl(0 72% 51%)', success: 'hsl(152 65% 30%)', express: 'hsl(38 92% 50%)',
   },
   dark: {
     background: 'hsl(240 8% 4%)', foreground: 'hsl(0 0% 97%)', card: 'hsl(240 6% 8%)',

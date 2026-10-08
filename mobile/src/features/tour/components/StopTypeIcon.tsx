@@ -10,7 +10,7 @@ export const TYPE_ICON: Record<StopType, LucideIcon> = { private: Home, business
 export function StopTypeIcon({ type, done, className }: { type: StopType; done?: boolean; className?: string }) {
   return (
     <View className={cn('size-11 items-center justify-center rounded-md', done ? 'bg-success/15' : 'bg-muted', className)}>
-      <Icon as={TYPE_ICON[type]} size={20} className={done ? 'text-success' : 'text-foreground'} />
+      <Icon as={TYPE_ICON[type]} size={20} className={done ? 'text-success-ink' : 'text-foreground'} />
     </View>
   );
 }

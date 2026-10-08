@@ -24,9 +24,11 @@
     --border: 240 6% 90%;
     --input: 240 6% 88%;
     --ring: 346 100% 43%;
-    --success: 152 62% 36%;
+    --success: 152 65% 30%;            /* as small text on white 5:1 (was 3.7) */
+    --success-ink: 152 65% 30%;
     --success-foreground: 0 0% 100%;
     --express: 38 92% 50%;             /* amber, Express deadlines only */
+    --express-ink: 30 95% 32%;         /* Express as text: amber on white is 2:1, this 6:1 */
     --express-foreground: 26 83% 14%;
     --radius: 1rem;
   }
@@ -52,8 +54,10 @@
     --input: 240 5% 20%;
     --ring: 348 90% 56%;
     --success: 152 60% 33%;            /* white on it 4.5:1 (was 2.7: "Delivered" was hard to read in sun) */
+    --success-ink: 152 55% 48%;        /* green as text on the dark background: 33% was 3:1, this 7:1 */
     --success-foreground: 0 0% 100%;
     --express: 38 92% 55%;
+    --express-ink: 38 92% 55%;
     --express-foreground: 26 83% 10%;
   }
 }

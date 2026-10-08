@@ -27,7 +27,7 @@ export function CoverageCard({ c, expected, onExpected }: { c: Coverage; expecte
     <Card className="py-4">
       <CardContent className="gap-3 px-4">
         <View className="flex-row items-center gap-3">
-          <Icon as={ok ? CircleCheck : warn ? CircleAlert : ListChecks} size={22} className={ok ? 'text-success' : warn ? 'text-express' : 'text-muted-foreground'} />
+          <Icon as={ok ? CircleCheck : warn ? CircleAlert : ListChecks} size={22} className={ok ? 'text-success-ink' : warn ? 'text-express-ink' : 'text-muted-foreground'} />
           <Text className="flex-1 text-lg font-bold" style={{ fontVariant: ['tabular-nums'] }}>
             {c.have}
             <Text className="text-muted-foreground text-lg font-semibold">{c.want ? ` ${t('coverage.of', { n: c.want })}` : ''} {(c.want || c.have) === 1 ? t('common.stop') : t('common.stops')}</Text>

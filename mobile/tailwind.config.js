@@ -24,7 +24,9 @@ module.exports = {
         popover: pair('popover'),
         card: pair('card'),
         success: pair('success'),
+        'success-ink': token('success-ink'),
         express: pair('express'),
+        'express-ink': token('express-ink'),
       },
       borderRadius: {
         xl: 'calc(var(--radius) + 4px)',

@@ -27,7 +27,7 @@ export function ScanResultCard({ result, onPick, onDelivered, onAdd }: {
   if (result.kind === 'added') {
     return (
       <View className="bg-card flex-row items-center gap-4 rounded-3xl p-5" accessibilityLiveRegion="assertive">
-        <Icon as={PackagePlus} size={40} className="text-success" />
+        <Icon as={PackagePlus} size={40} className="text-success-ink" />
         <View className="flex-1 gap-1">
           <Text className="text-xl font-bold">{t('scan.addedTitle')}</Text>
           <Text className="text-muted-foreground">{address(result.parcel)}{result.planned ? ` · ${t('scan.replanHint')}` : ''}</Text>
