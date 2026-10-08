@@ -52,6 +52,8 @@ export default function RootLayout() {
       <TourProvider>
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <Tabs
+          // Android's back returns to the screen before (Past deliveries back to Settings or Route), not to the first tab
+          backBehavior="history"
           screenListeners={{ tabPress: () => haptic.select() }}
           screenOptions={{
             headerShown: false,
