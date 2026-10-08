@@ -1,6 +1,6 @@
-// A second opinion on the stop order: OpenRouteService's hosted VROOM (the solver the PC runs), with the driver's own
-// free key. Its road network, not ours, so the phone judges its answer with its own matrix and rules (routeCost) and
-// keeps whichever order is cheaper. The hosted endpoint takes at most 50 locations: start, end and 48 parking stops.
+// A head start on the stop order: OpenRouteService's hosted VROOM (the solver the PC runs), with the driver's own
+// free key. Its road network, not ours, so its order only seeds the phone's own search on our matrix (planOnPhone),
+// as the PC polishes VROOM's (server/route/improve.mjs). The hosted endpoint takes at most 50 locations: start, end and 48 parking stops.
 import type { LatLon } from '../tour/types.ts';
 
 export const VROOM_MAX_JOBS = 48;

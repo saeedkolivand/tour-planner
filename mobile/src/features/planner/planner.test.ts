@@ -461,7 +461,7 @@ test('plan on the phone: a stop the phone\'s geocoder misses is placed by the se
   assert.deepEqual(notes.filter(n => n.startsWith('stop')), ['stop placed', 'stop placed', 'stop not placed']);
 });
 
-test('VROOM (ORS): jobs with service and deadline, slowed like our road times; its order wins only when ours costs more', async () => {
+test('VROOM (ORS): jobs with service and deadline, slowed like our road times; its order is where the phone search starts, a bad one is fixed or ignored', async () => {
   let sent: { jobs: { id: number; service: number; time_windows?: number[][] }[]; vehicles: { speed_factor: number }[] } | null = null;
   const fetchFn = (async (_url: string, init: { body: string }) => {
     sent = JSON.parse(init.body);
@@ -477,6 +477,6 @@ test('VROOM (ORS): jobs with service and deadline, slowed like our road times; i
   const plan = (answer: number[]) => planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('B', '1'), s('A', '1')] },
     { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, optimize: async () => answer });
   const streets = async (answer: number[]) => (await plan(answer)).clusters.map(c => c.stops[0].street).join();
-  assert.equal(await streets([1, 2]), 'A,B', 'B first (point 1) is worse: ours stands');
+  assert.equal(await streets([1, 2]), 'A,B', 'B first (point 1) is worse: the search fixes it');
   assert.equal(await streets([2]), 'A,B', 'an answer missing a stop is ignored');
 });
