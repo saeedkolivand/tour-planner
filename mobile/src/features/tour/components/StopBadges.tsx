@@ -6,23 +6,29 @@ import { Text } from '@/components/ui/text';
 import { useTranslation } from '@/shared/i18n';
 import type { Stop } from '../types';
 
-/** Only what deserves attention: Express deadline, several parcels, an unsure map position. */
+/** Only what deserves attention: Express deadline (or the scanner's PRIO), several parcels, an unsure map position; the scanner's slot. */
 export function StopBadges({ stop }: { stop: Stop }) {
   const { t } = useTranslation();
   const many = stop.parcels > 1;
-  if (!stop.express && !many && stop.exact !== false && !stop.opens) return null;
+  if (!stop.express && !many && stop.exact !== false && !stop.opens && !stop.slot) return null;
   return (
     <View className="flex-row flex-wrap gap-1.5">
       {!!stop.express && (
         <Badge className="bg-express border-transparent">
           <Icon as={Zap} size={12} className="text-express-foreground" />
-          <Text className="text-express-foreground">{t('common.expressValue', { value: stop.express })}</Text>
+          <Text className="text-express-foreground">{stop.prio ? 'PRIO' : t('common.expressValue', { value: stop.express })}</Text>
         </Badge>
       )}
       {!!stop.opens && (
         <Badge variant="outline">
           <Icon as={Clock} size={12} className="text-success" />
           <Text className="text-success">{t('common.openHours', { hours: stop.opens.replace(/:00/g, '').replace('-', '–') })}</Text>
+        </Badge>
+      )}
+      {!!stop.slot && (
+        <Badge variant="outline">
+          <Icon as={Clock} size={12} className="text-muted-foreground" />
+          <Text className="text-muted-foreground">{stop.slot.replace('-', '–')}</Text>
         </Badge>
       )}
       {many && (

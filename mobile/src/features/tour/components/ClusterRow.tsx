@@ -27,6 +27,8 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
   // the tightest deadline here: Express, or a Paketshop's closing time; red when the plan arrives after it
   const due = cluster.stops.flatMap(s => [s.express, s.opens?.split('-')[1]]).filter(Boolean).sort()[0];
   const express = cluster.stops.map(s => s.express).filter(Boolean).sort()[0];
+  const prio = cluster.stops.some(s => s.prio && s.express === express);
+  const names = cluster.stops.map(s => s.name).filter(Boolean).join(' · ');
   const shop = cluster.stops.find(s => s.opens)?.opens;
   const late = !done && !!due && eta > due;
   return (
@@ -46,9 +48,11 @@ export const ClusterRow = memo(function ClusterRow({ cluster, index, startedAt, 
         <Text className={cn('font-semibold', done && 'line-through')} numberOfLines={2}>
           {first.street} {first.number}{cluster.stops.length > 1 ? <Text className="text-muted-foreground">{`  +${cluster.stops.length - 1}`}</Text> : null}
         </Text>
+        {!!names && <Text className="text-muted-foreground text-sm" numberOfLines={1}>{names}</Text>}
         <Text className="text-muted-foreground text-xs" style={{ fontVariant: ['tabular-nums'] }} numberOfLines={2}>
           {nos}{done ? '' : <Text className={cn('text-xs', late ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{` · ~${eta}`}</Text>}
-          {!done && !!express && <Text className="text-express text-xs font-semibold">{` · ${t('common.expressValue', { value: express })}`}</Text>}
+          {!done && !!express && <Text className="text-express text-xs font-semibold">{` · ${prio ? 'PRIO' : t('common.expressValue', { value: express })}`}</Text>}
+          {!done && !!first.slot && <Text className="text-muted-foreground text-xs">{` · ${first.slot.replace('-', '–')}`}</Text>}
           {!done && !!shop && <Text className="text-success text-xs">{` · ${t('common.shopHours', { time: shop.replace(/:00/g, '').replace('-', '‑') })}`}</Text>}
         </Text>
       </View>

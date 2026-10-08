@@ -39,6 +39,10 @@ export interface Stop {
   area?: string;
   /** The scanner row's route code, "G 12 T 387" (meaning unknown). Kept to learn from. */
   code?: string;
+  /** The scanner's PRIO tag on this row (read as Express 12:00, unconfirmed). */
+  prio?: boolean;
+  /** The slot the scanner planned for it, "08:19-10:19": shown to the driver, not a deadline. */
+  slot?: string;
   /** Its place in the order the driver set by hand (manualOrder.ts); a re-plan keeps that order. Absent = the planner's. */
   seq?: number;
   /** Where the phone was when this stop was marked delivered (one reading at the tap, metres of accuracy). */

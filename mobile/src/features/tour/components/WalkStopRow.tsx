@@ -16,7 +16,7 @@ export function WalkStopRow({ stop, onToggle }: { stop: Stop; onToggle(s: Stop):
       </View>
       <Text className="text-muted-foreground w-9 font-bold" style={{ fontVariant: ['tabular-nums'] }}>#{stop.no}</Text>
       <Text className={cn('flex-1 font-medium', stop.done && 'text-muted-foreground line-through')} numberOfLines={1}>
-        {stop.street} {stop.number}
+        {stop.street} {stop.number}{!!stop.name && <Text className="text-muted-foreground text-sm font-normal">{`  ${stop.name}`}</Text>}
       </Text>
     </Pressable>
   );
