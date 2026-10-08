@@ -2,11 +2,12 @@
 // newest first, each with its summary; tap one for its stops in delivery order. The search finds a street or a name
 // across all days ("when was I last at Klingelpütz 33?").
 import { router } from 'expo-router';
-import { History } from 'lucide-react-native';
+import { History, Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader } from '@/components/Screen';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { DaySummaryCard } from '@/features/history/DaySummaryCard';
@@ -93,12 +94,17 @@ export default function HistoryScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         ListHeaderComponent={
           <View className="mb-3 gap-2">
-            <Input value={query} onChangeText={setQuery} placeholder={t('history.search')} autoCorrect={false} accessibilityLabel={t('history.search')} />
+            {/* the iOS search field: a magnifier inside, a clear button while there's text */}
+            <View className="justify-center">
+              <Input value={query} onChangeText={setQuery} placeholder={t('history.search')} autoCorrect={false} clearButtonMode="while-editing"
+                returnKeyType="search" className="pl-10" accessibilityLabel={t('history.search')} />
+              <View className="absolute left-3" pointerEvents="none"><Icon as={Search} size={18} className="text-muted-foreground" /></View>
+            </View>
             {usual && !q && <DaySummaryCard s={usual.summary} title={t('history.usual', { n: usual.days })} />}
             <Text className="text-muted-foreground text-xs">{t('history.gapHint')}</Text>
             <Text className="text-muted-foreground text-xs">{keepHistory ? t('history.kept') : t('history.off')}</Text>
           </View>}
-        ListEmptyComponent={<EmptyState icon={History} title={t('history.title')} body={t('history.empty')} />}
+        ListEmptyComponent={<EmptyState icon={History} title={t('history.emptyTitle')} body={t('history.empty')} />}
         // searching opens every day it found something in
         renderItem={({ item }) => <DayRow day={item} open={!!q || open === item.date} match={match} onToggle={() => setOpen(o => (o === item.date ? null : item.date))} />}
       />

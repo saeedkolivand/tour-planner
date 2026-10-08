@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from '@/shared/i18n';
 import { Alert, View } from 'react-native';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet } from '@/components/Sheet';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -43,30 +43,24 @@ export function ReportClosureButton({ onReported, disabled }: { onReported(): vo
         onPress={() => { haptic.tap(); setOpen(true); }}>
         <Icon as={Construction} size={20} />
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[92vw] max-w-md gap-4">
-          <DialogHeader>
-            <DialogTitle>{t('closure.title')}</DialogTitle>
-            <DialogDescription>
-              {t('closure.closedDesc')}{'\n'}
-              {t('closure.onewayDesc')}{'\n'}
-              {t('closure.replanDesc')}
-            </DialogDescription>
-          </DialogHeader>
+      {open && (
+        <Sheet title={t('closure.title')} onDismiss={() => setOpen(false)} cancel={{ label: t('common.cancel'), onPress: () => setOpen(false) }}>
+          <Text className="text-muted-foreground leading-6">
+            {t('closure.closedDesc')}{'\n'}
+            {t('closure.onewayDesc')}{'\n'}
+            {t('closure.replanDesc')}
+          </Text>
           <Input value={note} onChangeText={setNote} placeholder={t('closure.notePlaceholder')} accessibilityLabel={t('common.note')} />
-          <DialogFooter className="gap-2">
-            <View className="flex-row gap-2">
-              <Button variant="destructive" size="lg" className="flex-1" onPress={() => report('closed')} disabled={!!sending}>
-                <Text>{sending === 'closed' ? t('closure.reporting') : t('closure.closed')}</Text>
-              </Button>
-              <Button variant="secondary" size="lg" className="flex-1" onPress={() => report('oneway')} disabled={!!sending}>
-                <Text>{sending === 'oneway' ? t('closure.reporting') : t('closure.onewayBtn')}</Text>
-              </Button>
-            </View>
-            <Button variant="outline" size="lg" onPress={() => setOpen(false)}><Text>{t('common.cancel')}</Text></Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <View className="flex-row gap-2">
+            <Button variant="destructive" size="lg" className="flex-1" onPress={() => report('closed')} disabled={!!sending}>
+              <Text>{sending === 'closed' ? t('closure.reporting') : t('closure.closed')}</Text>
+            </Button>
+            <Button variant="secondary" size="lg" className="flex-1" onPress={() => report('oneway')} disabled={!!sending}>
+              <Text>{sending === 'oneway' ? t('closure.reporting') : t('closure.onewayBtn')}</Text>
+            </Button>
+          </View>
+        </Sheet>
+      )}
     </>
   );
 }
