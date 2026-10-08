@@ -30,15 +30,33 @@ export function descents(route: number[], rank: number[]) {
   return n;
 }
 
+export type OrderOptions = { service?: number[]; due?: (number | null)[]; rank?: number[]; mates?: number[][] };
+
+/** What a route (the points between start and end) costs by the rules above: lower is better. */
+export function routeCost(m: number[][], end: number | undefined, { service = [], due = [], rank = [], mates = [] }: OrderOptions = {}) {
+  const deadlines = due.some(d => d != null);
+  const streets = mates.some(x => x.length), ranked = rank.some(r => r);
+  return (r: number[]) => {
+    const p = [0, ...r, ...(end != null ? [end] : [])];
+    let drive = 0, clock = 0, late = 0;
+    for (let i = 1; i < p.length; i++) {
+      drive += m[p[i - 1]][p[i]];
+      if (!deadlines) continue;
+      clock += (service[p[i - 1]] ?? 0) + m[p[i - 1]][p[i]];
+      const d = due[p[i]];
+      if (d != null && clock > d) late += clock - d;
+    }
+    return drive + 20 * late + (streets ? REVISIT_SEC * revisits(r, mates) : 0) + (ranked ? RANK_PENALTY * descents(r, rank) : 0);
+  };
+}
+
 /**
  * m[i][j] = seconds from point i to j. Point 0 is the start; `end` (if set) is the last point, fixed.
  * `service[i]` = seconds spent at point i, `due[i]` = latest arrival (seconds after start) or null,
  * `rank[i]` = lower ranks are visited first, `mates[i]` = points on the same stretch of street as i.
  */
-export function solveOrder(m: number[][], end?: number, opt: { service?: number[]; due?: (number | null)[]; rank?: number[]; mates?: number[][]; budgetMs?: number } = {}): number[] {
-  const { service = [], due = [], rank = [], mates = [], budgetMs = 1500 } = opt;
-  const deadlines = due.some(d => d != null);
-  const streets = mates.some(x => x.length), ranked = rank.some(r => r);
+export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { budgetMs?: number } = {}): number[] {
+  const { rank = [], budgetMs = 1500 } = opt;
   const n = m.length;
   const jobs = [...Array(n).keys()].filter(i => i !== 0 && i !== end);
   // nearest neighbour, lowest rank first
@@ -51,19 +69,7 @@ export function solveOrder(m: number[][], end?: number, opt: { service?: number[
     for (const j of left) if ((rank[j] ?? 0) === low && (best < 0 || m[at][j] < m[at][best])) best = j;
     route.push(best); left.delete(best); at = best;
   }
-  const full = (r: number[]) => [0, ...r, ...(end != null ? [end] : [])];
-  const cost = (r: number[]) => {
-    const p = full(r);
-    let drive = 0, clock = 0, late = 0;
-    for (let i = 1; i < p.length; i++) {
-      drive += m[p[i - 1]][p[i]];
-      if (!deadlines) continue;
-      clock += (service[p[i - 1]] ?? 0) + m[p[i - 1]][p[i]];
-      const d = due[p[i]];
-      if (d != null && clock > d) late += clock - d;
-    }
-    return drive + 20 * late + (streets ? REVISIT_SEC * revisits(r, mates) : 0) + (ranked ? RANK_PENALTY * descents(r, rank) : 0);
-  };
+  const cost = routeCost(m, end, opt);
 
   const polish = (route: number[]) => {
     let best = cost(route), improved = true;

@@ -1,5 +1,5 @@
 // The phone's own geocoder and travel times, for planning without the PC.
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/shared/storage';
 import * as Location from 'expo-location';
 import { getSettings } from '@/features/settings/settings';
 import type { LatLon } from '@/features/tour/types';
@@ -9,6 +9,7 @@ import { alike, holds, locate as locateBy, type Hit } from './locate';
 import { estimateMatrix, orsMatrix, osrmMatrix, type MatrixOptions } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
 import { meters } from './stops';
+import { VROOM_MAX_JOBS, vroomOrder, type VroomInput } from './vroom';
 
 const L = log('phone-planner');
 // on a corner, Apple/Google may reverse-geocode to the cross street instead of the queried one;
@@ -18,7 +19,7 @@ const onStreet = (p: Location.LocationGeocodedAddress | undefined, street: strin
 const KEY = 'geocache-v2'; // v1 could return the wrong street's hit; force a re-lookup
 const COLOGNE = { lat: 50.94, lon: 6.96 };
 let cache: Record<string, LatLon & { exact?: boolean }> | null = null;
-const load = async () => (cache ??= JSON.parse((await AsyncStorage.getItem(KEY).catch(() => null)) ?? '{}') as Record<string, LatLon & { exact?: boolean }>);
+const load = async () => (cache ??= JSON.parse((await storage.getItem(KEY).catch(() => null)) ?? '{}') as Record<string, LatLon & { exact?: boolean }>);
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 // Apple's CLGeocoder rate-limits bursts per app: after a few dozen back-to-back lookups every further
@@ -77,7 +78,7 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   }
   if (!g) return null;
   c[k] = g;
-  AsyncStorage.setItem(KEY, JSON.stringify(c)).catch(() => {});
+  storage.setItem(KEY, JSON.stringify(c)).catch(() => {});
   return g;
 }
 
@@ -98,14 +99,32 @@ async function photon(q: string): Promise<Hit | null> {
   return hit ?? null;
 }
 
-/** A stop the phone's geocoder could not place, by OpenStreetMap; remembered like the phone's own answers. */
+// Geoapify (the driver's own key; free up to 3,000 lookups a day): the third opinion, by the same rules as Photon.
+type GeoapifyResult = { lat: number; lon: number; street?: string; name?: string; housenumber?: string; postcode?: string };
+
+async function geoapify(q: string): Promise<Hit | null> {
+  const key = getSettings().geoapifyKey.trim();
+  const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(q)}&filter=circle:${COLOGNE.lon},${COLOGNE.lat},60000&bias=proximity:${COLOGNE.lon},${COLOGNE.lat}&lang=de&limit=1&format=json&apiKey=${encodeURIComponent(key)}`;
+  const r = await fetch(url, { signal: AbortSignal.timeout?.(15_000) });
+  if (!r.ok) throw new Error(r.status === 401 ? 'Geoapify rejected the key (401)' : `Geoapify ${r.status}`);
+  const [f] = ((await r.json()) as { results?: GeoapifyResult[] }).results ?? [];
+  L.debug('geoapify answered', { q, hit: f && `${f.street ?? f.name ?? ''} ${f.housenumber ?? ''}, ${f.postcode ?? ''}` });
+  return f ? { lat: f.lat, lon: f.lon, street: f.street ?? f.name ?? '', postcode: f.postcode ?? '', number: f.housenumber } : null;
+}
+
+/** A stop the phone's geocoder could not place, by OpenStreetMap, then Geoapify (with a key); remembered like the phone's own answers. */
 async function locate(s: Parameters<NonNullable<PhoneDeps['locate']>>[0], q: string) {
-  const g = await locateBy(s, photon, (msg, data) => L.debug(msg, { q, ...data }));
+  let g = await locateBy(s, photon, (msg, data) => L.debug(msg, { q, ...data }));
   L.info(g ? 'placed by OpenStreetMap' : 'not found by OpenStreetMap either', { q, ...(g && { exact: g.exact, street: g.street }) });
+  if (!g && getSettings().geoapifyKey.trim()) {
+    g = await locateBy(s, geoapify, (msg, data) => L.debug(msg.replace('photon', 'geoapify'), { q, ...data }))
+      .catch(e => { L.warn('Geoapify unavailable', { q, error: e }); return null; });
+    L.info(g ? 'placed by Geoapify' : 'not found by Geoapify either', { q, ...(g && { exact: g.exact, street: g.street }) });
+  }
   if (g) {
     const c = await load();
     c[q.toLowerCase()] = { lat: g.lat, lon: g.lon, exact: g.exact };
-    AsyncStorage.setItem(KEY, JSON.stringify(c)).catch(() => {});
+    storage.setItem(KEY, JSON.stringify(c)).catch(() => {});
   }
   return g;
 }
@@ -124,6 +143,13 @@ async function matrix(points: LatLon[], opts: MatrixOptions = {}) {
   return { ...estimateMatrix(points), why: why.join('; ') };
 }
 
+/** OpenRouteService's VROOM, with the driver's key and up to its 48 parking stops; otherwise no second opinion. */
+async function optimize(input: VroomInput) {
+  const key = getSettings().orsKey.trim();
+  if (!key || input.stops.length > VROOM_MAX_JOBS) return null;
+  return vroomOrder(input, key);
+}
+
 /** Streets this phone has placed before, from the geocache keys ("gereonsmühlengasse 2, 50670 köln"), title-cased. */
 async function knownStreets(): Promise<string[]> {
   const keys = Object.keys(await load());
@@ -136,8 +162,8 @@ async function knownStreets(): Promise<string[]> {
 export async function clearGeocache() {
   const n = Object.keys(await load()).length;
   cache = {};
-  await AsyncStorage.removeItem(KEY).catch(() => {});
+  await storage.removeItem(KEY).catch(() => {});
   L.info('address cache cleared', { addresses: n });
 }
 
-export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets, locate, log: (msg, data) => L.debug(msg, data) };
+export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets, locate, optimize, log: (msg, data) => L.debug(msg, data) };

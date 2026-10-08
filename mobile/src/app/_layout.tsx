@@ -10,6 +10,7 @@ import { Platform, Text, type ColorValue } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TourProvider } from '@/features/tour/TourProvider';
+import { useAlerts } from '@/features/tour/useAlerts';
 import { useLiveSurfaces } from '@/features/tour/useLiveSurfaces';
 import { NAV_THEME, THEME } from '@/lib/theme';
 import { haptic } from '@/shared/haptics';
@@ -21,6 +22,7 @@ const nav = log('nav');
 /** Mirrors the tour onto the Live Activity (incl. CarPlay Dashboard) and the Next stop widget. */
 function LiveSurfaces() {
   useLiveSurfaces();
+  useAlerts(); // Express reminders, arrival details
   return null;
 }
 

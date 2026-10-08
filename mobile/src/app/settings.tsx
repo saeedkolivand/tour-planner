@@ -99,6 +99,12 @@ export default function SettingsScreen() {
           <SwitchRow label={t('settings.expressFirst')} hint={t('settings.expressFirstHint')} value={s.expressFirst} onChange={expressFirst => setSettings({ expressFirst })} />
         </SettingsSection>
 
+        <SettingsSection title={t('settings.alerts')} footer={t('settings.alertsFooter')}>
+          <SwitchRow label={t('settings.expressAlerts')} hint={t('settings.expressAlertsHint')} value={s.expressAlerts} onChange={expressAlerts => setSettings({ expressAlerts })} />
+          <SettingsDivider />
+          <SwitchRow label={t('settings.arrivalAlerts')} hint={t('settings.arrivalAlertsHint')} value={s.arrivalAlerts} onChange={arrivalAlerts => setSettings({ arrivalAlerts })} />
+        </SettingsSection>
+
         <SettingsSection title={Platform.OS === 'ios' ? t('settings.navCarPlay') : t('settings.navAndroidAuto')}
           footer={t('settings.navFooter', { screen: Platform.OS === 'ios' ? 'CarPlay' : 'Android Auto' })}>
           <NavAppPicker value={s.navApp} onChange={navApp => setSettings({ navApp })} />
@@ -137,6 +143,11 @@ export default function SettingsScreen() {
           : t('settings.orsKeyMissingFooter')}>
           <Input defaultValue={s.orsKey} autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder={t('settings.orsPlaceholder')}
             accessibilityLabel={t('settings.orsPlaceholder')} onChangeText={orsKey => setSettings({ orsKey: orsKey.trim() })} />
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.geoapifyPlaceholder')} footer={t('settings.geoapifyFooter')}>
+          <Input defaultValue={s.geoapifyKey} autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder={t('settings.geoapifyPlaceholder')}
+            accessibilityLabel={t('settings.geoapifyPlaceholder')} onChangeText={geoapifyKey => setSettings({ geoapifyKey: geoapifyKey.trim() })} />
         </SettingsSection>
 
         <SettingsSection title={t('settings.logTitle')} footer={t('settings.logFooter')}>

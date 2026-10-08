@@ -2,7 +2,7 @@
 // server's /log, which writes it into the same daily JSONL file as the server's own logs (src: "ios").
 // Every entry is also kept in a file on the phone (logFile.ts) for Settings > Export log. Debug entries (the
 // "why" of each address and plan) are only recorded while Settings > Detailed log is on.
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/shared/storage';
 import { AppState, Platform } from 'react-native';
 import { getSettings, onSettingsChange } from '@/features/settings/settings';
 import { appendToLogFile, flushLogFile, seedLogFile } from './logFile';
@@ -41,8 +41,8 @@ async function send(entries: Entry[]) {
 /** Call once at app start: restores unsent logs, starts periodic upload, and captures crashes. */
 export async function startLogging() {
   if (queue) return;
-  const saved = await AsyncStorage.getItem(KEY).then(v => (v ? JSON.parse(v) : []) as Entry[]).catch(() => []);
-  queue = createLogQueue({ send, persist: q => AsyncStorage.setItem(KEY, JSON.stringify(q)) }, saved);
+  const saved = await storage.getItem(KEY).then(v => (v ? JSON.parse(v) : []) as Entry[]).catch(() => []);
+  queue = createLogQueue({ send, persist: q => storage.setItem(KEY, JSON.stringify(q)) }, saved);
   seedLogFile(saved);
   early.splice(0).forEach(([level, scope, msg, data]) => appendToLogFile(queue!.add(level, scope, msg, data)));
 
