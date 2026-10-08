@@ -5,16 +5,16 @@ import { getSettings } from '@/features/settings/settings';
 import type { LatLon } from '@/features/tour/types';
 import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
-import { locate as locateBy, type Hit } from './locate';
+import { alike, holds, locate as locateBy, type Hit } from './locate';
 import { estimateMatrix, orsMatrix, osrmMatrix, type MatrixOptions } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
-import { bare, meters } from './stops';
+import { meters } from './stops';
 
 const L = log('phone-planner');
 // on a corner, Apple/Google may reverse-geocode to the cross street instead of the queried one;
 // accept the hit if the queried street shows up in any of the address's name-ish fields
 const onStreet = (p: Location.LocationGeocodedAddress | undefined, street: string) =>
-  !!p && [p.street, p.name, p.formattedAddress].some((x) => x && bare(x).includes(bare(street)));
+  !!p && ([p.street, p.name, p.formattedAddress].some((x) => x && holds(x, street)) || (!!p.street && alike(p.street, street)));
 const KEY = 'geocache-v2'; // v1 could return the wrong street's hit; force a re-lookup
 const COLOGNE = { lat: 50.94, lon: 6.96 };
 let cache: Record<string, LatLon & { exact?: boolean }> | null = null;
@@ -130,6 +130,14 @@ async function knownStreets(): Promise<string[]> {
   const names = keys.map(k => /^([^\d,]+?)\s+\d/.exec(k)?.[1]).filter((s): s is string => !!s);
   const cased = names.map(n => n.replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase()));
   return [...new Set(cased)];
+}
+
+/** Forgets every remembered address (Settings → Clear address cache): a wrong position kept from an older lookup goes with it. */
+export async function clearGeocache() {
+  const n = Object.keys(await load()).length;
+  cache = {};
+  await AsyncStorage.removeItem(KEY).catch(() => {});
+  L.info('address cache cleared', { addresses: n });
 }
 
 export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets, locate, log: (msg, data) => L.debug(msg, data) };

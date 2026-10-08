@@ -16,6 +16,11 @@ const ROUTE_CODE = /^G\s?(\d+)\s?T\s?(\d+)\b/im;
 const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete)/i;
 // lines that describe the stop above them rather than name the one below
 const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
+// "5066BIO Köln", "5066810 Köln", "506681V": OCR swaps 8/B, 0/O, 1/I in the postcode line. Its first five are digits,
+// the (up to) two after them letters; only a line that is that and a town (or nothing), so a phone number stays one.
+const PC_LINE = /^(\d[\dBOIl]{4})([A-Za-z\d]{0,2})(?=\s+\p{L}|$)/u;
+const fixPostcode = (l: string) => l.replace(PC_LINE, (_, d: string, a: string) =>
+  d.replace(/B/g, '8').replace(/O/g, '0').replace(/[Il]/g, '1') + a.toUpperCase().replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B'));
 const COUNT = /^\d{1,2}$/;
 const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
 
@@ -52,7 +57,7 @@ export function untruncate(stops: Stop[], known: string[] = []): Stop[] {
 }
 
 export function parseStops(text: string): Stop[] {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).map(l => fixPostcode(l.trim())).filter(Boolean);
   // the trailer of each stop runs from its street line while the lines look like attributes; the header of the
   // next stop is whatever is left before its street line
   const trailerOf = (list: { i: number }[]) => list.map(({ i }, k) => {
@@ -62,10 +67,13 @@ export function parseStops(text: string): Stop[] {
     return e;
   });
   // a name can look like an address ("Späti 2", a kiosk): a street has a postcode after it (or on its line); an
-  // address-like line with neither, followed by another address (past its opening hours, at most), is the next stop's name
+  // address-like line with neither, followed by another address (past its opening hours, at most), is the next stop's
+  // name; so is one with words after its number ("Späti 2 Kiosk im Agnes"), even as a photo's last row
   const cands = lines.map((l, i) => ({ i, m: NOT_A_STREET.test(l) ? null : ADDRESS.exec(l) })).filter(x => x.m);
   const candEnd = trailerOf(cands);
-  const starts = cands.filter((x, k) => !(cands[k + 1] && lines.slice(x.i + 1, candEnd[k]).every(l => TIME.test(l)) && !POSTCODE.test(lines[x.i])));
+  const named = (x: { i: number; m: RegExpExecArray | null }, k: number) => !POSTCODE.test(lines.slice(x.i, candEnd[k]).join('\n'))
+    && (/^\s+\p{L}{2}/u.test(lines[x.i].slice(x.m![0].length)) || (!!cands[k + 1] && lines.slice(x.i + 1, candEnd[k]).every(l => TIME.test(l))));
+  const starts = cands.filter((x, k) => !named(x, k));
   const trailerEnd = trailerOf(starts);
   const stops = starts.map(({ i, m }, k) => {
     const head = lines.slice(k ? trailerEnd[k - 1] : 0, i).filter(l => !NOT_A_STREET.test(l));
@@ -80,7 +88,7 @@ export function parseStops(text: string): Stop[] {
     const block = `${name ?? ''}\n${tail}`;
     const type = typeIn(block);
     return {
-      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '') || 'Köln',
+      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '').replace(/^K\S{2,3}n$/i, 'Köln') || 'Köln', // "Köin"
       ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
       ...(name && { name }), ...(express && { express }), ...(hours && type === 'shop' && { opens: `${hours[1]}-${hours[2]}` }),
