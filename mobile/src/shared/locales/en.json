@@ -371,5 +371,17 @@
     "gap": "+{{n}} min",
     "split": "Getting there ⌀ {{drive}} min · at the stop ⌀ {{at}} min",
     "splitShort": "drive {{drive}} · stop {{at}}"
+  },
+  "settingsGroups": {
+    "route": "Route & navigation",
+    "express": "Express & alerts",
+    "online": "PC & online services",
+    "data": "Tour, history & log",
+    "app": "Language & updates",
+    "allOff": "All off",
+    "phoneOnly": "Phone only",
+    "withPc": "With the PC",
+    "historyOn": "History kept",
+    "historyOff": "No history"
   }
 }
