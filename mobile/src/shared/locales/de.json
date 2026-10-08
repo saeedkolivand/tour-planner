@@ -371,5 +371,17 @@
     "gap": "+{{n}} Min.",
     "split": "Anfahrt ⌀ {{drive}} Min. · am Stopp ⌀ {{at}} Min.",
     "splitShort": "Fahrt {{drive}} · Stopp {{at}}"
+  },
+  "settingsGroups": {
+    "route": "Route & Navigation",
+    "express": "Express & Hinweise",
+    "online": "PC & Online-Dienste",
+    "data": "Tour, Verlauf & Protokoll",
+    "app": "Sprache & Updates",
+    "allOff": "Alles aus",
+    "phoneOnly": "Nur Handy",
+    "withPc": "Mit dem PC",
+    "historyOn": "Verlauf wird aufbewahrt",
+    "historyOff": "Kein Verlauf"
   }
 }
