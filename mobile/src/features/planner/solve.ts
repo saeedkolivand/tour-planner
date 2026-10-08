@@ -55,7 +55,25 @@ export function routeCost(m: number[][], end: number | undefined, { service = []
  * `service[i]` = seconds spent at point i, `due[i]` = latest arrival (seconds after start) or null,
  * `rank[i]` = lower ranks are visited first, `mates[i]` = points on the same stretch of street as i.
  */
-export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { budgetMs?: number; init?: number[] } = {}): number[] {
+type SolveOptions = OrderOptions & { budgetMs?: number; init?: number[] };
+
+export function solveOrder(m: number[][], end?: number, opt: SolveOptions = {}): number[] {
+  const run = search(m, end, opt);
+  for (;;) { const r = run.next(); if (r.done) return r.value; }
+}
+
+/** As solveOrder, handing the thread back every `sliceMs`: the screen keeps drawing and answering taps during a 10 s search. */
+export async function solveOrderAsync(m: number[][], end?: number, opt: SolveOptions = {}, sliceMs = 30): Promise<number[]> {
+  const run = search(m, end, opt);
+  for (let slice = Date.now(); ;) {
+    const r = run.next();
+    if (r.done) return r.value;
+    if (Date.now() - slice >= sliceMs) { await new Promise(res => setTimeout(res, 0)); slice = Date.now(); }
+  }
+}
+
+// the search itself; it yields between steps (a row of 2-opt or Or-opt moves, a kick) so a caller can pause it
+function* search(m: number[][], end: number | undefined, opt: SolveOptions): Generator<void, number[]> {
   const { rank = [], budgetMs = 1500, init } = opt;
   const n = m.length;
   const jobs = [...Array(n).keys()].filter(i => i !== 0 && i !== end);
@@ -71,7 +89,7 @@ export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { bu
   }
   const cost = routeCost(m, end, opt);
 
-  const polish = (route: number[]) => {
+  function* polish(route: number[]): Generator<void, number> {
     let best = cost(route), improved = true;
     for (let pass = 0; improved && pass < 50; pass++) {
       improved = false;
@@ -82,6 +100,7 @@ export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { bu
           const c = cost(cand);
           if (c < best - 1e-6) { route.splice(0, route.length, ...cand); best = c; improved = true; }
         }
+        yield;
       }
       // Or-opt: move a run of 1-3 stops elsewhere, keeping its direction
       for (let len = 1; len <= 3; len++) {
@@ -93,20 +112,21 @@ export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { bu
             const c = cost(cand);
             if (c < best - 1e-6) { route.splice(0, route.length, ...cand); best = c; improved = true; break; }
           }
+          yield;
         }
       }
     }
     return best;
-  };
+  }
 
-  let bestCost = polish(route), bestRoute = [...route];
+  let bestCost = yield* polish(route), bestRoute = [...route];
   let seed = 1; const rnd = (k: number) => { seed = (seed * 16807) % 2147483647; return seed % k; }; // repeatable
   const stop = Date.now() + budgetMs;
   for (let tries = 0; route.length >= 8 && tries < 5000 && Date.now() < stop; tries++) {
     const [a, b, c] = [rnd(route.length), rnd(route.length), rnd(route.length)].sort((x, y) => x - y);
     if (a === b || b === c) continue;
     const kicked = [...bestRoute.slice(0, a), ...bestRoute.slice(b, c), ...bestRoute.slice(a, b), ...bestRoute.slice(c)];
-    const c2 = polish(kicked);
+    const c2 = yield* polish(kicked);
     if (c2 < bestCost - 1e-6) { bestCost = c2; bestRoute = kicked; }
   }
   return bestRoute;
