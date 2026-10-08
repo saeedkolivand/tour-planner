@@ -1,4 +1,4 @@
-import { RefreshCw, Share, Trash2 } from 'lucide-react-native';
+import { Eraser, RefreshCw, Share, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Platform, ScrollView, View } from 'react-native';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { clearGeocache } from '@/features/planner/phoneDeps';
 import { ClosuresSection } from '@/features/roads/ClosuresSection';
 import { ExpressMarginPicker } from '@/features/settings/components/ExpressMarginPicker';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
@@ -20,6 +21,8 @@ import { UpdateSection } from '@/features/updates/UpdateSection';
 import { onDeviceOcr } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
+import { cacheSize, clearFileCache } from '@/shared/fileCache';
+import { log } from '@/shared/log';
 import { exportLog } from '@/shared/logExport';
 
 export default function SettingsScreen() {
@@ -28,6 +31,14 @@ export default function SettingsScreen() {
   const store = useTourStore();
   const { tour, busy, progress, error, offline } = useTourState();
   const [exporting, setExporting] = useState(false);
+  const [cacheMb, setCacheMb] = useState(() => Math.round(cacheSize() / 1e6));
+  const clearCache = async () => {
+    await clearGeocache();
+    const freed = clearFileCache();
+    log('settings').info('cache cleared', { photosMb: Math.round(freed / 1e6) });
+    setCacheMb(Math.round(cacheSize() / 1e6));
+    haptic.success();
+  };
   const shareLog = async () => {
     haptic.tap();
     setExporting(true);
@@ -145,6 +156,14 @@ export default function SettingsScreen() {
             <Button variant="outline" disabled={!tour.stops.length}>
               <Icon as={Trash2} size={16} className="text-destructive" />
               <Text className="text-destructive">{t('settings.clearTour')}</Text>
+            </Button>
+          </ConfirmDialog>
+          <SettingsDivider />
+          <ConfirmDialog title={t('settings.clearCacheTitle')} body={t('settings.clearCacheBody')}
+            confirm={t('settings.clearCache')} destructive onConfirm={clearCache}>
+            <Button variant="outline">
+              <Icon as={Eraser} size={16} />
+              <Text>{t('settings.clearCacheSize', { mb: cacheMb })}</Text>
             </Button>
           </ConfirmDialog>
         </SettingsSection>

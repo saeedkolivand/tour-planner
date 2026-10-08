@@ -16,13 +16,23 @@ export const label = (s: Pick<Stop, 'street' | 'number' | 'postcode' | 'city'>) 
 
 /**
  * Two spellings of one street: equal once folded, one the start of the other ("Aquinost." for Aquinostraße), or a
- * single character off in a long name. Same as the PC's `alike` (server/route/stops.mjs).
+ * single character off in a name of 9+ letters with the same first letter ("Meissenstr." for Mevissenstraße; not
+ * "Irgendweg" for Nirgendweg), or the scanner's shortened form of it. Like the PC's `alike` (server/route/stops.mjs).
  */
 export function alike(a: string, b: string) {
+  if (/…|\.\.\./.test(a + b)) return holds(a, b) || holds(b, a);
   const x = bare(a), y = bare(b);
   if (x === y) return true;
   if (x.length >= 6 && y.length >= 6 && (x.startsWith(y) || y.startsWith(x))) return true;
-  return x.length >= 12 && y.length >= 12 && x.slice(0, 3) === y.slice(0, 3) && editDistance(x, y) <= 1;
+  return x.length >= 9 && y.length >= 9 && x[0] === y[0] && editDistance(x, y) <= 1;
+}
+
+/** `text` (a street, or a whole address) holds `street`; a shortened "Konrad-Ade...uer-Ufer" by its start and, after it, its end. */
+export function holds(text: string, street: string) {
+  const t = bare(text), m = /^(.*?)\s*(?:…|\.\.\.)\s*(.*)$/.exec(street);
+  if (!m) return t.includes(bare(street));
+  const a = bare(m[1]), b = bare(m[2]), i = t.indexOf(a);
+  return a.length >= 3 && i >= 0 && t.indexOf(b, i + a.length) >= 0;
 }
 function editDistance(a: string, b: string) {
   let prev = [...Array(b.length + 1).keys()];

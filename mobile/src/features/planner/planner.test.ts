@@ -122,6 +122,22 @@ test('real Apple Vision text (2026-10-04/06): "00000AA" is no postcode, OCR-mang
   assert.equal(s[2].name, 'Spati 2 Klosk im Agnes');
 });
 
+test('real Apple Vision text (2026-10-07): 8/B, 0/O, 1/I in postcode lines, "Köin", a kiosk as a photo\'s last row', () => {
+  const s = parseStops(['TRESONO Family Office AG', 'Konrad-Ade...uer-Ufer 21', '5066810 Köln', 'Loschelder', 'Konrad-Ade...uer-Ufer 11',
+    '5066BIP Köln, Altstadt-Nord', 'Leimkuhl', 'Meissenstr. 3', '50668GI Köin', 'Riehler Str. 36', '50668HI Köln', 'Späti 2 Kiosk im Agnes', 'PRIO', '09:51'].join('\n'));
+  assert.deepEqual(s.map(x => `${x.street} ${x.number} ${x.postcode} ${x.area ?? ''} ${x.city}`),
+    ['Konrad-Ade...uer-Ufer 21 50668 IO Köln', 'Konrad-Ade...uer-Ufer 11 50668 IP Köln', 'Meissenstr. 3 50668 GI Köln', 'Riehler Str. 36 50668 HI Köln']);
+  assert.equal(parseStops('0221 1234567\nHohe Str. 1\n50667 Köln')[0].postcode, '50667', 'a phone number is not a postcode line');
+});
+
+test('a geocoder\'s full name matches the scanner\'s shortened one, and a one-letter misread of a long name', () => {
+  assert.ok(alike('Konrad-Adenauer-Ufer', 'Konrad-Ade...uer-Ufer'));
+  assert.ok(alike('Unter Krahnenbäumen', 'Unter Krahn...bäumen'));
+  assert.ok(!alike('Probsteigasse', 'Unter Krahn...bäumen'));
+  assert.ok(alike('Mevissenstraße', 'Meissenstr.'));
+  assert.ok(!alike('Nirgendweg', 'Irgendweg'));
+});
+
 test('a dropped umlaut ("Lubecker") is the same street: merged on scan, accepted from a geocoder', () => {
   assert.equal(dedupe([s('Lübecker Str.', '14'), s('Lubecker Straße', '14', { postcode: '' })]).length, 1);
   assert.ok(alike('Lubecker Str.', 'Lübecker Straße'));
