@@ -345,5 +345,29 @@
     "showMe": "Meinen Standort zeigen",
     "showTour": "Ganze Tour zeigen",
     "webPlaceholder": "Die Karte gibt es in der Handy-App"
+  },
+  "history": {
+    "title": "Frühere Zustellungen",
+    "doneTitle": "Tour fertig",
+    "delivered": "{{done}} von {{total}} Stopps zugestellt",
+    "span": "{{from}} – {{to}} · {{dur}}",
+    "planned": "{{km}} km, {{dur}} geplant",
+    "expressOk": "Express: alle {{n}} pünktlich",
+    "expressMissed": "Express zu spät oder verpasst: {{n}} von {{total}}",
+    "notDelivered": "nicht zugestellt",
+    "search": "Straße oder Name suchen",
+    "empty": "Noch keine Touren. Jede Tour wird hier aufbewahrt, sobald sie geplant ist.",
+    "off": "Der Tourverlauf ist aus (Einstellungen → Protokoll), Neues wird nicht aufbewahrt.",
+    "kept": "Ein Jahr lang auf diesem Handy. „Cache leeren“ lässt ihn in Ruhe; das Löschen der App nicht, darum sichert „Protokoll exportieren“ eine Kopie.",
+    "open": "Frühere Zustellungen",
+    "back": "Zurück",
+    "pace": "⌀ {{avg}} Min. pro Stopp (Median {{median}}) · {{sph}} Stopps/h · {{pph}} Pakete/h",
+    "byType": "Pro Stopp: {{list}}",
+    "vsPlanLater": "Letzter Stopp {{n}} Min. später als geplant",
+    "vsPlanEarlier": "Letzter Stopp {{n}} Min. früher als geplant",
+    "vsPlanOn": "Letzter Stopp genau nach Plan",
+    "usual": "Dein Durchschnitt über {{n}} Tage",
+    "gapHint": "Die Zeiten laufen von einem „Zugestellt“-Tippen zum nächsten, die Fahrt oder der Weg zum Stopp zählt also mit.",
+    "gap": "+{{n}} Min."
   }
 }

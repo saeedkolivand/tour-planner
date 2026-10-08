@@ -91,3 +91,84 @@ export function mergeDay(prev: Day | null, tour: Tour, now: number): Day | null 
   const plans = !last ? [plan] : sameOrder(last, plan) ? [...base.plans.slice(0, -1), { ...plan, at: last.at }] : [...base.plans, plan];
   return { date, stops: [...stops.values()], plans };
 }
+
+/** A delivered stop with its time: minutes since the Delivered tap before it (the drive or walk there included, the
+ *  first stop has none), and how much later (+) or earlier (-) than the plan it was delivered. */
+export interface StopTime { stop: DayStop; gapMin?: number; vsPlanMin?: number }
+
+const minutes = (ms: number) => Math.round(ms / 6_000) / 10;
+
+/** The day's delivered stops in the order they were delivered, each with its time. */
+export function stopTimes(day: Day): StopTime[] {
+  const done = day.stops.filter(s => s.doneAt).sort((a, b) => a.doneAt! - b.doneAt!);
+  return done.map((stop, i) => {
+    // the plan the driver was following then: the last one made before the tap that has this stop
+    const has = (p: DayPlan) => p.parks.some(k => k.keys.includes(stop.key));
+    const plan = day.plans.filter(p => p.at <= stop.doneAt! && has(p)).pop() ?? day.plans.find(has);
+    const park = plan?.parks.find(k => k.keys.includes(stop.key));
+    return {
+      stop,
+      ...(i > 0 && { gapMin: minutes(stop.doneAt! - done[i - 1].doneAt!) }),
+      ...(plan && park && { vsPlanMin: Math.round((stop.doneAt! - (plan.startedAt + park.eta * 60_000)) / 60_000) }),
+    };
+  });
+}
+
+const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : undefined; };
+const mean = (xs: number[]) => (xs.length ? minutes(xs.reduce((a, b) => a + b, 0) * 60_000 / xs.length) : undefined);
+
+/** What a day came to: shown when the tour is done and in Past deliveries. */
+export interface DaySummary {
+  date: string;
+  stops: number;
+  delivered: number;
+  parcels: number;
+  /** First and last Delivered tap. */
+  first?: number;
+  last?: number;
+  express: number;
+  /** Express stops delivered after their deadline, or not at all. */
+  expressMissed: DayStop[];
+  /** The day's last plan. */
+  km?: number;
+  plannedMin?: number;
+  /** Minutes from one Delivered tap to the next: mean and median (a parking stop's walk-ups count as quick ones). */
+  avgMin?: number;
+  medianMin?: number;
+  stopsPerHour?: number;
+  parcelsPerHour?: number;
+  /** Mean minutes per stop by its type (the gap before it). */
+  byType: Partial<Record<DayStop['type'], number>>;
+  /** The last delivery against its planned time: + later, - earlier. */
+  vsPlanMin?: number;
+}
+
+export function summarize(day: Day): DaySummary {
+  const done = day.stops.filter(s => s.doneAt);
+  const times = done.map(s => s.doneAt!);
+  const due = (s: DayStop) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(s.express ?? '');
+    return m && s.doneAt ? new Date(s.doneAt).setHours(Number(m[1]), Number(m[2]), 0, 0) : null;
+  };
+  const express = day.stops.filter(s => s.express);
+  const plan = day.plans[day.plans.length - 1] as DayPlan | undefined;
+  return {
+    date: day.date, stops: day.stops.length, delivered: done.length, parcels: done.reduce((n, s) => n + (s.parcels || 1), 0),
+    ...(times.length && { first: Math.min(...times), last: Math.max(...times) }),
+    express: express.length, expressMissed: express.filter(s => !s.doneAt || s.doneAt > due(s)!),
+    km: plan?.km, plannedMin: plan?.min,
+    ...timing(day, done.length),
+  };
+}
+
+function timing(day: Day, delivered: number) {
+  const times = stopTimes(day), gaps = times.flatMap(x => (x.gapMin != null ? [x.gapMin] : []));
+  const hours = times.length > 1 ? (times[times.length - 1].stop.doneAt! - times[0].stop.doneAt!) / 3_600_000 : 0;
+  const types = [...new Set(times.map(x => x.stop.type))];
+  return {
+    avgMin: mean(gaps), medianMin: median(gaps),
+    ...(hours > 0 && { stopsPerHour: Math.round(delivered / hours * 10) / 10, parcelsPerHour: Math.round(times.reduce((n, x) => n + (x.stop.parcels || 1), 0) / hours * 10) / 10 }),
+    byType: Object.fromEntries(types.map(type => [type, mean(times.filter(x => x.stop.type === type && x.gapMin != null).map(x => x.gapMin!))]).filter(([, v]) => v != null)),
+    vsPlanMin: times[times.length - 1]?.vsPlanMin,
+  };
+}

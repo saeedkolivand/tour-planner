@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Plan, Stop, Tour } from '../tour/types.ts';
-import { dayOf, mergeDay } from './history.ts';
+import { dayOf, mergeDay, stopTimes, summarize } from './history.ts';
 
 const at = (h: number, m = 0, day = 5) => new Date(2026, 9, day, h, m).getTime();
 const stop = (key: string, extra: Partial<Stop> = {}): Stop => ({ key, street: key, number: '1', postcode: '50670', type: 'private', parcels: 1, lat: 50.9, lon: 6.9, ...extra });
@@ -64,4 +64,38 @@ test('a reopened stop loses its delivery time and position', () => {
   const reopened = mergeDay(done, { stops: [stop('a', { done: false, undoneAt: at(9, 1) })], plan: plan(['a']), expected: '' }, at(9, 1))!;
   assert.equal(reopened.stops[0].doneAt, undefined);
   assert.equal(reopened.stops[0].donePos, undefined);
+});
+
+test('a day sums up: delivered of all, parcels, first to last tap, Express late or missed', () => {
+  const tour: Tour = {
+    stops: [
+      stop('a', { done: true, doneAt: at(8, 40), parcels: 3, express: '12:00' }),
+      stop('b', { done: true, doneAt: at(12, 5), express: '12:00' }),
+      stop('c', { done: true, doneAt: at(15, 47) }),
+      stop('d', { express: '18:00' }),
+    ],
+    plan: plan(['a', 'b'], ['c', 'd']), expected: '',
+  };
+  const s = summarize(mergeDay(null, tour, at(16))!);
+  assert.deepEqual([s.stops, s.delivered, s.parcels, s.first, s.last], [4, 3, 5, at(8, 40), at(15, 47)]);
+  assert.equal(s.express, 3);
+  assert.deepEqual(s.expressMissed.map(x => x.key), ['b', 'd'], 'b came 5 min late, d never');
+  assert.deepEqual([s.km, s.plannedMin], [12.3, 95]);
+});
+
+test('time per stop: minutes since the tap before, against the plan; the pace of the day and per-type means', () => {
+  const tour: Tour = {
+    stops: [
+      stop('a', { done: true, doneAt: at(8, 10), parcels: 2 }),
+      stop('b', { done: true, doneAt: at(8, 14), type: 'business' }),
+      stop('c', { done: true, doneAt: at(8, 40) }),
+      stop('d'),
+    ],
+    plan: plan(['a', 'b'], ['c', 'd']), expected: '', // starts 08:00; parks planned at 08:10 and 08:20
+  };
+  const day = mergeDay(null, tour, at(9))!;
+  assert.deepEqual(stopTimes(day).map(x => [x.stop.key, x.gapMin, x.vsPlanMin]), [['a', undefined, 0], ['b', 4, 4], ['c', 26, 20]]);
+  const s = summarize(day);
+  assert.deepEqual([s.avgMin, s.medianMin, s.stopsPerHour, s.parcelsPerHour, s.vsPlanMin], [15, 15, 6, 8, 20]);
+  assert.deepEqual(s.byType, { private: 26, business: 4 });
 });

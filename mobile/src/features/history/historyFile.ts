@@ -7,7 +7,7 @@ import { getSettings } from '@/features/settings/settings';
 import type { Tour } from '@/features/tour/types';
 import { mergeDay, type Day } from './history';
 
-const DAYS_KEPT = 120; // ponytail: about 40 KB a day; four months is plenty to learn an area from
+const DAYS_KEPT = 365; // ponytail: about 40 KB a day (~15 MB a year), all read at once by Past deliveries; page it past a year
 const usable = Platform.OS !== 'web';
 let pending: Tour | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
