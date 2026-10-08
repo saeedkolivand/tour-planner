@@ -106,6 +106,10 @@
     "pickScreenshotsLabel": "Screenshots auswählen",
     "inAppHint": "Fotografiere die Scanner-Liste. Mehrere Seiten sind kein Problem.",
     "takePhoto": "Foto aufnehmen",
+    "auto": "Auto",
+    "autoLabel": "Fotos selbst aufnehmen, während ich scrolle",
+    "liveFound_one": "Scanner-Liste langsam scrollen · {{count}} Stopp gefunden",
+    "liveFound_other": "Scanner-Liste langsam scrollen · {{count}} Stopps gefunden",
     "readingPhotos": "Fotos werden gelesen… App offen lassen"
   },
   "coverage": {

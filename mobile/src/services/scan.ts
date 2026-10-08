@@ -12,6 +12,13 @@ const L = log('scan');
 // web), and there the photo itself goes to the server, which reads it with its vision model.
 const Ocr = requireOptionalNativeModule<{ isSupported: boolean; extractTextFromImage(path: string): Promise<string[]> }>('ExpoTextExtractor');
 export const onDeviceOcr = !!Ocr?.isSupported;
+// one read per photo: the live scan reads each frame as it's taken, and Done reuses that read
+const reads = new Map<string, Promise<string>>();
+export function ocr(uri: string) {
+  let r = reads.get(uri);
+  if (!r) reads.set(uri, r = Ocr!.extractTextFromImage(uri.replace('file://', '')).then(l => l.join('\n')));
+  return r;
+}
 
 async function toDataUrl(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).blob();
@@ -36,7 +43,7 @@ export async function readPhotos(uris: string[], onRead: (done: number) => void 
   const each = <T,>(fn: (uri: string) => Promise<T>) => Promise.all(uris.map(async uri => { const r = await fn(uri); onRead(++done); return r; }));
   if (Ocr && onDeviceOcr && !toPc) {
     const t0 = Date.now();
-    const texts = await each(async uri => (await Ocr.extractTextFromImage(uri.replace('file://', ''))).join('\n'));
+    const texts = await each(ocr);
     L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0, texts });
     return { texts };
   }
