@@ -39,6 +39,7 @@ export function DaySummaryCard({ s, title }: { s: DaySummary; title?: string }) 
       {s.avgMin != null && (
         <Line icon={Gauge}>{t('history.pace', { avg: s.avgMin, median: s.medianMin, sph: s.stopsPerHour ?? '–', pph: s.parcelsPerHour ?? '–' })}</Line>
       )}
+      {s.driveMin != null && s.atStopMin != null && <Line icon={Timer}>{t('history.split', { drive: s.driveMin, at: s.atStopMin })}</Line>}
       {Object.keys(s.byType).length > 1 && (
         <Line icon={Timer}>{t('history.byType', { list: Object.entries(s.byType).map(([type, m]) => `${t(`stopType.${type}` as Key)} ${m} min`).join(' · ') })}</Line>
       )}

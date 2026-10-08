@@ -5,11 +5,16 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { getSettings } from '@/features/settings/settings';
 import type { Tour } from '@/features/tour/types';
-import { mergeDay, type Day } from './history';
+import { storage } from '@/shared/storage';
+import { mergeDay, type Arrivals, type Day } from './history';
 
 const DAYS_KEPT = 365; // ponytail: about 40 KB a day (~15 MB a year), all read at once by Past deliveries; page it past a year
 const usable = Platform.OS !== 'web';
 let pending: Tour | null = null;
+
+/** Where the arrival task (useAlerts.ts) keeps the day's arrival times, by stop key. */
+export const ARRIVALS = 'arrivals-v1';
+export const readArrivals = (): Arrivals => { try { return JSON.parse(storage.getItemSync(ARRIVALS) ?? '{}'); } catch { return {}; } };
 let timer: ReturnType<typeof setTimeout> | undefined;
 
 function folder() {
@@ -32,7 +37,7 @@ export function flushHistory() {
     const files = dayFiles();
     const last = files[files.length - 1];
     const prev = last ? (JSON.parse(last.textSync()) as Day) : null;
-    const day = mergeDay(prev, tour, now);
+    const day = mergeDay(prev, tour, now, readArrivals());
     if (!day || day === prev) return;
     const f = new File(folder(), `${day.date}.json`);
     if (!f.exists) f.create();

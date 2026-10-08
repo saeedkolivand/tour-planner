@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { DaySummaryCard } from '@/features/history/DaySummaryCard';
 import { mergeDay, summarize } from '@/features/history/history';
+import { readArrivals } from '@/features/history/historyFile';
 import { ReportClosureButton } from '@/features/roads/ReportClosureButton';
 import { ClusterRow } from '@/features/tour/components/ClusterRow';
 import { CompletedSection } from '@/features/tour/components/CompletedSection';
@@ -73,7 +74,7 @@ export default function RouteScreen() {
   // dated by the last Delivered tap, so it still reads right after midnight
   const today = useMemo(() => {
     const last = Math.max(0, ...tour.stops.map(s => s.doneAt ?? 0));
-    const d = done && last ? mergeDay(null, tour, last) : null;
+    const d = done && last ? mergeDay(null, tour, last, readArrivals()) : null;
     return d && summarize(d);
   }, [done, tour]);
   const replan = (
