@@ -37,7 +37,9 @@
     "stop": "stop",
     "stops": "stops",
     "offlineBanner": "Offline: your PC is not reachable. Deliveries are kept on the phone and sync when it is back.",
-    "serverError": "Server error {{status}}"
+    "serverError": "Server error {{status}}",
+    "discard": "Discard",
+    "keepEditing": "Keep editing"
   },
   "permission": {
     "allowCamera": "Allow camera",
@@ -65,7 +67,8 @@
     "addParcel": "+1 parcel",
     "openHint": "Opens the stop to edit it",
     "streetOnly": "Street only",
-    "startScanned": "Start as scanned"
+    "startScanned": "Start as scanned",
+    "discardTitle": "Discard your changes?"
   },
   "stopType": {
     "private": "Private",
@@ -356,7 +359,7 @@
     "expressMissed": "Express late or missed: {{n}} of {{total}}",
     "notDelivered": "not delivered",
     "search": "Search street or name",
-    "empty": "No tours yet. Each day's tour is kept here once it is planned.",
+    "empty": "Each day's tour is kept here once it is planned.",
     "off": "Tour history is off (Settings → Log), so nothing new is kept.",
     "kept": "Kept on this phone for a year. Clear cache doesn't touch it; deleting the app does, so Export log keeps a copy.",
     "open": "Past deliveries",
@@ -370,7 +373,8 @@
     "gapHint": "Times run from one Delivered tap to the next, so getting to a stop counts towards it. With arrival details on, each stop also shows how much of that was getting there and how much at the stop.",
     "gap": "+{{n}} min",
     "split": "Getting there ⌀ {{drive}} min · at the stop ⌀ {{at}} min",
-    "splitShort": "drive {{drive}} · stop {{at}}"
+    "splitShort": "drive {{drive}} · stop {{at}}",
+    "emptyTitle": "No tours yet"
   },
   "settingsGroups": {
     "route": "Route & navigation",

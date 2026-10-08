@@ -10,26 +10,30 @@ import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
 /**
- * Large-title screen header (iOS style) with an optional trailing action. `back`: a sub-page's way back, top left above
- * the title with the previous screen's name, where both platforms put it (iOS navigation bar, Android top app bar).
+ * Large-title screen header, laid out as iOS does (Apple HIG: Navigation bars; Android's top app bar the same way): a bar
+ * row with the way back on the left (`back`, the previous screen's name) and the screen's actions on the right
+ * (`right`), the large title under it.
  */
 export function ScreenHeader({ title, subtitle, right, back }: { title: string; subtitle?: string; right?: ReactNode; back?: { label: string; onPress(): void } }) {
   const { top } = useSafeAreaInsets();
+  const bar = !!(back || right);
   return (
-    <View className="px-5 pb-3" style={{ paddingTop: top + (back ? 4 : 12) }}>
-      {back && (
-        <Pressable onPress={back.onPress} accessibilityRole="button" accessibilityLabel={back.label} hitSlop={8}
-          className="-ml-1.5 min-h-11 flex-row items-center self-start active:opacity-60">
-          <Icon as={ChevronLeft} size={26} className="text-primary" />
-          <Text className="text-primary text-[17px]">{back.label}</Text>
-        </Pressable>
-      )}
-      <View className="flex-row items-end justify-between">
-        <View className="flex-1 gap-0.5">
-          {!!subtitle && <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">{subtitle}</Text>}
-          <Text className="text-[34px] font-extrabold leading-[40px] tracking-tight" role="heading">{title}</Text>
+    <View className="px-5 pb-3" style={{ paddingTop: top + (bar ? 4 : 12) }}>
+      {bar && (
+        <View className="min-h-11 flex-row items-center justify-between">
+          {back ? (
+            <Pressable onPress={back.onPress} accessibilityRole="button" accessibilityLabel={back.label} hitSlop={8}
+              className="-ml-1.5 min-h-11 flex-row items-center active:opacity-60">
+              <Icon as={ChevronLeft} size={26} className="text-primary" />
+              <Text className="text-primary text-[17px]">{back.label}</Text>
+            </Pressable>
+          ) : <View />}
+          {right}
         </View>
-        {right}
+      )}
+      <View className="gap-0.5">
+        {!!subtitle && <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">{subtitle}</Text>}
+        <Text className="text-[34px] font-extrabold leading-[40px] tracking-tight" role="heading">{title}</Text>
       </View>
     </View>
   );
