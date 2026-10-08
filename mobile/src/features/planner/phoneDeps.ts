@@ -143,7 +143,7 @@ async function matrix(points: LatLon[], opts: MatrixOptions = {}) {
   return { ...estimateMatrix(points), why: why.join('; ') };
 }
 
-/** OpenRouteService's VROOM, with the driver's key and up to its 48 parking stops; otherwise no second opinion. */
+/** OpenRouteService's VROOM, with the driver's key and up to its 48 parking stops; otherwise the search starts from nearest-neighbour. */
 async function optimize(input: VroomInput) {
   const key = getSettings().orsKey.trim();
   if (!key || input.stops.length > VROOM_MAX_JOBS) return null;

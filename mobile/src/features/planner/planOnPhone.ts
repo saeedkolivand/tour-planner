@@ -17,7 +17,7 @@ export interface PhoneDeps {
   knownStreets?(): Promise<string[]>;
   /** The second geocoder (OpenStreetMap), for a stop the first could not place; `q` is its label (the cache key). */
   locate?(s: Stop, q: string): Promise<Located | null>;
-  /** A second opinion on the order (OpenRouteService's VROOM): parking stop indices from 1, null = none. */
+  /** A starting order (OpenRouteService's VROOM) for the phone's search: parking stop indices from 1, null = none. */
   optimize?(input: VroomInput): Promise<number[] | null>;
   /** The detailed log: why each stop was or wasn't placed, and how the order came about. */
   log?(msg: string, data?: Record<string, unknown>): void;
@@ -25,6 +25,9 @@ export interface PhoneDeps {
 
 /** What a long plan is doing: placing stop `done` of `total`, fetching road times, ordering. */
 export type PlanProgress = (stage: 'places' | 'roadTimes' | 'ordering', done?: number, total?: number) => void;
+
+/** How long the phone searches for a better order (see the bench note at the search). */
+export const SEARCH_MS = 10_000;
 
 const complete = (s: Stop) => !!(s.street?.trim() && String(s.number ?? '').trim());
 
@@ -120,16 +123,21 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
   const rank = req.expressFirst ? [0, ...groups.map(g => (g.stops.some(s => s.express) ? 0 : 1)), 0] : [];
   progress('ordering');
   const rules = { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] };
-  let order = scanned ? groups.map((_, i) => i + 1) : solveOrder(m.seconds, endIdx, rules);
+  // VROOM's order (OpenRouteService, with a key) as the starting point, then the phone's own search on our road times:
+  // what the PC does. Bench on three real 60-stop tours at interpreter speed (2026-10-08): 1.5 s from nearest-neighbour
+  // was 4-7 min a day off the best found, 10 s 1-4 min, 10 s from VROOM's order 0-2 min.
+  let seed: number[] | undefined;
   if (!scanned && deps.optimize) {
-    // VROOM on its own road network, judged on ours: it wins only when it is cheaper by our rules
     const theirs = await deps.optimize({ start, end, stops: groups.map((g, i) => ({ ...g.park, service: g.service, due: due[i + 1] ?? null })) })
       .catch(e => { note('VROOM unavailable', { error: (e as Error).message }); return null; });
-    const cost = routeCost(m.seconds, endIdx, rules);
-    const valid = theirs?.length === order.length && new Set(theirs).size === order.length;
-    if (theirs) note('VROOM compared', { ours: Math.round(cost(order)), theirs: valid ? Math.round(cost(theirs)) : 'invalid' });
-    if (valid && cost(theirs!) < cost(order)) order = theirs!;
+    // "Express first" as the PC does it: VROOM's order with the Express parking stops moved to the front
+    if (theirs?.length === groups.length && new Set(theirs).size === groups.length && theirs.every(i => i >= 1 && i <= groups.length)) seed = [...theirs.filter(i => !rank[i]), ...theirs.filter(i => rank[i])];
+    else if (theirs) note('VROOM answer ignored', { got: theirs.length, want: groups.length });
   }
+  await new Promise(r => setTimeout(r, 0)); // let "Ordering stops" draw: the search below holds the JS thread
+  // ponytail: a 10 s synchronous search freezes taps meanwhile (a native spinner keeps turning); chunk it if that bites
+  const order = scanned ? groups.map((_, i) => i + 1) : solveOrder(m.seconds, endIdx, { ...rules, init: seed, budgetMs: SEARCH_MS });
+  if (seed) { const cost = routeCost(m.seconds, endIdx, rules); note('order from VROOM, polished', { vroomMin: Math.round(cost(seed) / 60), finalMin: Math.round(cost(order) / 60) }); }
 
   let t = 0, km = 0, at = 0, served = 0;
   const clusters = order.map(i => {

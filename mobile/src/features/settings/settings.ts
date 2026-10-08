@@ -29,7 +29,7 @@ export interface Settings {
    * Planning without the PC: 'auto' uses the PC when it answers and the phone otherwise; 'phone' never asks the PC.
    */
   planner: 'auto' | 'phone';
-  /** Free OpenRouteService key: road times when OSRM is down, and its VROOM's order as a second opinion (vroom.ts). */
+  /** Free OpenRouteService key: road times when OSRM is down, and its VROOM's order as the search's start (vroom.ts). */
   orsKey: string;
   /** Geoapify key: the third geocoder, for a stop neither the phone's nor OpenStreetMap's could place. */
   geoapifyKey: string;

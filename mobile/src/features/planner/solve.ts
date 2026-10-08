@@ -4,7 +4,7 @@
 // minimised; Express (ADR 0005): arriving after a deadline costs 20x the lateness. Two driver preferences on top
 // (ADR 0006): coming back to a stretch of street already left costs REVISIT_SEC, and with "Express first" no
 // ordinary stop may come before an Express one.
-// ponytail: fixed time budget, not VROOM's full metaheuristic; raise `budgetMs` if tours still look off.
+// ponytail: fixed time budget (the phone plans with 10 s, planOnPhone SEARCH_MS), not VROOM's full metaheuristic.
 
 /** What driving a stretch of street twice is worth avoiding: a re-visit has to save more than this to be planned. */
 export const REVISIT_SEC = 90;
@@ -55,13 +55,13 @@ export function routeCost(m: number[][], end: number | undefined, { service = []
  * `service[i]` = seconds spent at point i, `due[i]` = latest arrival (seconds after start) or null,
  * `rank[i]` = lower ranks are visited first, `mates[i]` = points on the same stretch of street as i.
  */
-export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { budgetMs?: number } = {}): number[] {
-  const { rank = [], budgetMs = 1500 } = opt;
+export function solveOrder(m: number[][], end?: number, opt: OrderOptions & { budgetMs?: number; init?: number[] } = {}): number[] {
+  const { rank = [], budgetMs = 1500, init } = opt;
   const n = m.length;
   const jobs = [...Array(n).keys()].filter(i => i !== 0 && i !== end);
-  // nearest neighbour, lowest rank first
-  const route: number[] = [];
-  const left = new Set(jobs);
+  // the given route (VROOM's, as on the PC), else nearest neighbour, lowest rank first
+  const route: number[] = init ? [...init] : [];
+  const left = new Set(init ? [] : jobs);
   let at = 0;
   while (left.size) {
     let best = -1;
