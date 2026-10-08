@@ -10,6 +10,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "dev.saeed.tourplanner",
+      "icon": {
+        "light": "./assets/ios-light.png",
+        "dark": "./assets/ios-dark.png",
+        "tinted": "./assets/ios-tinted.png"
+      },
       "infoPlist": {
         "LSApplicationQueriesSchemes": [
           "comgooglemaps",
@@ -23,7 +28,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#DC0032",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
