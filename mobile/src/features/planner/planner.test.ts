@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import type { Stop } from '../tour/types.ts';
 import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
 import { columnTags, parseStops } from './parseText.ts';
+import { rowOrder } from './rowOrder.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
 import { descents, revisits, solveOrder } from './solve.ts';
@@ -153,6 +154,23 @@ test('real Apple Vision text (2026-10-08): the right column\'s "by 18:00" and PR
     '33 Ströppche Concept Store x1 08:50-10:50 12:00 PRIO',
     '18 Artservice + Tube x1 10:00-12:00  10:00-18:30', // and not "50670HL Köln", a row cut off at the top
   ]);
+});
+
+test('our OCR\'s positions: each right-column item joins the row it sits level with; PRIO and "by 18:00" are that row\'s own', () => {
+  const at = (text: string, y: number, x = 0.05) => ({ text, x, y, w: 0.3, h: 0.02 });
+  const lines = [
+    at('550', 0.01), at('10:48', 0.01, 0.85), at('Delivery | T550 | 08. Oct', 0.05),
+    at('Krafthaus', 0.20), at('Von-Werth-Str. 9', 0.23), at('50670IE Köln', 0.26), at('G 18 T 387', 0.29),
+    at('08:22', 0.21, 0.8), at('10:22', 0.24, 0.8), at('by 18:00', 0.27, 0.8),
+    at('Ströppche Concept Store', 0.35), at('Klingelpütz 33', 0.38), at('50670HL Köln', 0.41), at('G 3 T 387', 0.44),
+    at('PRIO', 0.35, 0.7), at('08:50', 0.36, 0.8), at('10:50', 0.39, 0.8),
+    at('Theresa Loschert', 0.50), at('Klingelpütz 33', 0.53), at('50670HL Köln', 0.56), at('08:54', 0.51, 0.8), at('10:54', 0.54, 0.8),
+  ].sort(() => 0.5 - Math.random()); // Vision's order is no help: positions only
+  const text = rowOrder(lines);
+  const s = parseStops(text);
+  assert.deepEqual(s.map(x => `${x.number} ${x.name} ${x.slot} ${x.express ?? ''}${x.prio ? ' PRIO' : ''}`.trim()), [
+    '9 Krafthaus 08:22-10:22 18:00', '33 Ströppche Concept Store 08:50-10:50 12:00 PRIO', '33 Theresa Loschert 08:54-10:54']);
+  assert.deepEqual(columnTags([text], [s]), [s], 'nothing left to guess across photos');
 });
 
 test('a geocoder\'s full name matches the scanner\'s shortened one, and a one-letter misread of a long name', () => {

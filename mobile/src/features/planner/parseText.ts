@@ -7,6 +7,7 @@
 // history; nothing plans by them yet.
 // ponytail: rules, not a model; the PC reads messy photos better. Labels (Scan tab) need neither.
 import type { Express, Stop, StopType } from '../tour/types.ts';
+import { ROWS } from './rowOrder.ts';
 import { bare } from './stops.ts';
 
 // "Hohe Str. 68", "Konrad-Adenauer-Ufer 3-5", "An der Linde 12 a", "Venloer Straße 211, 50823 Köln", "Gereonsm…engasse 26"
@@ -27,9 +28,16 @@ const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
 // the right column's tags: "PRIO", and the Express deadline "by 18:00"
 const TAG = /^(prio|by\s*\d{1,2}[:.]\d{2})$/i;
 
-function expressIn(head: string, tail: string): Express | '' {
-  if (/\bprio\b/i.test(head)) return '12:00';
-  const m = /(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\bexpress\b/i.exec(tail);
+const EXPRESS: Express[] = ['08:30', '10:00', '12:00', '18:00'];
+/** "by 11:00" -> the Express time at or before it (10:00): early is safe, late costs money. */
+const expressBy = (hhmm: string) => [...EXPRESS].reverse().find(e => e <= hhmm.padStart(5, '0')) ?? '08:30';
+
+/** `rows`: the text was put in row order (rowOrder.ts), so a row's own lines hold its PRIO and "by 18:00". */
+function expressIn(head: string, tail: string, rows = false): Express | '' {
+  if (/\bprio\b/i.test(rows ? `${head}\n${tail}` : head)) return '12:00';
+  const by = rows ? /^by\s*(\d{1,2})[:.](\d{2})$/im.exec(`${head}\n${tail}`) : null;
+  if (by) return expressBy(`${by[1]}:${by[2]}`);
+  const m =/(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\bexpress\b/i.exec(tail);
   if (!m) return '';
   const t = m[1] ? `${m[1].padStart(2, '0')}:${m[2]}` : '18:00';
   return (['08:30', '10:00', '12:00', '18:00'].includes(t) ? t : '18:00') as Express;
@@ -60,13 +68,15 @@ export function untruncate(stops: Stop[], known: string[] = []): Stop[] {
 }
 
 export function parseStops(text: string): Stop[] {
-  const lines = text.split(/\r?\n/).map(l => fixPostcode(l.trim())).filter(Boolean);
+  const rows = text.startsWith(ROWS);
+  const lines = text.split(/\r?\n/).slice(rows ? 1 : 0).map(l => fixPostcode(l.trim())).filter(Boolean);
+  const trailing = (l: string) => TRAILER.test(l) || (rows && TAG.test(l));
   // the trailer of each stop runs from its street line while the lines look like attributes; the header of the
   // next stop is whatever is left before its street line
   const trailerOf = (list: { i: number }[]) => list.map(({ i }, k) => {
     const limit = list[k + 1]?.i ?? lines.length;
     let e = i + 1;
-    while (e < limit && TRAILER.test(lines[e])) e++;
+    while (e < limit && trailing(lines[e])) e++;
     return e;
   });
   // a name can look like an address ("Späti 2", a kiosk): a street has a postcode after it (or on its line); an
@@ -89,14 +99,14 @@ export function parseStops(text: string): Stop[] {
     const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !TAG.test(l) && !TRAILER.test(l) && !/^\d{3}/.test(l) && /\p{L}{3}/u.test(l))
       ?.replace(/^[^\p{L}\d]+/u, ''); // "• Lukas Kreuser": the scanner marks the current row
     const hours = head.map(l => /^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/.exec(l)).find(Boolean);
-    const express = expressIn(head.join('\n'), tail);
+    const express = expressIn(head.join('\n'), tail, rows);
     const block = `${name ?? ''}\n${tail}`;
     const type = typeIn(block);
     return {
       street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '').replace(/^K\S{2,3}n$/i, 'Köln') || 'Köln', // "Köin"
       ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
-      ...(name && { name }), ...(express && { express }), ...(/\bprio\b/i.test(head.join('\n')) && { prio: true }),
+      ...(name && { name }), ...(express && { express }), ...(/\bprio\b/i.test(rows ? `${head.join('\n')}\n${tail}` : head.join('\n')) && { prio: true }),
       ...(hours && type === 'shop' && { opens: `${hours[1]}-${hours[2]}` }),
     } as Stop;
   });
@@ -121,8 +131,6 @@ export function parseStops(text: string): Stop[] {
   return untruncate(stops);
 }
 
-const EXPRESS: Express[] = ['08:30', '10:00', '12:00', '18:00'];
-
 /**
  * "PRIO" and "by 18:00" (Express) sit in the scanner's right column, and Vision prints that column apart from its rows:
  * a photo says only that one of its rows has the tag. Across the run of photos showing it, the row is the one on every
@@ -130,6 +138,7 @@ const EXPRESS: Express[] = ['08:30', '10:00', '12:00', '18:00'];
  * costs money, an early stop doesn't. `found`: each photo's parseStops.
  */
 export function columnTags(texts: string[], found: Stop[][]): Stop[][] {
+  if (texts.some(t => t.startsWith(ROWS))) return found; // our OCR put each tag on its row already
   const id = (s: Stop) => `${bare(s.street)}|${s.number}`;
   const lineSets = texts.map(t => t.split(/\r?\n/).map(l => l.trim()));
   const tags = [...new Set(lineSets.flat().filter(l => TAG.test(l)).map(l => l.toLowerCase().replace(/\s+/g, '').replace('.', ':')))];
@@ -145,8 +154,7 @@ export function columnTags(texts: string[], found: Stop[][]): Stop[][] {
       const rows = run.flatMap(p => found[p]).filter(s => !has.some((h, p) => !h && whole[p] && found[p].some(x => id(x) === id(s))));
       const every = rows.filter(s => run.every(p => seen(s, p)));
       const ids = new Set((every.length ? every : rows).map(id));
-      const by = /\d/.test(tag) ? tag.slice(2).padStart(5, '0') : '12:00'; // ponytail: PRIO read as Express 12:00, unconfirmed
-      const express = [...EXPRESS].reverse().find(e => e <= by) ?? '08:30';
+      const express = /\d/.test(tag) ? expressBy(tag.slice(2)) : '12:00'; // ponytail: PRIO read as Express 12:00, unconfirmed
       out.forEach(f => f.forEach(s => {
         if (!ids.has(id(s))) return;
         if (tag === 'prio') s.prio = true;
