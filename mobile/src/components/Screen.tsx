@@ -1,22 +1,36 @@
 import type { ReactNode } from 'react';
 import { cantReachPc } from '@/features/tour/store';
 import { useTranslation, type Key } from '@/shared/i18n';
-import { ActivityIndicator, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Icon } from '@/components/ui/icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Progress } from '@/components/ui/progress';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
-/** Large-title screen header (iOS style) with an optional trailing action. */
-export function ScreenHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+/**
+ * Large-title screen header (iOS style) with an optional trailing action. `back`: a sub-page's way back, top left above
+ * the title with the previous screen's name, where both platforms put it (iOS navigation bar, Android top app bar).
+ */
+export function ScreenHeader({ title, subtitle, right, back }: { title: string; subtitle?: string; right?: ReactNode; back?: { label: string; onPress(): void } }) {
   const { top } = useSafeAreaInsets();
   return (
-    <View className="flex-row items-end justify-between px-5 pb-3" style={{ paddingTop: top + 12 }}>
-      <View className="flex-1 gap-0.5">
-        {!!subtitle && <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">{subtitle}</Text>}
-        <Text className="text-[34px] font-extrabold leading-[40px] tracking-tight" role="heading">{title}</Text>
+    <View className="px-5 pb-3" style={{ paddingTop: top + (back ? 4 : 12) }}>
+      {back && (
+        <Pressable onPress={back.onPress} accessibilityRole="button" accessibilityLabel={back.label} hitSlop={8}
+          className="-ml-1.5 min-h-11 flex-row items-center self-start active:opacity-60">
+          <Icon as={ChevronLeft} size={26} className="text-primary" />
+          <Text className="text-primary text-[17px]">{back.label}</Text>
+        </Pressable>
+      )}
+      <View className="flex-row items-end justify-between">
+        <View className="flex-1 gap-0.5">
+          {!!subtitle && <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">{subtitle}</Text>}
+          <Text className="text-[34px] font-extrabold leading-[40px] tracking-tight" role="heading">{title}</Text>
+        </View>
+        {right}
       </View>
-      {right}
     </View>
   );
 }

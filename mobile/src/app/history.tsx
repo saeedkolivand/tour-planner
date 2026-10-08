@@ -2,13 +2,11 @@
 // newest first, each with its summary; tap one for its stops in delivery order. The search finds a street or a name
 // across all days ("when was I last at Klingelpütz 33?").
 import { router } from 'expo-router';
-import { ChevronLeft, History } from 'lucide-react-native';
+import { History } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader } from '@/components/Screen';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { DaySummaryCard } from '@/features/history/DaySummaryCard';
@@ -88,10 +86,7 @@ export default function HistoryScreen() {
   const usual = useMemo(() => average(days.map(summarize).filter(s => s.delivered >= 10)), [days]);
   return (
     <View className="bg-background flex-1">
-      <ScreenHeader title={t('history.title')} right={
-        <Button variant="secondary" size="icon" className="rounded-full" onPress={() => router.back()} accessibilityLabel={t('history.back')}>
-          <Icon as={ChevronLeft} size={20} />
-        </Button>} />
+      <ScreenHeader title={t('history.title')} back={{ label: t('history.back'), onPress: () => router.back() }} />
       <FlatList
         data={shown}
         keyExtractor={d => d.date}
