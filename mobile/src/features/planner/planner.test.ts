@@ -8,6 +8,7 @@ import { rowOrder } from './rowOrder.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
 import { descents, revisits, solveOrder } from './solve.ts';
+import { vroomOrder } from './vroom.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
 const s = (street: string, number: string, extra: Partial<Stop> = {}): Stop => ({ street, number, postcode: '50667', type: 'private', parcels: 1, ...extra });
@@ -458,4 +459,24 @@ test('plan on the phone: a stop the phone\'s geocoder misses is placed by the se
   assert.deepEqual(asked, ['Wickrather Str. 7, 50670 Köln', 'Nirgendwo 9, 50670 Köln'], 'only for what the phone could not place');
   assert.deepEqual(stages, ['places 0/3', 'places 1/3', 'places 2/3', 'roadTimes', 'ordering']);
   assert.deepEqual(notes.filter(n => n.startsWith('stop')), ['stop placed', 'stop placed', 'stop not placed']);
+});
+
+test('VROOM (ORS): jobs with service and deadline, slowed like our road times; its order wins only when ours costs more', async () => {
+  let sent: { jobs: { id: number; service: number; time_windows?: number[][] }[]; vehicles: { speed_factor: number }[] } | null = null;
+  const fetchFn = (async (_url: string, init: { body: string }) => {
+    sent = JSON.parse(init.body);
+    return new Response(JSON.stringify({ unassigned: [], routes: [{ steps: [{ type: 'start' }, { type: 'job', job: 2 }, { type: 'job', job: 1 }, { type: 'end' }] }] }));
+  }) as unknown as typeof fetch;
+  const order = await vroomOrder({ start: { lat: 0, lon: 0 }, end: null, stops: [{ lat: 1, lon: 1, service: 60, due: 3600 }, { lat: 2, lon: 2, service: 90, due: null }] }, 'k', fetchFn);
+  assert.deepEqual(order, [2, 1]);
+  assert.deepEqual(sent!.jobs.map(j => [j.id, j.service, j.time_windows]), [[1, 60, [[0, 3600]]], [2, 90, undefined]]);
+  assert.ok(Math.abs(sent!.vehicles[0].speed_factor - 1 / 1.3) < 1e-9);
+
+  // depot, then A (near) and B (far) on one line: ours goes A, B; a VROOM answer B, A loses, one that matches stays
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.90, lon: 6.95 }, 'A 1, 50667 Köln': { lat: 50.92, lon: 6.95 }, 'B 1, 50667 Köln': { lat: 50.96, lon: 6.95 } };
+  const plan = (answer: number[]) => planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('B', '1'), s('A', '1')] },
+    { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, optimize: async () => answer });
+  const streets = async (answer: number[]) => (await plan(answer)).clusters.map(c => c.stops[0].street).join();
+  assert.equal(await streets([1, 2]), 'A,B', 'B first (point 1) is worse: ours stands');
+  assert.equal(await streets([2]), 'A,B', 'an answer missing a stop is ignored');
 });

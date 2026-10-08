@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/shared/storage';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
@@ -23,8 +23,8 @@ const phone: PhoneFallback = {
 // change also goes to the day's tour history.
 const KEY = 'tour-v1';
 const local: LocalStore = {
-  read: async () => { const v = await AsyncStorage.getItem(KEY); return v ? (JSON.parse(v) as Saved) : null; },
-  write: s => { AsyncStorage.setItem(KEY, JSON.stringify(s)).catch(() => {}); recordTour(s.tour); },
+  read: async () => { const v = await storage.getItem(KEY); return v ? (JSON.parse(v) as Saved) : null; },
+  write: s => { storage.setItem(KEY, JSON.stringify(s)).catch(() => {}); recordTour(s.tour); },
 };
 
 // where each Delivered was tapped, for the tour history (Settings > Tour history)

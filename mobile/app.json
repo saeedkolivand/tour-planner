@@ -27,6 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
       "allowBackup": false
     },
     "web": {
@@ -51,7 +52,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Start or re-plan the route from where you are."
+          "locationWhenInUsePermission": "Start or re-plan the route from where you are.",
+          "locationAlwaysAndWhenInUsePermission": "Show the names, PRIO and time slot of a stop as you arrive there, even with the app in the background.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
       "./plugins/withWidgetReleaseSettings",
@@ -94,7 +98,8 @@
           ]
         }
       ],
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "expo-sqlite"
     ],
     "locales": {
       "en": "./locales/en.json",

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/shared/storage';
 import { getLocales } from 'expo-localization';
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
@@ -29,8 +29,14 @@ export interface Settings {
    * Planning without the PC: 'auto' uses the PC when it answers and the phone otherwise; 'phone' never asks the PC.
    */
   planner: 'auto' | 'phone';
-  /** Free OpenRouteService key: real road times for plans made on the phone (else distances are estimated). */
+  /** Free OpenRouteService key: road times when OSRM is down, and its VROOM's order as a second opinion (vroom.ts). */
   orsKey: string;
+  /** Geoapify key: the third geocoder, for a stop neither the phone's nor OpenStreetMap's could place. */
+  geoapifyKey: string;
+  /** A notification (and spoken warning while the app is open) 30 and 10 min before each open Express deadline. */
+  expressAlerts: boolean;
+  /** Arriving at a parking stop shows its names, PRIO and slot (needs location "Always"). */
+  arrivalAlerts: boolean;
   /** Express stops reached by their deadline (the rest stays fastest). Off = fastest tour, Express shown only. */
   expressOnTime: boolean;
   /** Minutes before an Express deadline the plan aims to arrive (traffic, parking, finding the door). */
@@ -60,12 +66,23 @@ export interface Settings {
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false, keepHistory: true };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', geoapifyKey: '', expressAlerts: true, arrivalAlerts: true, expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false, keepHistory: true };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);
 
-let current = DEFAULTS;
+/** What was saved, made fit for this phone; {} when nothing (or nothing readable) was. */
+function stored(raw: string | null): Partial<Settings> {
+  try {
+    const s = raw ? JSON.parse(raw) : {};
+    if (s.navApp === 'apple' && Platform.OS === 'android') s.navApp = 'google'; // Apple Maps doesn't exist on Android
+    return s;
+  } catch { return {}; }
+}
+
+// read synchronously: the first screen already draws with the saved settings (loadSettings still runs, for the update
+// from AsyncStorage)
+let current: Settings = { ...DEFAULTS, ...stored(storage.getItemSync(KEY)) };
 applyLang(current);
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
@@ -87,15 +104,12 @@ export function setSettings(patch: Partial<Settings>) {
   onChange?.(patch);
   listeners.forEach(l => l());
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => AsyncStorage.setItem(KEY, JSON.stringify(current)).catch(() => {}), 300);
+  saveTimer = setTimeout(() => storage.setItem(KEY, JSON.stringify(current)).catch(() => {}), 300);
 }
 
 export async function loadSettings() {
-  const raw = await AsyncStorage.getItem(KEY).catch(() => null);
-  if (!raw) return;
-  const stored = JSON.parse(raw);
-  if (stored.navApp === 'apple' && Platform.OS === 'android') stored.navApp = 'google'; // Apple Maps doesn't exist on Android
-  setSettings(stored);
+  const s = stored(await storage.getItem(KEY).catch(() => null));
+  if (Object.keys(s).length) setSettings(s);
 }
 
 export const useSettings = () => useSyncExternalStore(subscribe, getSettings);

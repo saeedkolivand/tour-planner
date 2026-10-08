@@ -2,7 +2,8 @@
 import type { LatLon, Place, Plan, PlanRequest, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
 import { label, snapStreet, type Located } from './locate.ts';
-import { solveOrder } from './solve.ts';
+import { routeCost, solveOrder } from './solve.ts';
+import type { VroomInput } from './vroom.ts';
 import { untruncate } from './parseText.ts';
 import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } from './stops.ts';
 
@@ -16,6 +17,8 @@ export interface PhoneDeps {
   knownStreets?(): Promise<string[]>;
   /** The second geocoder (OpenStreetMap), for a stop the first could not place; `q` is its label (the cache key). */
   locate?(s: Stop, q: string): Promise<Located | null>;
+  /** A second opinion on the order (OpenRouteService's VROOM): parking stop indices from 1, null = none. */
+  optimize?(input: VroomInput): Promise<number[] | null>;
   /** The detailed log: why each stop was or wasn't placed, and how the order came about. */
   log?(msg: string, data?: Record<string, unknown>): void;
 }
@@ -116,8 +119,17 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
   })];
   const rank = req.expressFirst ? [0, ...groups.map(g => (g.stops.some(s => s.express) ? 0 : 1)), 0] : [];
   progress('ordering');
-  const order = scanned ? groups.map((_, i) => i + 1)
-    : solveOrder(m.seconds, endIdx, { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] });
+  const rules = { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] };
+  let order = scanned ? groups.map((_, i) => i + 1) : solveOrder(m.seconds, endIdx, rules);
+  if (!scanned && deps.optimize) {
+    // VROOM on its own road network, judged on ours: it wins only when it is cheaper by our rules
+    const theirs = await deps.optimize({ start, end, stops: groups.map((g, i) => ({ ...g.park, service: g.service, due: due[i + 1] ?? null })) })
+      .catch(e => { note('VROOM unavailable', { error: (e as Error).message }); return null; });
+    const cost = routeCost(m.seconds, endIdx, rules);
+    const valid = theirs?.length === order.length && new Set(theirs).size === order.length;
+    if (theirs) note('VROOM compared', { ours: Math.round(cost(order)), theirs: valid ? Math.round(cost(theirs)) : 'invalid' });
+    if (valid && cost(theirs!) < cost(order)) order = theirs!;
+  }
 
   let t = 0, km = 0, at = 0, served = 0;
   const clusters = order.map(i => {
