@@ -2,7 +2,7 @@
 import type { LatLon, Place, Plan, PlanRequest, Stop } from '../tour/types.ts';
 import type { Matrix, MatrixOptions } from './matrix.ts';
 import { label, snapStreet, type Located } from './locate.ts';
-import { routeCost, solveOrder } from './solve.ts';
+import { routeCost, solveOrderAsync } from './solve.ts';
 import type { VroomInput } from './vroom.ts';
 import { untruncate } from './parseText.ts';
 import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } from './stops.ts';
@@ -134,9 +134,7 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     if (theirs?.length === groups.length && new Set(theirs).size === groups.length && theirs.every(i => i >= 1 && i <= groups.length)) seed = [...theirs.filter(i => !rank[i]), ...theirs.filter(i => rank[i])];
     else if (theirs) note('VROOM answer ignored', { got: theirs.length, want: groups.length });
   }
-  await new Promise(r => setTimeout(r, 0)); // let "Ordering stops" draw: the search below holds the JS thread
-  // ponytail: a 10 s synchronous search freezes taps meanwhile (a native spinner keeps turning); chunk it if that bites
-  const order = scanned ? groups.map((_, i) => i + 1) : solveOrder(m.seconds, endIdx, { ...rules, init: seed, budgetMs: SEARCH_MS });
+  const order = scanned ? groups.map((_, i) => i + 1) : await solveOrderAsync(m.seconds, endIdx, { ...rules, init: seed, budgetMs: SEARCH_MS });
   if (seed) { const cost = routeCost(m.seconds, endIdx, rules); note('order from VROOM, polished', { vroomMin: Math.round(cost(seed) / 60), finalMin: Math.round(cost(order) / 60) }); }
 
   let t = 0, km = 0, at = 0, served = 0;

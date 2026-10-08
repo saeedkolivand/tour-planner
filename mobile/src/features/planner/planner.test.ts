@@ -7,7 +7,7 @@ import { columnTags, parseStops } from './parseText.ts';
 import { rowOrder } from './rowOrder.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
-import { descents, revisits, solveOrder } from './solve.ts';
+import { descents, revisits, solveOrder, solveOrderAsync } from './solve.ts';
 import { vroomOrder } from './vroom.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
@@ -479,4 +479,16 @@ test('VROOM (ORS): jobs with service and deadline, slowed like our road times; i
   const streets = async (answer: number[]) => (await plan(answer)).clusters.map(c => c.stops[0].street).join();
   assert.equal(await streets([1, 2]), 'A,B', 'B first (point 1) is worse: the search fixes it');
   assert.equal(await streets([2]), 'A,B', 'an answer missing a stop is ignored');
+});
+
+test('the paused search finds the same order as the plain one, and lets timers run meanwhile', async () => {
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const pts = Array.from({ length: 30 }, () => ({ lat: 50.9 + rnd() / 10, lon: 6.9 + rnd() / 10 }));
+  const m = estimateMatrix(pts).seconds;
+  let ticks = 0; const t = setInterval(() => ticks++, 0);
+  // no kicks (budget 0): only the first polish, which is deterministic, so both must agree exactly
+  const paused = await solveOrderAsync(m, undefined, { budgetMs: 0 }, 0);
+  clearInterval(t);
+  assert.ok(ticks > 0, 'the thread was handed back');
+  assert.deepEqual(paused, solveOrder(m, undefined, { budgetMs: 0 }));
 });
