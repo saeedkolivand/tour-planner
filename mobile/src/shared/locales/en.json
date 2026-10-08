@@ -106,6 +106,10 @@
     "pickScreenshotsLabel": "Pick screenshots",
     "inAppHint": "Photograph the scanner list. Several pages are fine.",
     "takePhoto": "Take photo",
+    "auto": "Auto",
+    "autoLabel": "Take photos by itself while I scroll",
+    "liveFound_one": "Scroll the scanner list slowly · {{count}} stop found",
+    "liveFound_other": "Scroll the scanner list slowly · {{count}} stops found",
     "readingPhotos": "Reading photos… keep the app open"
   },
   "coverage": {
