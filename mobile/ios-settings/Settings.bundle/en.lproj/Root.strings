@@ -1,0 +1,11 @@
+/* The Settings app page: titles in Root.plist, translated here */
+"Navigation" = "Navigation";
+"Navigation app" = "Navigation app";
+"Auto-navigate" = "Auto-navigate";
+"Alerts" = "Alerts";
+"Arrival details need location access set to Always." = "Arrival details need location access set to Always.";
+"Express reminders" = "Express reminders";
+"Arrival details" = "Arrival details";
+"History and log" = "History and log";
+"Tour history" = "Tour history";
+"Detailed log" = "Detailed log";

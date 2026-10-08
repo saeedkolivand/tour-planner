@@ -59,6 +59,8 @@
         }
       ],
       "./plugins/withWidgetReleaseSettings",
+      "./plugins/withSettingsBundle",
+      "./plugins/withAndroidAppSettings",
       [
         "expo-widgets",
         {
