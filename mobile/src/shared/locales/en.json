@@ -345,5 +345,29 @@
     "showMe": "Show my position",
     "showTour": "Show the whole tour",
     "webPlaceholder": "The map shows in the phone app"
+  },
+  "history": {
+    "title": "Past deliveries",
+    "doneTitle": "Tour done",
+    "delivered": "{{done}} of {{total}} stops delivered",
+    "span": "{{from}} – {{to}} · {{dur}}",
+    "planned": "{{km}} km, {{dur}} planned",
+    "expressOk": "Express: all {{n}} on time",
+    "expressMissed": "Express late or missed: {{n}} of {{total}}",
+    "notDelivered": "not delivered",
+    "search": "Search street or name",
+    "empty": "No tours yet. Each day's tour is kept here once it is planned.",
+    "off": "Tour history is off (Settings → Log), so nothing new is kept.",
+    "kept": "Kept on this phone for a year. Clear cache doesn't touch it; deleting the app does, so Export log keeps a copy.",
+    "open": "Past deliveries",
+    "back": "Back",
+    "pace": "⌀ {{avg}} min per stop (median {{median}}) · {{sph}} stops/h · {{pph}} parcels/h",
+    "byType": "Per stop: {{list}}",
+    "vsPlanLater": "Last stop {{n}} min later than planned",
+    "vsPlanEarlier": "Last stop {{n}} min earlier than planned",
+    "vsPlanOn": "Last stop right on plan",
+    "usual": "Your average over {{n}} days",
+    "gapHint": "Times run from one Delivered tap to the next, so the drive or walk to a stop counts towards it.",
+    "gap": "+{{n}} min"
   }
 }

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { LocateFixed, PartyPopper, Route as RouteIcon } from 'lucide-react-native';
+import { History, LocateFixed, PartyPopper, Route as RouteIcon } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import ReorderableList, { useReorderableDrag } from 'react-native-reorderable-list';
@@ -8,6 +8,8 @@ import { ScreenHeader, StatusBanner } from '@/components/Screen';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { DaySummaryCard } from '@/features/history/DaySummaryCard';
+import { mergeDay, summarize } from '@/features/history/history';
 import { ReportClosureButton } from '@/features/roads/ReportClosureButton';
 import { ClusterRow } from '@/features/tour/components/ClusterRow';
 import { CompletedSection } from '@/features/tour/components/CompletedSection';
@@ -66,6 +68,14 @@ export default function RouteScreen() {
   const settings = useSettings();
   const scanned = settings.stopOrder === 'scanned';
   const nextKeys = useMemo(() => new Set(view?.next?.stops.map(s => s.key)), [view]);
+  // the day in numbers once the last stop is delivered (the same figures Past deliveries keeps)
+  const done = !!tour.plan && !!view && !view.next;
+  // dated by the last Delivered tap, so it still reads right after midnight
+  const today = useMemo(() => {
+    const last = Math.max(0, ...tour.stops.map(s => s.doneAt ?? 0));
+    const d = done && last ? mergeDay(null, tour, last) : null;
+    return d && summarize(d);
+  }, [done, tour]);
   const replan = (
     <View className="flex-row gap-2">
       {!noPc(settings) && <ReportClosureButton onReported={() => plan(true)} disabled={!!busy} />}
@@ -107,7 +117,11 @@ export default function RouteScreen() {
               <NextStopCard cluster={view.next} index={view.nextIndex} total={p.clusters.length} startedAt={view.etaBase} navLabel={navLabel}
                 onNavigate={() => navigate(view.next!)} onDelivered={() => deliver(view.next!)} onToggleStop={toggleStop} />
             ) : (
-              <EmptyState icon={PartyPopper} title={t('route.tourCompleteTitle')} body={t('route.tourCompleteBody', { n: view.total })} />
+              <View className="gap-2">
+                <EmptyState icon={PartyPopper} title={t('route.tourCompleteTitle')} body={t('route.tourCompleteBody', { n: view.total })} />
+                {today && <DaySummaryCard s={today} title={t('history.doneTitle')} />}
+                <Button variant="outline" onPress={() => router.push('/history')}><Icon as={History} size={16} /><Text>{t('history.open')}</Text></Button>
+              </View>
             )}
             <LateNote plan={p} stops={tour.stops} />
             {/* the live copies: an address fixed since the plan shows as fixed, a tick shows as done */}

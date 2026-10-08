@@ -1,4 +1,5 @@
-import { Eraser, RefreshCw, Share, Trash2 } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Eraser, History, RefreshCw, Share, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Platform, ScrollView, View } from 'react-native';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -152,6 +153,10 @@ export default function SettingsScreen() {
 
         <SettingsSection title={t('settings.logTitle')} footer={t('settings.logFooter')}>
           <SwitchRow label={t('settings.keepHistory')} hint={t('settings.keepHistoryHint')} value={s.keepHistory} onChange={keepHistory => setSettings({ keepHistory })} />
+          <Button variant="outline" onPress={() => router.push('/history')}>
+            <Icon as={History} size={16} />
+            <Text>{t('history.open')}</Text>
+          </Button>
           <SettingsDivider />
           <SwitchRow label={t('settings.detailedLog')} hint={t('settings.detailedLogHint')} value={s.detailedLog} onChange={detailedLog => setSettings({ detailedLog })} />
           <SettingsDivider />
