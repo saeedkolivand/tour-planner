@@ -31,7 +31,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "allowBackup": false
     },
     "web": {
@@ -105,7 +107,19 @@
         }
       ],
       "@maplibre/maplibre-react-native",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-light.png",
+          "imageWidth": 220,
+          "backgroundColor": "#DC0032",
+          "dark": {
+            "image": "./assets/splash-dark.png",
+            "backgroundColor": "#0A0A0C"
+          }
+        }
+      ]
     ],
     "locales": {
       "en": "./locales/en.json",

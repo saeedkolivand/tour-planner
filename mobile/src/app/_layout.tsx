@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { Platform, Text, type ColorValue } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AnimatedSplash } from '@/components/splash/AnimatedSplash';
 import { TourProvider } from '@/features/tour/TourProvider';
 import { useAlerts } from '@/features/tour/useAlerts';
 import { useLiveSurfaces } from '@/features/tour/useLiveSurfaces';
@@ -70,6 +71,7 @@ export default function RootLayout() {
         </Tabs>
         <LiveSurfaces />
         <PortalHost />
+        {Platform.OS !== 'web' && <AnimatedSplash />}
       </TourProvider>
     </ThemeProvider>
     </GestureHandlerRootView>
