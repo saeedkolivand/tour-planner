@@ -1,5 +1,7 @@
 import { requireOptionalNativeModule } from 'expo';
 import * as ImagePicker from 'expo-image-picker';
+import { recognize } from '../../modules/scanner-ocr';
+import { rowOrder } from '@/features/planner/rowOrder';
 import { getSettings, noPc } from '@/features/settings/settings';
 import type { ScanInput } from '@/features/tour/api';
 import { log } from '@/shared/log';
@@ -11,12 +13,17 @@ const L = log('scan');
 // Loaded optionally: the package's own import throws where the module isn't compiled in (Expo Go,
 // web), and there the photo itself goes to the server, which reads it with its vision model.
 const Ocr = requireOptionalNativeModule<{ isSupported: boolean; extractTextFromImage(path: string): Promise<string[]> }>('ExpoTextExtractor');
-export const onDeviceOcr = !!Ocr?.isSupported;
+export const onDeviceOcr = !!recognize || !!Ocr?.isSupported;
+// ponytail: expo-text-extractor stays as the fallback until our module has read a few real tours; then drop it
+const plain = (uri: string) => Ocr!.extractTextFromImage(uri.replace('file://', '')).then(l => l.join('\n'));
+const read = (uri: string) => (recognize
+  ? recognize(uri).then(rowOrder).catch(e => { L.warn('our OCR failed, plain text instead', { error: e }); return plain(uri); })
+  : plain(uri));
 // one read per photo: the live scan reads each frame as it's taken, and Done reuses that read
 const reads = new Map<string, Promise<string>>();
 export function ocr(uri: string) {
   let r = reads.get(uri);
-  if (!r) reads.set(uri, r = Ocr!.extractTextFromImage(uri.replace('file://', '')).then(l => l.join('\n')));
+  if (!r) reads.set(uri, r = read(uri));
   return r;
 }
 
@@ -41,7 +48,7 @@ export async function readPhotos(uris: string[], onRead: (done: number) => void 
   const toPc = getSettings().serverOcr && !noPc();
   let done = 0;
   const each = <T,>(fn: (uri: string) => Promise<T>) => Promise.all(uris.map(async uri => { const r = await fn(uri); onRead(++done); return r; }));
-  if (Ocr && onDeviceOcr && !toPc) {
+  if (onDeviceOcr && !toPc) {
     const t0 = Date.now();
     const texts = await each(ocr);
     L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0, texts });
