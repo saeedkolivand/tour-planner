@@ -25,15 +25,21 @@ export function umlautVariants(street: string): string[] {
   return out;
 }
 
-/** Overlapping photos show a row twice: keep the first, never sum parcels; two postcodes stay two stops. */
+/**
+ * Overlapping photos show a row twice: keep the first, never sum its parcels; two postcodes stay two stops. Two rows at
+ * one door ("Ströppche Concept Store", "Theresa Loschert") are one stop with both names and both parcels.
+ * ponytail: a name is "the same" by its first 4 letters, enough to absorb a misread surname.
+ */
 export function dedupe(stops: Stop[]): Stop[] {
   const out: Stop[] = [];
   for (const s of stops) {
     const had = out.find(o => loose(o) === loose(s) &&(!plz(o) || !plz(s) || plz(o) === plz(s)));
     if (!had) { out.push({ ...s, key: s.key ?? stopKey(s) }); continue; }
+    const first4 = (n: string) => bare(n).replace(/^\d+/, '').slice(0, 4); // "1 Getränke Ucar": a count glued on
+    const other = !!s.name && !!had.name && !had.name.split(' · ').some(n => first4(n) === first4(s.name!));
     Object.assign(had, {
-      parcels: Math.max(had.parcels || 1, s.parcels || 1), postcode: had.postcode || s.postcode, area: had.area || s.area,
-      express: had.express || s.express, name: had.name || s.name,
+      parcels: other ? (had.parcels || 1) + (s.parcels || 1) : Math.max(had.parcels || 1, s.parcels || 1), postcode: had.postcode || s.postcode, area: had.area || s.area, slot: had.slot || s.slot, prio: had.prio || s.prio,
+      express: [had.express, s.express].filter(Boolean).sort()[0], name: other ? `${had.name} · ${s.name}` : had.name || s.name, opens: had.opens || s.opens,
       parcelIds: [...new Set([...(had.parcelIds ?? []), ...(s.parcelIds ?? [])])],
     });
   }

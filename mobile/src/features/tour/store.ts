@@ -1,4 +1,5 @@
 import type { ExtractResult, ScanInput, TourApi } from './api.ts';
+import { columnTags } from '../planner/parseText.ts';
 import { dedupe } from '../planner/stops.ts';
 import { keepOrder, moveCluster, withSeq } from './manualOrder.ts';
 import { lateKeys } from './selectors.ts';
@@ -106,10 +107,10 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
 
   /** The PC's /extract, done by rules on the phone: new rows merged into the list like the PC does. */
   const readOnPhone = (texts: string[]): ExtractResult => {
-    const found = texts.map(t => phone!.parse(t));
+    const found = columnTags(texts, texts.map(t => phone!.parse(t)));
     // what the phone's rules made of each photo's text (the text itself is in the 'on-device OCR' entry)
     found.forEach((rows, photo) => L.debug('photo read on the phone', { photo, rows: rows.map(s =>
-      `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
+      `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.prio ? ' PRIO' : ''}${s.slot ? ` ${s.slot}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
     // overlapping photos, "Str."/"Straße", a postcode on one row only, a dropped umlaut: one stop, as the planner keys it
     return { stops: dedupe([...state.tour.stops, ...found.flat()]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
   };

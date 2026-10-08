@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Stop } from '../tour/types.ts';
 import { estimateMatrix, estimateSec, osrmMatrix, osrmOptions } from './matrix.ts';
-import { parseStops } from './parseText.ts';
+import { columnTags, parseStops } from './parseText.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
 import { descents, revisits, solveOrder } from './solve.ts';
@@ -136,6 +136,23 @@ test('real Apple Vision text (2026-10-08): the overview\'s header lines are no n
     'Krafthaus by David Flacke - Fr', 'David Flacke', 'Von-Werth-Str. 9', '50670IE Köln', '• Lukas Kreuser', 'Norbertstr. 2-4', '50670HZ Köin'].join('\n'));
   assert.deepEqual(s.map(x => x.name), ['SERVICEPLAN', 'Krafthaus by David Flacke - Fr', 'Lukas Kreuser']);
   assert.equal(dedupe([{ ...s[2], area: undefined }, s[2]])[0].area, 'HZ', 'a cut-off copy takes the area from the full one');
+});
+
+test('real Apple Vision text (2026-10-08): the right column\'s "by 18:00" and PRIO find their row across photos; slots, hours, two names at one door', () => {
+  const texts = [
+    'Krafthaus\nVon-Werth-Str. 9\n50670IE Köln\nJonah Stettner\nVon-Werth-Str. 20\n50670HK Köln\nby 18:00\n08:22\n10:22\n08:26\n10:26',
+    'Jonah Stettner\nVon-Werth-Str. 20\n50670HK Köln\nSCHULZ LINDA\nVon-Werth-Str. 41\n50670HK Köln\nFabian Schleifer\nVon-Werth-Str. 41\n50670HK Köln\n08:26\n10:26\n08:29\n10:29\n08:31\n10:31',
+    'Ströppche Concept Store\nKlingelpütz 33\n50670HL Köln\nArtservice + Tube\nTheodor-Heuss-Ring 18\n50668CB Köln\nPRIO\n08:50\n10:50\n10:00-18:30\n10:00\n12:00',
+    '50670HL Köln\nArtservice + Tube\nTheodor-Heuss-Ring 18\n50668CB Köln\n10:00-18:30\n10:00\n12:00',
+  ];
+  const s = dedupe(columnTags(texts, texts.map(t => parseStops(t))).flat());
+  assert.deepEqual(s.map(x => `${x.number} ${x.name} x${x.parcels} ${x.slot} ${x.express ?? ''}${x.prio ? ' PRIO' : ''} ${x.opens ?? ''}`.trim()), [
+    '9 Krafthaus x1 08:22-10:22 18:00', // Jonah is on a photo without it, every slot read: not his
+    '20 Jonah Stettner x1 08:26-10:26',
+    '41 SCHULZ LINDA · Fabian Schleifer x2 08:29-10:29',
+    '33 Ströppche Concept Store x1 08:50-10:50 12:00 PRIO',
+    '18 Artservice + Tube x1 10:00-12:00  10:00-18:30', // and not "50670HL Köln", a row cut off at the top
+  ]);
 });
 
 test('a geocoder\'s full name matches the scanner\'s shortened one, and a one-letter misread of a long name', () => {
