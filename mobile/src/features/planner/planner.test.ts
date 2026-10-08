@@ -130,6 +130,14 @@ test('real Apple Vision text (2026-10-07): 8/B, 0/O, 1/I in postcode lines, "Kö
   assert.equal(parseStops('0221 1234567\nHohe Str. 1\n50667 Köln')[0].postcode, '50667', 'a phone number is not a postcode line');
 });
 
+test('real Apple Vision text (2026-10-08): the overview\'s header lines are no names; the row marker is dropped', () => {
+  const s = parseStops(['550', '10:48', '50670IE', 'G 18 T 387', 'Delivery | T550 | 08. Oct', '50670HK', '• A further 50', 'Tour Overview',
+    'SERVICEPLAN', 'Von-Werth-Str. 6', '50670IE Köln, Altstadt-Nord', 'G 18 T 387', '08:19', '10:19', 'Expected arrival 10:56', 'Next stops',
+    'Krafthaus by David Flacke - Fr', 'David Flacke', 'Von-Werth-Str. 9', '50670IE Köln', '• Lukas Kreuser', 'Norbertstr. 2-4', '50670HZ Köin'].join('\n'));
+  assert.deepEqual(s.map(x => x.name), ['SERVICEPLAN', 'Krafthaus by David Flacke - Fr', 'Lukas Kreuser']);
+  assert.equal(dedupe([{ ...s[2], area: undefined }, s[2]])[0].area, 'HZ', 'a cut-off copy takes the area from the full one');
+});
+
 test('a geocoder\'s full name matches the scanner\'s shortened one, and a one-letter misread of a long name', () => {
   assert.ok(alike('Konrad-Adenauer-Ufer', 'Konrad-Ade...uer-Ufer'));
   assert.ok(alike('Unter Krahnenbäumen', 'Unter Krahn...bäumen'));

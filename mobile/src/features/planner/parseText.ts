@@ -13,9 +13,9 @@ const ADDRESS = /^(\p{Lu}[\p{L}.…'’\- ]*?\p{L}\.?)\s+(\d{1,4}(?:\s?[a-zA-Z](
 // OCR reads the two letters as "IH", "ll", "1J" (an I as a 1): at least one letter, so a phone number is no postcode
 const POSTCODE = /\b(\d{5})([A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
 const ROUTE_CODE = /^G\s?(\d+)\s?T\s?(\d+)\b/im;
-const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete)/i;
+const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete|delivery\b|expected|next stops|•?\s*a further)/i;
 // lines that describe the stop above them rather than name the one below
-const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
+const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|expected|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
 // "5066BIO Köln", "5066810 Köln", "506681V": OCR swaps 8/B, 0/O, 1/I in the postcode line. Its first five are digits,
 // the (up to) two after them letters; only a line that is that and a town (or nothing), so a phone number stays one.
 const PC_LINE = /^(\d[\dBOIl]{4})([A-Za-z\d]{0,2})(?=\s+\p{L}|$)/u;
@@ -82,7 +82,8 @@ export function parseStops(text: string): Stop[] {
     const pc = read?.[1] === '00000' ? null : read; // "00000AA": the scanner's "Unknown area", not a postcode 9 km away
     const count = head.find(l => COUNT.test(l));
     const parcelsText = /(\d{1,2})\s*(?:pakete|packst|colli|stk|pcs|x\s*paket)/i.exec(tail);
-    const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !/^prio$/i.test(l) && /\p{L}{3}/u.test(l));
+    const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !/^prio$/i.test(l) && /\p{L}{3}/u.test(l))
+      ?.replace(/^[^\p{L}\d]+/u, ''); // "• Lukas Kreuser": the scanner marks the current row
     const hours = head.map(l => /^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/.exec(l)).find(Boolean);
     const express = expressIn(head.join('\n'), tail);
     const block = `${name ?? ''}\n${tail}`;
