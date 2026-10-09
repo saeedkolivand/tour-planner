@@ -14,16 +14,18 @@ import { bare } from './stops.ts';
 const ADDRESS = /^(\p{Lu}[\p{L}.…'’\- ]*?\p{L}\.?)\s+(\d{1,4}(?:\s?[a-zA-Z](?![\p{L}]))?(?:\s?[-–/]\s?\d{1,4}[a-zA-Z]?)?)(?=$|[\s,])/u;
 // OCR reads the two letters as "IH", "ll", "1J" (an I as a 1): at least one letter, so a phone number is no postcode
 const POSTCODE = /\b(\d{5})([A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b(?:\s+(\p{L}[\p{L} .\-]*))?/u;
-const ROUTE_CODE = /^G\s?(\d+)\s?T\s?(\d+)\b/im;
-const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete|delivery\b|expected|next stops|•?\s*a further)/i;
+const ROUTE_CODE = /^G\s?(\d+(?:[.,]\d)?)\s?T\s?(\d+)\b/im; // "G 2.1 T 388" (OCR: "G 4,1 T 388")
+const NOT_A_STREET = /^(dpd|paket|parcel|stopp?|tour|express|predict|zustell|lieferung|empf|kunde|tel|ref|nächste|erwartete|(?:out-for-)?delivery\b|expected|next stops|•?\s*a further)/i;
 // lines that describe the stop above them rather than name the one below
-const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|expected|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
+const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+(?:[.,]\d)?\s?T\s?\d+|\d{1,2}[:.]\d{2}\b|köln\b|altstadt|neustadt|erwartete|expected|express|dpd\b|\d+\s*(?:pakete|packst|colli|stk|pcs)|paketshop|pickup|packstation|abholung|retoure)/i;
 // "5066BIO Köln", "5066810 Köln", "506681V": OCR swaps 8/B, 0/O, 1/I in the postcode line. Its first five are digits,
 // the (up to) two after them letters; only a line that is that and a town (or nothing), so a phone number stays one.
 const PC_LINE = /^(\d[\dBOIl]{4})([A-Za-z\d]{0,2})(?=\s+\p{L}|$)/u;
 const fixPostcode = (l: string) => l.replace(PC_LINE, (_, d: string, a: string) =>
   d.replace(/B/g, '8').replace(/O/g, '0').replace(/[Il]/g, '1') + a.toUpperCase().replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B'));
 const COUNT = /^\d{1,2}$/;
+// the "Out-for-delivery" screen's header counts the tour's PRIO parcels ("2 / 2 PRIO"); a row's PRIO is the word alone
+const PRIO_TALLY = /^\d+\s*\/\s*\d+\s*prio$/i;
 const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
 // the right column's tags: "PRIO", and the Express deadline "by 18:00"
 const TAG = /^(prio|by\s*\d{1,2}[:.]\d{2})$/i;
@@ -69,7 +71,7 @@ export function untruncate(stops: Stop[], known: string[] = []): Stop[] {
 
 export function parseStops(text: string): Stop[] {
   const rows = text.startsWith(ROWS);
-  const lines = text.split(/\r?\n/).slice(rows ? 1 : 0).map(l => fixPostcode(l.trim())).filter(Boolean);
+  const lines = text.split(/\r?\n/).slice(rows ? 1 : 0).map(l => fixPostcode(l.trim())).filter(l => l && !PRIO_TALLY.test(l));
   const trailing = (l: string) => TRAILER.test(l) || (rows && TAG.test(l));
   // the trailer of each stop runs from its street line while the lines look like attributes; the header of the
   // next stop is whatever is left before its street line
@@ -104,7 +106,7 @@ export function parseStops(text: string): Stop[] {
     const type = typeIn(block);
     return {
       street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '').replace(/^K\S{2,3}n$/i, 'Köln') || 'Köln', // "Köin"
-      ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1]} T ${code[2]}` }),
+      ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1].replace(',', '.')} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
       ...(name && { name }), ...(express && { express }), ...(/\bprio\b/i.test(rows ? `${head.join('\n')}\n${tail}` : head.join('\n')) && { prio: true }),
       ...(hours && type === 'shop' && { opens: `${hours[1]}-${hours[2]}` }),

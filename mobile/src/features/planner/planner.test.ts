@@ -157,6 +157,20 @@ test('real Apple Vision text (2026-10-08): the right column\'s "by 18:00" and PR
   ]);
 });
 
+test('real "Out-for-delivery" screen (2026-10-09): the header\'s PRIO tally ("2 / 2 PRIO") is no row\'s PRIO, its status line no name', () => {
+  const s = parseStops([
+    '[rows]', '550', '08:60', 'Out-for-delivery | T550 | 09. Oct', '506701J', '50', '506701G', 'G 8', 'G 2.1 T 388', 'G 1 T 388',
+    '2/2', '2 / 2 PRIO', '71/728', '48 / 48', 'Emma Korschinsky', '1/1', 'Adolf-Fischer-Str. 6', '50670HN Köln', 'G 5 T 387',
+    'Werner Kühn', '1/1', 'Wickrather Str. 7', '50670IN Köln', 'G 4,1 T 388', 'PRIO', // a decimal code: PRIO is still this row's
+    'Kay', '1/1', 'Wevelinghovener Str. 10', '50670IN Köln', 'G 4.1 T 388',
+  ].join('\n'));
+  assert.deepEqual(s.map(x => `${x.street} ${x.number} ${x.name} ${x.code}${x.prio ? ' PRIO' : ''} ${x.express ?? ''}`.trim()), [
+    'Adolf-Fischer-Str. 6 Emma Korschinsky G 5 T 387',
+    'Wickrather Str. 7 Werner Kühn G 4.1 T 388 PRIO 12:00',
+    'Wevelinghovener Str. 10 Kay G 4.1 T 388',
+  ]);
+});
+
 test('our OCR\'s positions: each right-column item joins the row it sits level with; PRIO and "by 18:00" are that row\'s own', () => {
   const at = (text: string, y: number, x = 0.05) => ({ text, x, y, w: 0.3, h: 0.02 });
   const lines = [
