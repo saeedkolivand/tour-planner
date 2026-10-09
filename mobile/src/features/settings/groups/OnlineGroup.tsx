@@ -7,7 +7,7 @@ import { ClosuresSection } from '@/features/roads/ClosuresSection';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
 import { setSettings, useSettings } from '@/features/settings/settings';
 import { useTourStore } from '@/features/tour/TourProvider';
-import { onDeviceOcr } from '@/services/scan';
+import { onDeviceOcr, readsOnPhone } from '@/services/scan';
 import { useTranslation } from '@/shared/i18n';
 
 /** The PC (when used) and the online services the phone may ask: road times, the order, addresses. */
@@ -18,7 +18,7 @@ export function OnlineGroup() {
   return (
     <>
       <SettingsSection title={t('settings.planning')} footer={s.planner === 'auto'
-        ? t('settings.planningAutoFooter', { where: onDeviceOcr && !s.serverOcr ? t('settings.onThisPhone') : t('settings.onThePc') })
+        ? t('settings.planningAutoFooter', { where: readsOnPhone(s) ? t('settings.onThisPhone') : t('settings.onThePc') })
         : t('settings.planningPhoneFooter')}>
         <SwitchRow label={t('settings.usePc')} hint={t('settings.usePcHint')} value={s.planner === 'auto'}
           onChange={on => setSettings({ planner: on ? 'auto' : 'phone' })} />

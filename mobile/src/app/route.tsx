@@ -121,7 +121,7 @@ export default function RouteScreen() {
               <View className="gap-2">
                 <EmptyState icon={PartyPopper} title={t('route.tourCompleteTitle')} body={t('route.tourCompleteBody', { n: view.total })} />
                 {today && <DaySummaryCard s={today} title={t('history.doneTitle')} />}
-                <Button variant="outline" onPress={() => router.push('/history')}><Icon as={History} size={16} /><Text>{t('history.open')}</Text></Button>
+                <Button variant="outline" onPress={() => router.push('/history?from=route')}><Icon as={History} size={16} /><Text>{t('history.open')}</Text></Button>
               </View>
             )}
             <LateNote plan={p} stops={tour.stops} />

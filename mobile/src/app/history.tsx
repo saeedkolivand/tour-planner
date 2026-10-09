@@ -1,7 +1,7 @@
 // Past deliveries: every kept day (history/<date>.json in the app's documents, which Clear cache leaves alone),
 // newest first, each with its summary; tap one for its stops in delivery order. The search finds a street or a name
 // across all days ("when was I last at Klingelpütz 33?").
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { History, Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
@@ -33,11 +33,11 @@ function StopLine({ x }: { x: Pick<StopTime, 'stop'> & Partial<StopTime> }) {
         {!s.doneAt && <Text className="text-destructive text-xs">{t('history.notDelivered')}</Text>}
         {x.driveMin != null && <Text className="text-muted-foreground text-xs">{t('history.splitShort', { drive: x.driveMin, at: x.atStopMin })}</Text>}
       </View>
-      <View className="w-16 items-end">
+      <View className="shrink-0 items-end">
         {x.gapMin != null && <Text className="text-sm" style={{ fontVariant: ['tabular-nums'] }}>{t('history.gap', { n: x.gapMin })}</Text>}
         {x.vsPlanMin != null && x.vsPlanMin !== 0 && (
           <Text className={x.vsPlanMin > 15 ? 'text-destructive text-xs' : 'text-muted-foreground text-xs'} style={{ fontVariant: ['tabular-nums'] }}>
-            {x.vsPlanMin > 0 ? `+${x.vsPlanMin}` : x.vsPlanMin}
+            {t('history.vsPlanShort', { n: x.vsPlanMin > 0 ? `+${x.vsPlanMin}` : x.vsPlanMin })}
           </Text>
         )}
       </View>
@@ -77,6 +77,7 @@ function average(xs: DaySummary[]): { days: number; summary: DaySummary } | null
 
 export default function HistoryScreen() {
   const { t } = useTranslation();
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const { keepHistory } = useSettings();
   const days = useMemo(() => readHistory().reverse(), []);
   const [query, setQuery] = useState('');
@@ -87,7 +88,7 @@ export default function HistoryScreen() {
   const usual = useMemo(() => average(days.map(summarize).filter(s => s.delivered >= 10)), [days]);
   return (
     <View className="bg-background flex-1">
-      <ScreenHeader title={t('history.title')} back={{ label: t('history.back'), onPress: () => router.back() }} />
+      <ScreenHeader title={t('history.title')} back={{ label: from === 'route' ? t('tabs.route') : t('tabs.settings'), onPress: () => router.back() }} />
       <FlatList
         data={shown}
         keyExtractor={d => d.date}
