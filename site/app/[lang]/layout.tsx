@@ -11,7 +11,9 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   return {
     title: t.meta.title, description: t.meta.description, icons: { icon: `${BASE}/favicon.png` },
     alternates: { languages: { en: `${BASE}/en/`, de: `${BASE}/de/` } },
-    openGraph: { title: t.meta.title, description: t.meta.description, type: 'website' },
+    metadataBase: new URL('https://tour-planner.iamsaeed.dev'),
+    openGraph: { title: t.meta.title, description: t.meta.description, type: 'website', images: [{ url: `${BASE}/og.png`, width: 1280, height: 640 }] },
+    twitter: { card: 'summary_large_image' },
   };
 }
 
