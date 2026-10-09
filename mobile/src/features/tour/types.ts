@@ -39,7 +39,7 @@ export interface Stop {
   area?: string;
   /** The scanner row's route code, "G 12 T 387" (meaning unknown). Kept to learn from. */
   code?: string;
-  /** The scanner's PRIO tag on this row (read as Express 12:00, unconfirmed). */
+  /** The scanner's PRIO tag on this row (due by 18:00). */
   prio?: boolean;
   /** The slot the scanner planned for it, "08:19-10:19": shown to the driver, not a deadline. */
   slot?: string;

@@ -31,12 +31,14 @@ const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
 const TAG = /^(prio|by\s*\d{1,2}[:.]\d{2})$/i;
 
 const EXPRESS: Express[] = ['08:30', '10:00', '12:00', '18:00'];
+/** The scanner's PRIO: due by the end of the day (DPD's PM4 priority parcel; the scanner slots PRIO rows after noon). */
+const PRIO_DUE: Express = '18:00';
 /** "by 11:00" -> the Express time at or before it (10:00): early is safe, late costs money. */
 const expressBy = (hhmm: string) => [...EXPRESS].reverse().find(e => e <= hhmm.padStart(5, '0')) ?? '08:30';
 
 /** `rows`: the text was put in row order (rowOrder.ts), so a row's own lines hold its PRIO and "by 18:00". */
 function expressIn(head: string, tail: string, rows = false): Express | '' {
-  if (/\bprio\b/i.test(rows ? `${head}\n${tail}` : head)) return '12:00';
+  if (/\bprio\b/i.test(rows ? `${head}\n${tail}` : head)) return PRIO_DUE;
   const by = rows ? /^by\s*(\d{1,2})[:.](\d{2})$/im.exec(`${head}\n${tail}`) : null;
   if (by) return expressBy(`${by[1]}:${by[2]}`);
   const m =/(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\bexpress\b/i.exec(tail);
@@ -156,7 +158,7 @@ export function columnTags(texts: string[], found: Stop[][]): Stop[][] {
       const rows = run.flatMap(p => found[p]).filter(s => !has.some((h, p) => !h && whole[p] && found[p].some(x => id(x) === id(s))));
       const every = rows.filter(s => run.every(p => seen(s, p)));
       const ids = new Set((every.length ? every : rows).map(id));
-      const express = /\d/.test(tag) ? expressBy(tag.slice(2)) : '12:00'; // ponytail: PRIO read as Express 12:00, unconfirmed
+      const express = /\d/.test(tag) ? expressBy(tag.slice(2)) : PRIO_DUE;
       out.forEach(f => f.forEach(s => {
         if (!ids.has(id(s))) return;
         if (tag === 'prio') s.prio = true;
