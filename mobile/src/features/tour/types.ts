@@ -80,8 +80,9 @@ export interface Plan {
   expressOnTime?: boolean;
 }
 
-/** 'fastest': the planner picks the order. 'scanned': the order of the scanner list, as photographed. */
-export type StopOrder = 'fastest' | 'scanned';
+/** 'improved': the scanner list's order with local detours fixed. 'fastest': the planner picks the order freely.
+ * 'scanned': the order of the scanner list, as photographed. */
+export type StopOrder = 'improved' | 'fastest' | 'scanned';
 
 /** How to plan: the driver's settings, sent to the PC or to the phone's own planner. */
 export interface PlanOptions {

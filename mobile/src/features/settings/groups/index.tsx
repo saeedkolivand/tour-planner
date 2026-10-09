@@ -3,6 +3,7 @@ import { Bell, Database, Globe, Languages, Route, type LucideIcon } from 'lucide
 import type { ComponentType } from 'react';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
 import { SettingsSection } from '@/features/settings/components/SettingsSection';
+import { ORDER_TEXT } from '@/features/settings/components/StopOrderPicker';
 import { setSettings, useSettings, type Settings } from '@/features/settings/settings';
 import { NAV_APPS } from '@/services/navigation';
 import { UpdateSection } from '@/features/updates/UpdateSection';
@@ -35,7 +36,7 @@ const on = (...xs: (string | false)[]) => xs.filter(Boolean).join(' · ');
  */
 export const GROUPS: { id: GroupId; icon: LucideIcon; Body: ComponentType; summary(s: Settings, t: Translate): string }[] = [
   { id: 'route', icon: Route, Body: RouteGroup,
-    summary: (s, t) => on(t(s.stopOrder === 'scanned' ? 'settings.orderScanned' : 'settings.orderFastest'), t(s.routeStyle === 'walk' ? 'settings.styleWalk' : 'settings.styleDrive'), NAV_APPS[s.navApp]) },
+    summary: (s, t) => on(t(ORDER_TEXT[s.stopOrder].label), t(s.routeStyle === 'walk' ? 'settings.styleWalk' : 'settings.styleDrive'), NAV_APPS[s.navApp]) },
   { id: 'express', icon: Bell, Body: ExpressGroup,
     summary: (s, t) => on(s.expressOnTime && t('settings.expressOnTime'), s.expressAlerts && t('settings.expressAlerts'), s.arrivalAlerts && t('settings.arrivalAlerts')) || t('settingsGroups.allOff') },
   { id: 'online', icon: Globe, Body: OnlineGroup,
