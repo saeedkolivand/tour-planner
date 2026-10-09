@@ -1,5 +1,7 @@
 # Tour Planner
 
+**[Landing page](https://saeedkolivand.github.io/tour-planner/)**, with a live demo of the planner.
+
 Photograph a DPD scanner's stop list; get the fastest delivery order, grouped into park-and-walk stops, with loading numbers and one-tap navigation. The phone app (Expo / React Native, iPhone and Android) and a web app both use one self-hosted backend on a home PC, reached privately over Tailscale.
 
 <p align="center">
@@ -159,3 +161,7 @@ The phone also keeps its own log (`logs/app.jsonl` in the app's documents, a few
 ```powershell
 Get-Content (ls data/logs/app.*.jsonl | sort LastWriteTime)[-1] -Wait | ConvertFrom-Json | Format-Table t,level,src,scope,msg
 ```
+
+## Landing page
+
+`site/` is the landing page: Next.js (static export) on GitHub Pages, English and German, built by `pages.yml` whenever `site/` (or the app code it borrows) changes. It reuses the app's colours (`scripts/tokens.mjs` copies them out of `mobile/global.css`), the splash geometry, and the planner itself: the route demo runs `cluster`, `streetMates` and `solveOrderAsync` in the browser. `cd site; npm install; npm run dev`. Commits scoped `site` never release the app.
