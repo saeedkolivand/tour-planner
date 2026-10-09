@@ -11,7 +11,19 @@ Photograph a DPD scanner's stop list; get the fastest delivery order, grouped in
 <p align="center"><img src="docs/screenshots/app-light.png" alt="Stops, Route and Settings screens in light mode" width="100%"></p>
 </details>
 
-<sub>Screens at iPhone size (390 pt), rendered from the app's web build; on iOS the map area shows Apple Maps, on Android MapLibre with OpenFreeMap tiles.</sub>
+<sub>The Android build with a sample tour (made-up names on Cologne streets); on iOS the map is Apple Maps.</sub>
+
+<p align="center"><img src="docs/screenshots/splash.gif" alt="Opening animation: a van drives along the check mark, painting the road markings, then the screen splits open along it" width="22%"> &nbsp; <img src="docs/screenshots/icons.png" alt="App icon: a check mark drawn as a road, in light, dark and tinted versions and as Android's adaptive icon" width="70%"></p>
+
+<sub>The opening animation and the icon, "Delivered road": light, dark and tinted on iOS, adaptive and themed on Android.</sub>
+
+Settings in groups, and the same switches in the phone's own Settings app (shown on a real iPhone):
+
+<p align="center"><img src="docs/screenshots/settings.png" alt="The Settings overview, the Route and navigation group, and Tour Planner's page in the iOS Settings app" width="100%"></p>
+
+A summary when the tour is done, and every past day with the time each stop took, kept on the phone for a year (the right-hand screen is a real day, its addresses blurred):
+
+<p align="center"><img src="docs/screenshots/history.png" alt="Tour done summary, Past deliveries with per-stop times, and a real day on the iPhone with addresses blurred" width="100%"></p>
 
 Glanceable on a real iPhone: the next stop as a Live Activity (Lock Screen, Dynamic Island, CarPlay Dashboard) and Home Screen widgets.
 
@@ -69,7 +81,9 @@ Expo SDK 57 · React Native 0.86 · Expo Router · **NativeWind 4 + React Native
 - **Planning on the phone** (no PC): addresses go to Apple's or Google's geocoder first; one it cannot place (a street named after a town, like *Neusser Str.*, comes back as the town) goes to OpenStreetMap's public [Photon](https://photon.komoot.io), checked by the PC's rules (same street, near the postcode, else a neighbouring number, else the street). Road times come from OpenStreetMap's public router.
 - **Route**: stats, delivery progress, and a *Next stop* card with driver-sized **Navigate** and **Delivered** buttons. Below it: stops the plan could not place (tap to fix the address; navigate there by address; tick off), the map (draggable pins), the upcoming list, and a collapsed delivered list. Without a *Leave the depot at* time, arrival times count from your first **Navigate** or **Delivered**, not from when you planned.
 - **Scan**: parcel labels, for loading numbers and the right parcel at the door.
-- **Settings**: stop order (*Fastest* or *As scanned*), route style and *Both sides in one pass*, Express (*on time* with a buffer of 0–20 min, *Express first*), navigation app, PC or phone-only planning, and *Log* (below).
+- **Settings**, in groups: *Route & navigation* (depot, stop order *Fastest* or *As scanned*, route style and *Both sides in one pass*, navigation app), *Express & alerts* (*on time* with a buffer of 0–20 min, *Express first*, reminders before each deadline, arrival details), *PC & online services* (PC or phone-only planning, road-time keys), *Tour, history & log* and *Language & updates*. The everyday switches also appear in the phone's own Settings app: a Tour Planner page on iOS, the app-info "settings" link on Android.
+- **Tour done and Past deliveries**: when the last stop is delivered, a summary (time on the road, minutes per stop by type, stops and parcels per hour, Express missed, against the plan); every day is kept for a year in the app's documents, untouched by *Clear cache*, with each stop's time, searchable by street or name.
+- **Opening animation**: a van drives the icon's road and the screen splits open along it (Reanimated, on the UI thread); a plain fade with *Reduce Motion*.
 - **CarPlay (no CarPlay entitlement or paid account needed)**: see [CarPlay](#carplay) below.
 - **Architecture**: `src/features/tour` holds a framework-free store and pure selectors (unit-tested with `node --test`), `useDelivery` / `usePlanning` hooks, and small components. `src/components/ui` holds the Reusables primitives we own and extend (e.g. `Button` `xl` and `success`).
 - **Design preview on Windows**: `npx expo start --web`. The map is replaced by a placeholder on web.
