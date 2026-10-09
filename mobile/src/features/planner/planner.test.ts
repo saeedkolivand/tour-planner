@@ -88,7 +88,7 @@ test('the DPD scanner layout: name + PRIO + count above the street, "50670HX", r
   const s = parseStops(text);
   assert.deepEqual(s.map(x => `${x.street} ${x.number}`), ['Steinfelder Gasse 27', 'Steinfelder Gasse 20-22', 'Im Klapperhof 33', 'Gereonshof 16', 'Gereonsmühlengasse 26', 'Balthasarstr. 65', 'Gereonsmühlengasse 2']);
   assert.ok(s.every(x => x.postcode === '50670'), 'the two letters after the postcode are not part of it');
-  assert.deepEqual(s.map(x => x.express ?? ''), ['', '12:00', '', '', '12:00', '', ''], 'PRIO only; the time slot is no deadline');
+  assert.deepEqual(s.map(x => x.express ?? ''), ['', '18:00', '', '', '18:00', '', ''], 'PRIO only; the time slot is no deadline');
   assert.deepEqual(s.map(x => x.parcels), [1, 1, 1, 2, 2, 7, 1]);
   assert.deepEqual(s.map(x => x.name), ['Gina Klein', 'Katholische junge Gemeinde…', 'netspirits GmbH & Co. KG', 'Thomas Voß', 'Kita Remmidemmi e.V.,', '3 PQ GmbH', 'Santesson GmbHComputer u…']);
   assert.deepEqual(s.map(x => x.type), ['private', 'business', 'business', 'private', 'business', 'business', 'business']);
@@ -108,7 +108,7 @@ test('no letters after the postcode, no area; a route code OCR read without spac
 test('a kiosk called "Späti 2" is a name, not a street; a shortened street is completed from earlier tours', async () => {
   const s = parseStops(['Späti 2', 'PRIO', '1', 'Neusser Str. 11', '50670IH Köln', 'Kita Remmidemmi e.V.,', '2', 'Gereonsm... engasse 26', '50670HL Köln'].join('\n'));
   assert.deepEqual(s.map(x => `${x.street} ${x.number}`), ['Neusser Str. 11', 'Gereonsm... engasse 26']);
-  assert.deepEqual([s[0].name, s[0].express], ['Späti 2', '12:00']);
+  assert.deepEqual([s[0].name, s[0].express], ['Späti 2', '18:00']);
   const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'Gereonsmühlengasse 26, 50670 Köln': { lat: 50.944, lon: 6.945 }, '50670 Köln': { lat: 50.944, lon: 6.95 } };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, knownStreets: async () => ['Gereonsmühlengasse', 'Neusser Str.'] };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s[1]] }, deps);
@@ -152,7 +152,7 @@ test('real Apple Vision text (2026-10-08): the right column\'s "by 18:00" and PR
     '9 Krafthaus x1 08:22-10:22 18:00', // Jonah is on a photo without it, every slot read: not his
     '20 Jonah Stettner x1 08:26-10:26',
     '41 SCHULZ LINDA · Fabian Schleifer x2 08:29-10:29',
-    '33 Ströppche Concept Store x1 08:50-10:50 12:00 PRIO',
+    '33 Ströppche Concept Store x1 08:50-10:50 18:00 PRIO',
     '18 Artservice + Tube x1 10:00-12:00  10:00-18:30', // and not "50670HL Köln", a row cut off at the top
   ]);
 });
@@ -166,7 +166,7 @@ test('real "Out-for-delivery" screen (2026-10-09): the header\'s PRIO tally ("2 
   ].join('\n'));
   assert.deepEqual(s.map(x => `${x.street} ${x.number} ${x.name} ${x.code}${x.prio ? ' PRIO' : ''} ${x.express ?? ''}`.trim()), [
     'Adolf-Fischer-Str. 6 Emma Korschinsky G 5 T 387',
-    'Wickrather Str. 7 Werner Kühn G 4.1 T 388 PRIO 12:00',
+    'Wickrather Str. 7 Werner Kühn G 4.1 T 388 PRIO 18:00',
     'Wevelinghovener Str. 10 Kay G 4.1 T 388',
   ]);
 });
@@ -184,7 +184,7 @@ test('our OCR\'s positions: each right-column item joins the row it sits level w
   const text = rowOrder(lines);
   const s = parseStops(text);
   assert.deepEqual(s.map(x => `${x.number} ${x.name} ${x.slot} ${x.express ?? ''}${x.prio ? ' PRIO' : ''}`.trim()), [
-    '9 Krafthaus 08:22-10:22 18:00', '33 Ströppche Concept Store 08:50-10:50 12:00 PRIO', '33 Theresa Loschert 08:54-10:54']);
+    '9 Krafthaus 08:22-10:22 18:00', '33 Ströppche Concept Store 08:50-10:50 18:00 PRIO', '33 Theresa Loschert 08:54-10:54']);
   assert.deepEqual(columnTags([text], [s]), [s], 'nothing left to guess across photos');
 });
 

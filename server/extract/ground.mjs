@@ -11,14 +11,14 @@ export const fixNumber = s => String(s).replace(/[OoIl|](?=\d|$)|(?<=\d)[OoIl|]/
 /** Postcodes are all digits, so every look-alike is converted. */
 export const fixPostcode = s => String(s).replace(/[OoIl|SB]/g, c => DIGIT[c]).replace(/\D/g, '');
 
-// "PRIO" is this scanner's priority flag (= 12:00). A bare time is never a deadline: every row carries its
+// "PRIO" is this scanner's priority flag (due by 18:00). A bare time is never a deadline: every row carries its
 // planned slot ("09:11 11:11"), so a plain "08:30" would flag the first stop of the day as Express.
 const EXPRESS = /(?:express|dpd)\D{0,3}(\d{1,2})[:.](\d{2})|\b(prio)\b|\bexpress\b/i;
 
 function expressIn(block) {
   const m = block.match(EXPRESS);
   if (!m) return '';
-  const t = m[1] ? `${m[1].padStart(2, '0')}:${m[2]}` : m[3] ? '12:00' : '18:00';
+  const t = m[1] ? `${m[1].padStart(2, '0')}:${m[2]}` : '18:00';
   return EXPRESS_TIMES.includes(t) ? t : '18:00';
 }
 
@@ -63,6 +63,6 @@ export function ground(stops, text) {
     const pcAfterPrev = prev >= 0 ? t.slice(prev, at[i]).search(/\d{5}/) : -1;
     const head = t.slice(prev < 0 ? Math.max(0, at[i] - 200) : pcAfterPrev >= 0 ? prev + pcAfterPrev + 5 : prev, at[i]);
     const tail = t.slice(at[i], next);
-    return { ...out, express: /\bprio\b/.test(head) ? '12:00' : expressIn(tail.replace(/\bprio\b/g, '')) };
+    return { ...out, express: /\bprio\b/.test(head) ? '18:00' : expressIn(tail.replace(/\bprio\b/g, '')) };
   });
 }

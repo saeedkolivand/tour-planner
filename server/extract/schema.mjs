@@ -25,7 +25,7 @@ const NUMBER_AT_END = /^(.+?)\s+(\d+\s*[a-zA-Z]?(?:\s*-\s*\d+\s*[a-zA-Z]?)?)$/;
 /**
  * What the model returns, made usable in code rather than by prompting a small model harder:
  * - the house number often lands in the street ("Steinfelder Gasse 27", number "" or "27"): split it off;
- * - PRIO is the scanner's only Express marker: a deadline of 12:00. A picture never shows "Express 12:00", so an
+ * - PRIO is the scanner's only Express marker: due by 18:00. A picture never shows "Express 12:00", so an
  *   `express` the model inferred from the row's planned time slot is dropped (the OCR-text path keeps its own rule);
  * - a row without an address (cut off, a header) is dropped, not the whole photo.
  */
@@ -34,7 +34,7 @@ export function usable(stops, { fromImage = true } = {}) {
     const s = { ...raw, street: String(raw.street ?? '').trim(), number: String(raw.number ?? '').trim() };
     const m = NUMBER_AT_END.exec(s.street);
     if (m && (!s.number || s.number === m[2].replace(/\s+/g, ''))) { s.street = m[1].trim(); s.number = m[2].replace(/\s+/g, ''); }
-    if (fromImage) s.express = s.prio ? '12:00' : '';
+    if (fromImage) s.express = s.prio ? '18:00' : '';
     delete s.prio;
     // opening hours exist for shops only, and span more than the 2-hour planned slot the model likes to copy here
     if (s.opens && !(s.type === 'shop' && spanH(s.opens) > 2)) delete s.opens;

@@ -45,7 +45,7 @@ assert.equal(untruncate([{ street: 'Am K...hof', number: '1' }])[0].street, 'Am 
 // PRIO is the only Express marker in a photo, an inferred time is not
 const u = usable([{ street: 'Hohe Str.', number: '1', prio: true, express: '' }, { street: '', number: '' }, { street: 'Ring', number: 5, express: '08:30' },
   { street: 'Steinfelder Gasse 27', number: '' }, { street: 'Steinfelder Gasse 20-22', number: '20-22' }, { street: 'Cardinalstr. 5', number: '5' }]);
-assert.deepEqual(u.map(s => [s.street, s.number, s.express]), [['Hohe Str.', '1', '12:00'], ['Ring', '5', ''], ['Steinfelder Gasse', '27', ''], ['Steinfelder Gasse', '20-22', ''], ['Cardinalstr.', '5', '']]);
+assert.deepEqual(u.map(s => [s.street, s.number, s.express]), [['Hohe Str.', '1', '18:00'], ['Ring', '5', ''], ['Steinfelder Gasse', '27', ''], ['Steinfelder Gasse', '20-22', ''], ['Cardinalstr.', '5', '']]);
 assert.equal(usable([{ street: 'Ring', number: '5', express: '10:00' }], { fromImage: false })[0].express, '10:00', 'OCR text keeps its own express');
 // printed hours stay on a shop; the planned 2-hour slot copied into `opens` goes
 assert.equal(usable([{ street: 'Balthasarstr.', number: '65', type: 'shop', opens: '11:00-19:00' }])[0].opens, '11:00-19:00');
@@ -122,7 +122,7 @@ assert.equal(g[1].number, '271');
 // PRIO sits in the header above its street: the stop below gets it, the stop above does not
 const prioText = 'Gina Klein\n1\nSteinfelder Gasse 27\n50670HY Köln\nKatholische junge Gemeinde\nPRIO\n1\nSteinfelder Gasse 20-22\n50670HY Köln\nnetspirits GmbH\nIm Klapperhof 33\n50670ID Köln';
 const gp = ground([{ street: 'Steinfelder Gasse', number: '27', postcode: '50670HY' }, { street: 'Steinfelder Gasse', number: '20-22', postcode: '50670' }, { street: 'Im Klapperhof', number: '33', postcode: '50670' }], prioText);
-assert.deepEqual(gp.map(s => s.express), ['', '12:00', '']);
+assert.deepEqual(gp.map(s => s.express), ['', '18:00', '']);
 assert.equal(gp[0].postcode, '50670', 'the letters after the postcode are dropped');
 
 // a misread umlaut is retried with the other two; plain names give nothing to try
