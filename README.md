@@ -1,6 +1,6 @@
 # Tour Planner
 
-**[Landing page](https://saeedkolivand.github.io/tour-planner/)**, with a live demo of the planner.
+**[Landing page](https://tour-planner.iamsaeed.dev)**, with a live demo of the planner.
 
 Photograph a DPD scanner's stop list; get the fastest delivery order, grouped into park-and-walk stops, with loading numbers and one-tap navigation. The phone app (Expo / React Native, iPhone and Android) and a web app both use one self-hosted backend on a home PC, reached privately over Tailscale.
 
