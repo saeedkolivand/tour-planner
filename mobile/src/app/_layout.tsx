@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedSplash } from '@/components/splash/AnimatedSplash';
 import { TourProvider } from '@/features/tour/TourProvider';
 import { useAlerts } from '@/features/tour/useAlerts';
+import { useVisits } from '@/features/tour/useVisits';
 import { useLiveSurfaces } from '@/features/tour/useLiveSurfaces';
 import { NAV_THEME, THEME } from '@/lib/theme';
 import { haptic } from '@/shared/haptics';
@@ -24,6 +25,7 @@ const nav = log('nav');
 function LiveSurfaces() {
   useLiveSurfaces();
   useAlerts(); // Express reminders, arrival details
+  useVisits(); // where the van stops, for measuring the day
   return null;
 }
 

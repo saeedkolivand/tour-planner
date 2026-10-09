@@ -59,7 +59,7 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Start or re-plan the route from where you are.",
-          "locationAlwaysAndWhenInUsePermission": "Show the names, PRIO and time slot of a stop as you arrive there, even with the app in the background.",
+          "locationAlwaysAndWhenInUsePermission": "Show the names, PRIO and time slot of a stop as you arrive there, and measure where the van stops during a tour to plan better routes, even with the app in the background.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }

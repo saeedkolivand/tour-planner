@@ -290,7 +290,7 @@
     "expressAlerts": "Express-Erinnerungen",
     "expressAlertsHint": "Eine Mitteilung 30 und 10 Min. vor jeder offenen Express-Frist, vorgelesen, solange die App offen ist",
     "arrivalAlerts": "Ankunftsdetails",
-    "arrivalAlertsHint": "Bei Ankunft an einem Stopp: Namen, PRIO und Zeitfenster, ohne Blick auf den Scanner",
+    "arrivalAlertsHint": "Bei Ankunft an einem Stopp: Namen, PRIO und Zeitfenster, ohne Blick auf den Scanner. Während der Tour misst es auch, wo der Transporter hält, für bessere Routen",
     "expressScannedFooter": "Bei der Reihenfolge „Wie gescannt\" wird nichts umsortiert: Express-Stopps, die zu spät kommen, werden im Tab „Route\" markiert.",
     "logTitle": "Protokoll",
     "keepHistory": "Tourverlauf",
@@ -390,5 +390,9 @@
     "withPc": "Mit dem PC",
     "historyOn": "Verlauf wird aufbewahrt",
     "historyOff": "Kein Verlauf"
+  },
+  "visits": {
+    "title": "Tour Planner misst die Tour",
+    "body": "Wo der Transporter hält, damit Routen besser geplant werden"
   }
 }

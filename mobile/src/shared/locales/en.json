@@ -290,7 +290,7 @@
     "expressAlerts": "Express reminders",
     "expressAlertsHint": "A notification 30 and 10 min before each open Express deadline, read out while the app is open",
     "arrivalAlerts": "Arrival details",
-    "arrivalAlertsHint": "Arriving at a stop shows its names, PRIO and time slot, so you don't need the scanner",
+    "arrivalAlertsHint": "Arriving at a stop shows its names, PRIO and time slot, so you don't need the scanner. During a tour it also measures where the van stops, to plan better routes",
     "expressScannedFooter": "With the stop order \"As scanned\" nothing is re-ordered: Express stops that will be late are flagged on the Route tab.",
     "logTitle": "Log",
     "keepHistory": "Tour history",
@@ -390,5 +390,9 @@
     "withPc": "With the PC",
     "historyOn": "History kept",
     "historyOff": "No history"
+  },
+  "visits": {
+    "title": "Tour Planner is measuring the tour",
+    "body": "Where the van stops, so routes can be planned better"
   }
 }
