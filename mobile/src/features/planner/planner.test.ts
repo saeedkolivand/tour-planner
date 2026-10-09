@@ -7,7 +7,7 @@ import { columnTags, parseStops } from './parseText.ts';
 import { rowOrder } from './rowOrder.ts';
 import { dueSec, planOnPhone } from './planOnPhone.ts';
 import { alike, locate, nearbyNumbers, snapStreet, type Hit } from './locate.ts';
-import { descents, revisits, solveOrder, solveOrderAsync } from './solve.ts';
+import { descents, revisits, solveOrder, solveOrderAsync, strays } from './solve.ts';
 import { vroomOrder } from './vroom.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
@@ -505,4 +505,19 @@ test('the paused search finds the same order as the plain one, and lets timers r
   clearInterval(t);
   assert.ok(ticks > 0, 'the thread was handed back');
   assert.deepEqual(paused, solveOrder(m, undefined, { budgetMs: 0 }));
+});
+
+test('"improved": the scanner\'s order with local detours fixed; no stop moves more than the window, a deadline moves freely', () => {
+  const x = [0, 1, 2, 3, 4, 5, 6, 7, 8]; // points on a line; 0 is the start
+  const m = x.map(a => x.map(b => Math.abs(a - b) * 60));
+  const scanner = [8, 7, 6, 5, 4, 3, 2, 1]; // the long way round: unbounded, the solver would turn it around
+  const anchor = scanner.reduce((a, p, k) => { a[p] = k; return a; }, [0]);
+  assert.deepEqual(solveOrder(m, undefined, { budgetMs: 0 }), [1, 2, 3, 4, 5, 6, 7, 8]);
+  const kept = solveOrder(m, undefined, { anchor, window: 1, init: scanner, budgetMs: 200 });
+  assert.equal(strays(kept, anchor, 1), 0, 'the scanner\'s sequence stands');
+  const detour = [2, 1, 3, 4, 5, 6, 7, 8], a2 = detour.reduce((a, p, k) => { a[p] = k; return a; }, [0]);
+  assert.deepEqual(solveOrder(m, undefined, { anchor: a2, window: 1, init: detour, budgetMs: 200 }), [1, 2, 3, 4, 5, 6, 7, 8], 'a local detour is fixed');
+  const due = [null, 120, null, null, null, null, null, null, null]; // point 1 due 2 min in, last in the scanner's order
+  const first = solveOrder(m, undefined, { anchor, window: 1, init: scanner, due, budgetMs: 200 });
+  assert.equal(first[0], 1, 'the deadline is kept, outside the window');
 });

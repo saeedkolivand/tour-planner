@@ -270,6 +270,8 @@
     "updateHintAndroid": "Eine neuere Version ist da. APK laden und öffnen, um sie über diese App zu installieren.",
     "updateHintIos": "Eine neuere Version ist da. Lade die .ipa von der Release-Seite auf deinen PC und installiere sie mit Sideloadly.",
     "stopOrder": "Reihenfolge",
+    "orderImproved": "Verbessert",
+    "orderImprovedFooter": "Die Reihenfolge des Scanners, nur Umwege in der Nähe korrigiert: ein Parkstopp rückt höchstens 3 Plätze, die Gebiete bleiben in der Reihenfolge des Scanners. Gruppiert in Parkstopps. Gilt ab der nächsten Planung.",
     "orderFastest": "Schnellste",
     "orderScanned": "Wie gescannt",
     "orderFastestFooter": "Die App plant die schnellste Reihenfolge, gruppiert in Parkstopps. Gilt ab der nächsten Planung.",

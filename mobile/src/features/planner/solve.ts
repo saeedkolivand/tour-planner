@@ -3,7 +3,9 @@
 // search): cut the best route in four and swap the middle pieces, polish, keep it if it's better. Driving time is
 // minimised; Express (ADR 0005): arriving after a deadline costs 20x the lateness. Two driver preferences on top
 // (ADR 0006): coming back to a stretch of street already left costs REVISIT_SEC, and with "Express first" no
-// ordinary stop may come before an Express one.
+// ordinary stop may come before an Express one. With an `anchor` (the scanner's order), a point may move at most
+// `window` places from its place there: the scanner's area-by-area sequence stands, only local detours are fixed
+// (drivers finish an area before the next; Amazon routing challenge 2021). A point with a deadline moves freely.
 // ponytail: fixed time budget (the phone plans with 10 s, planOnPhone SEARCH_MS), not VROOM's full metaheuristic.
 
 /** What driving a stretch of street twice is worth avoiding: a re-visit has to save more than this to be planned. */
@@ -30,10 +32,15 @@ export function descents(route: number[], rank: number[]) {
   return n;
 }
 
-export type OrderOptions = { service?: number[]; due?: (number | null)[]; rank?: number[]; mates?: number[][] };
+export type OrderOptions = { service?: number[]; due?: (number | null)[]; rank?: number[]; mates?: number[][]; anchor?: number[]; window?: number };
+
+/** How many points sit more than `window` places from their place in `anchor` (points with a deadline excepted). */
+export function strays(route: number[], anchor: number[], window: number, due: (number | null)[] = []) {
+  return route.reduce((n, p, k) => n + (due[p] == null && Math.abs(k - anchor[p]) > window ? 1 : 0), 0);
+}
 
 /** What a route (the points between start and end) costs by the rules above: lower is better. */
-export function routeCost(m: number[][], end: number | undefined, { service = [], due = [], rank = [], mates = [] }: OrderOptions = {}) {
+export function routeCost(m: number[][], end: number | undefined, { service = [], due = [], rank = [], mates = [], anchor, window = 0 }: OrderOptions = {}) {
   const deadlines = due.some(d => d != null);
   const streets = mates.some(x => x.length), ranked = rank.some(r => r);
   return (r: number[]) => {
@@ -46,7 +53,8 @@ export function routeCost(m: number[][], end: number | undefined, { service = []
       const d = due[p[i]];
       if (d != null && clock > d) late += clock - d;
     }
-    return drive + 20 * late + (streets ? REVISIT_SEC * revisits(r, mates) : 0) + (ranked ? RANK_PENALTY * descents(r, rank) : 0);
+    return drive + 20 * late + (streets ? REVISIT_SEC * revisits(r, mates) : 0) + (ranked ? RANK_PENALTY * descents(r, rank) : 0)
+      + (anchor ? RANK_PENALTY * strays(r, anchor, window, due) : 0);
   };
 }
 

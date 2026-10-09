@@ -51,7 +51,7 @@ export interface Settings {
   leaveAt: string;
   /** 'walk': stops within 80 m share a parking spot (park & walk). 'drive': drive up to nearly every door, only next-door stops share. */
   routeStyle: RouteStyle;
-  /** 'fastest': the planner's order. 'scanned': the scanner list's order as captured, nothing re-ordered. */
+  /** 'improved': the scanner's order, local detours fixed. 'fastest': the planner's own order. 'scanned': the scanner list's order as captured, nothing re-ordered. */
   stopOrder: StopOrder;
   /** Both sides of a street in one pass (stop on the van's side, cross on foot); off = always the door's kerb side. */
   bothSides: boolean;
@@ -67,7 +67,7 @@ export interface Settings {
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', geoapifyKey: '', expressAlerts: true, arrivalAlerts: true, expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'fastest', bothSides: true, detailedLog: false, keepHistory: true };
+const DEFAULTS: Settings = { server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', geoapifyKey: '', expressAlerts: true, arrivalAlerts: true, expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'improved', bothSides: true, detailedLog: false, keepHistory: true };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);

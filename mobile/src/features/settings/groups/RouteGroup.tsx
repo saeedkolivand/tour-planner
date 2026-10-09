@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/text';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
-import { StopOrderPicker } from '@/features/settings/components/StopOrderPicker';
+import { ORDER_TEXT, StopOrderPicker } from '@/features/settings/components/StopOrderPicker';
 import { setSettings, useSettings } from '@/features/settings/settings';
 import { useTranslation } from '@/shared/i18n';
 
@@ -30,7 +30,7 @@ export function RouteGroup() {
         </View>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.stopOrder')} footer={s.stopOrder === 'scanned' ? t('settings.orderScannedFooter') : t('settings.orderFastestFooter')}>
+      <SettingsSection title={t('settings.stopOrder')} footer={t(ORDER_TEXT[s.stopOrder].footer)}>
         <StopOrderPicker value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
       </SettingsSection>
 

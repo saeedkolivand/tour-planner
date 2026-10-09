@@ -28,6 +28,9 @@ export type PlanProgress = (stage: 'places' | 'roadTimes' | 'ordering', done?: n
 
 /** How long the phone searches for a better order (see the bench note at the search). */
 export const SEARCH_MS = 10_000;
+/** "improved": how far a parking stop may move from its place in the scanner's order. Bench on 2026-10-09's real
+ * 38 parking stops (drive between them): scanner 40.6 min, window 1 38.9, 2 36.7, 3 36.2, 8 35.5, unbounded 31.1. */
+export const IMPROVE_WINDOW = 3;
 
 const complete = (s: Stop) => !!(s.street?.trim() && String(s.number ?? '').trim());
 
@@ -121,20 +124,25 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     return d.length ? Math.min(...d) : null;
   })];
   const rank = req.expressFirst ? [0, ...groups.map(g => (g.stops.some(s => s.express) ? 0 : 1)), 0] : [];
+  // the scanner's order (as captured): what "you save" compares against, and what "improved" starts from
+  const firstSeen = [...new Set(placed.map(s => groups.findIndex(g => g.stops.includes(s)) + 1))];
+  // "improved": the scanner's order with local detours fixed; a parking stop moves at most IMPROVE_WINDOW places
+  const improved = req.order === 'improved';
+  const anchor = improved ? firstSeen.reduce((a, p, k) => { a[p] = k; return a; }, [0]) : undefined;
   progress('ordering');
-  const rules = { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []] };
+  const rules = { service: [0, ...groups.map(g => g.service)], due, rank, mates: [[], ...streetMates(groups).map(ms => ms.map(j => j + 1)), []], anchor, window: IMPROVE_WINDOW };
   // VROOM's order (OpenRouteService, with a key) as the starting point, then the phone's own search on our road times:
   // what the PC does. Bench on three real 60-stop tours at interpreter speed (2026-10-08): 1.5 s from nearest-neighbour
   // was 4-7 min a day off the best found, 10 s 1-4 min, 10 s from VROOM's order 0-2 min.
   let seed: number[] | undefined;
-  if (!scanned && deps.optimize) {
+  if (!scanned && !improved && deps.optimize) {
     const theirs = await deps.optimize({ start, end, stops: groups.map((g, i) => ({ ...g.park, service: g.service, due: due[i + 1] ?? null })) })
       .catch(e => { note('VROOM unavailable', { error: (e as Error).message }); return null; });
     // "Express first" as the PC does it: VROOM's order with the Express parking stops moved to the front
     if (theirs?.length === groups.length && new Set(theirs).size === groups.length && theirs.every(i => i >= 1 && i <= groups.length)) seed = [...theirs.filter(i => !rank[i]), ...theirs.filter(i => rank[i])];
     else if (theirs) note('VROOM answer ignored', { got: theirs.length, want: groups.length });
   }
-  const order = scanned ? groups.map((_, i) => i + 1) : await solveOrderAsync(m.seconds, endIdx, { ...rules, init: seed, budgetMs: SEARCH_MS });
+  const order = scanned ? groups.map((_, i) => i + 1) : await solveOrderAsync(m.seconds, endIdx, { ...rules, init: improved ? firstSeen : seed, budgetMs: SEARCH_MS });
   if (seed) { const cost = routeCost(m.seconds, endIdx, rules); note('order from VROOM, polished', { vroomMin: Math.round(cost(seed) / 60), finalMin: Math.round(cost(order) / 60) }); }
 
   let t = 0, km = 0, at = 0, served = 0;
@@ -147,9 +155,7 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
   });
   if (endIdx != null) { t += m.seconds[at][endIdx]; km += m.meters[at][endIdx] / 1000; }
 
-  // the scanner's order (as captured), same matrix and same stop time: what "you save" compares against
-  // (nothing to compare when the plan is that order)
-  const firstSeen = [...new Set(placed.map(s => groups.findIndex(g => g.stops.includes(s)) + 1))];
+  // the scanner's order, same matrix and same stop time (nothing to compare when the plan is that order)
   const path = [0, ...firstSeen, ...(endIdx != null ? [endIdx] : [])];
   const base = path.slice(1).reduce((a, p, i) => ({ s: a.s + m.seconds[path[i]][p], km: a.km + m.meters[path[i]][p] / 1000 }), { s: 0, km: 0 });
 

@@ -270,6 +270,8 @@
     "updateHintAndroid": "A newer release is out. Download the APK and open it to install over this app.",
     "updateHintIos": "A newer release is out. Download the .ipa from the release page on your PC and sideload it with Sideloadly.",
     "stopOrder": "Stop order",
+    "orderImproved": "Improved",
+    "orderImprovedFooter": "The scanner's order with the detours nearby fixed: a parking stop moves at most 3 places, so the scanner's area-by-area route stays. Grouped into parking stops. Takes effect at the next plan.",
     "orderFastest": "Fastest",
     "orderScanned": "As scanned",
     "orderFastestFooter": "The app plans the quickest order, grouped into parking stops. Takes effect at the next plan.",
