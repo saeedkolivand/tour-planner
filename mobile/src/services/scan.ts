@@ -2,7 +2,7 @@ import { requireOptionalNativeModule } from 'expo';
 import * as ImagePicker from 'expo-image-picker';
 import { recognize } from '../../modules/scanner-ocr';
 import { rowOrder } from '@/features/planner/rowOrder';
-import { getSettings, noPc } from '@/features/settings/settings';
+import { getSettings, noPc, type Settings } from '@/features/settings/settings';
 import type { ScanInput } from '@/features/tour/api';
 import { log } from '@/shared/log';
 import { t } from '@/shared/i18n';
@@ -14,6 +14,8 @@ const L = log('scan');
 // web), and there the photo itself goes to the server, which reads it with its vision model.
 const Ocr = requireOptionalNativeModule<{ isSupported: boolean; extractTextFromImage(path: string): Promise<string[]> }>('ExpoTextExtractor');
 export const onDeviceOcr = !!recognize || !!Ocr?.isSupported;
+/** Photos are read on this phone unless the PC is in use and "Read photos on my PC" is on (phone-only ignores it). */
+export const readsOnPhone = (s: Settings = getSettings()) => onDeviceOcr && !(s.serverOcr && !noPc(s));
 // ponytail: expo-text-extractor stays as the fallback until our module has read a few real tours; then drop it
 const plain = (uri: string) => Ocr!.extractTextFromImage(uri.replace('file://', '')).then(l => l.join('\n'));
 const read = (uri: string) => (recognize
@@ -44,11 +46,10 @@ async function toDataUrl(uri: string): Promise<string> {
  * `onRead(done)` after each photo, for a "3 of 12" line: a dozen screenshots take a while.
  */
 export async function readPhotos(uris: string[], onRead: (done: number) => void = () => {}): Promise<ScanInput> {
-  // ponytail: the PC reads photos only when it is in use at all; phone-only mode ignores the toggle
   const toPc = getSettings().serverOcr && !noPc();
   let done = 0;
   const each = <T,>(fn: (uri: string) => Promise<T>) => Promise.all(uris.map(async uri => { const r = await fn(uri); onRead(++done); return r; }));
-  if (onDeviceOcr && !toPc) {
+  if (readsOnPhone()) {
     const t0 = Date.now();
     const texts = await each(ocr);
     L.info('on-device OCR', { photos: texts.length, lines: texts.map(t => t.split('\n').length), ms: Date.now() - t0, texts });

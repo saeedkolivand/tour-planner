@@ -32,7 +32,7 @@ export function DaySummaryCard({ s, title }: { s: DaySummary; title?: string }) 
       )}
       {s.express > 0 && (
         <Line icon={Zap} warn={missed > 0}>
-          {missed ? `${t('history.expressMissed', { n: missed, total: s.express })}: ${s.expressMissed.map(x => `${x.street} ${x.number}`).join(', ')}`
+          {missed ? `${t('history.expressMissed', { n: missed, total: s.express })}: ${s.expressMissed.slice(0, 3).map(x => `${x.street} ${x.number}`).join(', ')}${missed > 3 ? ` ${t('history.more', { n: missed - 3 })}` : ''}`
             : t('history.expressOk', { n: s.express })}
         </Line>
       )}

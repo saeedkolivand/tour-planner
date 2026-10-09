@@ -6,15 +6,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useSettings } from '@/features/settings/settings';
-import { onDeviceOcr } from '@/services/scan';
+import { readsOnPhone } from '@/services/scan';
 
 /** The first thing on screen: photograph the scanner list (or pick screenshots). */
 export function CaptureCard({ onCamera, onLibrary, busy, message }: {
   onCamera(): void; onLibrary(): void; busy: boolean; message?: string;
 }) {
   const { t } = useTranslation();
-  const { serverOcr } = useSettings();
-  const onPhone = onDeviceOcr && !serverOcr;
+  const onPhone = readsOnPhone(useSettings());
   return (
     <Card className="border-0 bg-primary py-5">
       <CardContent className="gap-4 px-5">
