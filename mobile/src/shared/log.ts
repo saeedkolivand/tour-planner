@@ -30,6 +30,7 @@ export function log(scope: string): Logger {
 }
 
 async function send(entries: Entry[]) {
+  if (!getSettings().server.trim()) return; // phone only: nowhere to send, logFile.ts keeps every entry
   const r = await fetch(getSettings().server.replace(/\/$/, '') + '/log', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -42,7 +43,11 @@ async function send(entries: Entry[]) {
 export async function startLogging() {
   if (queue) return;
   const saved = await storage.getItem(KEY).then(v => (v ? JSON.parse(v) : []) as Entry[]).catch(() => []);
-  queue = createLogQueue({ send, persist: q => storage.setItem(KEY, JSON.stringify(q)) }, saved);
+  // the whole unsent queue is rewritten on save: once per burst, not per entry (a day without the PC is ~1 MB)
+  let unsaved: Entry[] | null = null, saveTimer: ReturnType<typeof setTimeout> | undefined;
+  const save = () => { clearTimeout(saveTimer); if (unsaved) storage.setItem(KEY, JSON.stringify(unsaved)).catch(() => {}); unsaved = null; };
+  const persist = async (q: Entry[]) => { unsaved = q; clearTimeout(saveTimer); saveTimer = setTimeout(save, 2000); };
+  queue = createLogQueue({ send, persist }, saved);
   seedLogFile(saved);
   early.splice(0).forEach(([level, scope, msg, data]) => appendToLogFile(queue!.add(level, scope, msg, data)));
 
@@ -52,13 +57,15 @@ export async function startLogging() {
   ErrorUtils.setGlobalHandler((e, isFatal) => {
     L.error(isFatal ? 'fatal crash' : 'uncaught error', e);
     flushLogFile();
+    save();
     queue!.flush().finally(() => prev(e, isFatal));
   });
 
-  setInterval(() => queue!.flush(), 10_000);
+  // foreground only: in the background (alive for the location task) entries wait, saved, for the next return
+  setInterval(() => { if (AppState.currentState === 'active') queue!.flush(); }, 10_000);
   AppState.addEventListener('change', state => {
     L.info('app state', { state });
-    if (state !== 'active') { flushLogFile(); queue!.flush(); } // keep and ship before iOS suspends us
+    if (state !== 'active') { flushLogFile(); save(); queue!.flush(); } // keep and ship before iOS suspends us
   });
   L.info('app started', { os: Platform.OS, osVersion: String(Platform.Version), unsentFromLastRun: saved.length });
   queue.flush();

@@ -68,6 +68,7 @@ export default function RouteScreen() {
   const plan = usePlanning();
   const settings = useSettings();
   const scanned = settings.stopOrder === 'scanned';
+  const numbered = useMemo(() => tour.stops.filter(s => s.no != null), [tour.stops]); // stable for the memoized map
   const nextKeys = useMemo(() => new Set(view?.next?.stops.map(s => s.key)), [view]);
   // the day in numbers once the last stop is delivered (the same figures Past deliveries keeps)
   const done = !!tour.plan && !!view && !view.next;
@@ -128,7 +129,7 @@ export default function RouteScreen() {
             {/* the live copies: an address fixed since the plan shows as fixed, a tick shows as done */}
             <NotPlannedSection stops={p.ungeocoded.map(u => ({ ...u, ...tour.stops.find(s => s.key && s.key === u.key) }))}
               onEdit={s => s.key && setEditing(s.key)} onNavigate={navigateAddress} onToggle={toggleStop} />
-            <RouteMap start={p.start} stops={tour.stops.filter(s => s.no != null)} nextKeys={nextKeys} onMove={store.pin} />
+            <RouteMap start={p.start} stops={numbered} nextKeys={nextKeys} onMove={store.pin} />
             {view.upcoming.length > 0 && <Label>{t('route.upNext')}</Label>}
             {tour.stops.some(s => s.seq != null) ? (
               <Text className="text-muted-foreground -mt-2 text-xs">

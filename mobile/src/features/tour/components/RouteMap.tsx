@@ -42,7 +42,8 @@ export const RouteMap = memo(function RouteMap({ start, stops, nextKeys, onMove 
         {placed.map(x => {
           const next = nextKeys.has(x.key);
           return (
-            <Marker key={x.key} draggable coordinate={ll(x)} zIndex={next ? 10 : x.done ? 0 : 1}
+            // ponytail: a pin's look is drawn once (tracking 100+ custom views redraws them all the time); a new look is a new key
+            <Marker key={`${x.key}|${next}|${x.done}|${x.no}`} tracksViewChanges={false} draggable coordinate={ll(x)} zIndex={next ? 10 : x.done ? 0 : 1}
               title={`#${x.no}  ${x.street} ${x.number}`} description={t('map.dragHint')}
               onDragEnd={e => onMove(x, { lat: e.nativeEvent.coordinate.latitude, lon: e.nativeEvent.coordinate.longitude })}>
               <View className={cn('items-center justify-center rounded-full border-2 border-white',
