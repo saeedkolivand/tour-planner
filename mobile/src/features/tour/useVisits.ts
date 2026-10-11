@@ -16,17 +16,21 @@ import { type Fix, type Still, step } from './visits';
 
 const L = log('visits');
 const TASK = 'visits', STATE = 'visits-v1';
+// kept in memory while the app lives; storage only for a relaunch (iOS restarts the app for the task)
+let mem: { still?: Still | null; prev?: Fix | null } | null = null;
 
 if (Platform.OS !== 'web') TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ data, error }) => {
   if (error || !data?.locations?.length) return;
-  let { still, prev } = JSON.parse((await storage.getItem(STATE)) ?? '{}') as { still?: Still | null; prev?: Fix | null };
+  let { still, prev } = mem ?? (JSON.parse((await storage.getItem(STATE)) ?? '{}') as NonNullable<typeof mem>);
   for (const l of data.locations) {
     const fix: Fix = { t: l.timestamp, lat: l.coords.latitude, lon: l.coords.longitude, speed: l.coords.speed };
     const r = step(still ?? null, prev ?? null, fix);
     if (r.visit) L.info('stopped', { from: new Date(r.visit.from).toISOString(), min: r.visit.min, lat: +r.visit.lat.toFixed(6), lon: +r.visit.lon.toFixed(6) });
+    // a standing van only moves `last`: written when it starts or stops standing, not on every fix
+    if (!!r.still !== !!still || r.visit) await storage.setItem(STATE, JSON.stringify({ still: r.still, prev: fix })).catch(() => {});
     still = r.still; prev = fix;
   }
-  await storage.setItem(STATE, JSON.stringify({ still, prev })).catch(() => {});
+  mem = { still, prev };
 });
 
 export function useVisits() {
@@ -40,6 +44,7 @@ async function start() {
   if (Platform.OS === 'web' || await Location.hasStartedLocationUpdatesAsync(TASK)) return;
   if (!(await Location.getBackgroundPermissionsAsync()).granted) return; // asked for by arrival details
   await storage.removeItem(STATE);
+  mem = null;
   await Location.startLocationUpdatesAsync(TASK, {
     accuracy: Location.Accuracy.High, distanceInterval: 10, activityType: Location.ActivityType.AutomotiveNavigation,
     pausesUpdatesAutomatically: false, showsBackgroundLocationIndicator: false,
