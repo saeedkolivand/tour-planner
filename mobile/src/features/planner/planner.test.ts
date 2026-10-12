@@ -521,3 +521,10 @@ test('"improved": the scanner\'s order with local detours fixed; no stop moves m
   const first = solveOrder(m, undefined, { anchor, window: 1, init: scanner, due, budgetMs: 200 });
   assert.equal(first[0], 1, 'the deadline is kept, outside the window');
 });
+
+test('real "Out-for-delivery" screen (2026-10-12): the header\'s stray numbers are no parcel count, "1/1" is', () => {
+  const s = parseStops(['[rows]', '550', '09:20', 'Out-for-delivery | T550 | 12. Oct', '00000AA', '50670IC', '50', '50670IE', 'G 16 T 387',
+    'Unknown area.', '160 / 160', '6 / 6 PRIO', '0/0', '56 / 56', 'Christina Ruffert', '1/1', 'Schillingstr. 41', '00000AA Köln',
+    'Unknown area', 'Derde Naasan', '0 / 2', 'Im Klapperhof 48', '50670IC Köln', 'G 16 T 387'].join('\n'));
+  assert.deepEqual(s.map(x => x.parcels), [1, 2]);
+});
