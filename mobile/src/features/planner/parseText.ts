@@ -23,7 +23,7 @@ const TRAILER = /^(?:\d{5}(?:[A-Za-z][A-Za-z0-9]?|\d[A-Za-z])?\b|G\s?\d+(?:[.,]\
 const PC_LINE = /^(\d[\dBOIl]{4})([A-Za-z\d]{0,2})(?=\s+\p{L}|$)/u;
 const fixPostcode = (l: string) => l.replace(PC_LINE, (_, d: string, a: string) =>
   d.replace(/B/g, '8').replace(/O/g, '0').replace(/[Il]/g, '1') + a.toUpperCase().replace(/1/g, 'I').replace(/0/g, 'O').replace(/8/g, 'B'));
-const COUNT = /^\d{1,2}$/;
+const COUNT = /^(?:\d{1,2}\s*\/\s*)?(\d{1,2})$/; // "2", or "0 / 2" (delivered / parcels)
 // the "Out-for-delivery" screen's header counts the tour's PRIO parcels ("2 / 2 PRIO"); a row's PRIO is the word alone
 const PRIO_TALLY = /^\d+\s*\/\s*\d+\s*prio$/i;
 const TIME = /^\d{1,2}[:.]\d{2}(?:\s*[-–]\s*\d{1,2}[:.]\d{2})?$/;
@@ -97,11 +97,13 @@ export function parseStops(text: string): Stop[] {
     const tail = lines.slice(i, trailerEnd[k]).join('\n');
     const read = POSTCODE.exec(tail), code = ROUTE_CODE.exec(tail);
     const pc = read?.[1] === '00000' ? null : read; // "00000AA": the scanner's "Unknown area", not a postcode 9 km away
-    const count = head.find(l => COUNT.test(l));
     const parcelsText = /(\d{1,2})\s*(?:pakete|packst|colli|stk|pcs|x\s*paket)/i.exec(tail);
     // not a row cut off at the photo's top ("50670HJ Köln", "506/OIL Köln"), nor the column's "by 18:00"
-    const name = head.find(l => !COUNT.test(l) && !TIME.test(l) && !TAG.test(l) && !TRAILER.test(l) && !/^\d{3}/.test(l) && /\p{L}{3}/u.test(l))
-      ?.replace(/^[^\p{L}\d]+/u, ''); // "• Tim Probst": the scanner marks the current row
+    const nameLine = head.find(l => !COUNT.test(l) && !TIME.test(l) && !TAG.test(l) && !TRAILER.test(l) && !/^\d{3}/.test(l) && /\p{L}{3}/u.test(l));
+    const name = nameLine?.replace(/^[^\p{L}\d]+/u, ''); // "• Tim Probst": the scanner marks the current row
+    // the count sits between the name and the street ("1/1" on "Out-for-delivery"); the header's stray numbers ("50",
+    // "87") and tallies ("56 / 56") above the name are not it (2026-10-12: 50-101 parcels -> a 887-min plan)
+    const count = nameLine === undefined ? undefined : head.slice(head.indexOf(nameLine) + 1).map(l => COUNT.exec(l)?.[1]).filter(Boolean).pop();
     const hours = head.map(l => /^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/.exec(l)).find(Boolean);
     const express = expressIn(head.join('\n'), tail, rows);
     const block = `${name ?? ''}\n${tail}`;
