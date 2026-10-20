@@ -528,3 +528,10 @@ test('real "Out-for-delivery" screen (2026-10-12): the header\'s stray numbers a
     'Unknown area', 'Ole Muster', '0 / 2', 'Im Klapperhof 48', '50670IC Köln', 'G 16 T 387'].join('\n'));
   assert.deepEqual(s.map(x => x.parcels), [1, 2]);
 });
+
+test('real duplicates (2026-10-15/20): a postcode one digit off and OCR\'s "sir"/"stf"/"Sif" for "str" merge; two towns still don\'t', () => {
+  const d = dedupe([s('Weißenburgsir.', '29', { postcode: '50870' }), s('Weißenburgstr.', '29', { postcode: '50670' }), s('Klingelpütz', '70', { postcode: '50679' }),
+    s('Klingelpütz', '70', { postcode: '50670' }), s('Kasparstf', '47'), s('Kasparstr.', '47'), s('Adolf Fischer Sif', '19'), s('Adolf-Fischer-Str.', '19')]);
+  assert.deepEqual(d.map(x => x.key), ['weissenburgstr|29|50870', 'klingelpuetz|70|50679', 'kasparstr|47|50667', 'adolffischerstr|19|50667']);
+  assert.equal(dedupe([s('Kölner Str.', '12', { postcode: '50226' }), s('Kölner Str.', '12', { postcode: '50354' })]).length, 2);
+});

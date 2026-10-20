@@ -21,6 +21,7 @@ const L = log('alerts');
 const TASK = 'arrival', TEXTS = 'arrival-v1', CHANNEL = 'alerts';
 // ponytail: iOS watches at most 20 regions and only reliably from ~100 m; the next 18 parking stops, re-set on every change
 const AHEAD = 18, RADIUS_M = 100;
+let fencing = Promise.resolve();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
@@ -57,7 +58,12 @@ export function useAlerts() {
   const view = useMemo(() => routeView(tour), [tour]);
   const ahead = arrivalAlerts && view?.next ? [view.next, ...view.upcoming.map(u => u.cluster)].slice(0, AHEAD) : [];
   const fenceKey = ahead.map(c => c.stops[0].key).join();
-  useEffect(() => { syncFences(ahead).catch(e => L.warn('arrival alerts failed', { error: e })); }, [fenceKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // two quick "delivered" taps restarted the fences twice at once and iOS crashed in the geofence task (2026-10-15):
+  // settle for 2 s, and one restart at a time
+  useEffect(() => {
+    const t = setTimeout(() => { fencing = fencing.then(() => syncFences(ahead)).catch(e => L.warn('arrival alerts failed', { error: e })); }, 2000);
+    return () => clearTimeout(t);
+  }, [fenceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // read out while the app is open (in the van it usually is; the notification sounds otherwise); German, so street
   // names come out right

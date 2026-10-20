@@ -2,10 +2,11 @@
 // so a tour planned on the phone and one planned on the PC key and group stops alike.
 import type { Cluster, LatLon, Stop } from '../tour/types.ts';
 
-/** "Hohe Straße" and "hohe str." compare equal; NFC first, or a decomposed "ü" slips past. */
+/** "Hohe Straße" and "hohe str." compare equal; NFC first, or a decomposed "ü" slips past. OCR's misread "str"
+ * ("Kasparstf", "Weißenburgsir", "Adolf Fischer Sif") is "str" too. */
 export const fold = (s: string) => String(s ?? '').normalize('NFC').toLowerCase()
   .replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
-  .replace(/strasse\b|str\b\.?/g, 'str').replace(/[^a-z0-9]/g, '');
+  .replace(/strasse\b|(?:str|stf|sir|sif)\b\.?/g, 'str').replace(/[^a-z0-9]/g, '');
 
 /** OCR drops umlauts ("Lubecker Str." for Lübecker): for comparing only, "ue" and "u" are one letter. Keys keep `fold`. */
 export const bare = (s: string) => fold(s).replace(/([aou])e/g, '$1');
@@ -13,6 +14,8 @@ export const bare = (s: string) => fold(s).replace(/([aou])e/g, '$1');
 const address = (s: Stop) => `${fold(s.street)}|${String(s.number).toLowerCase().replace(/\s/g, '')}`;
 const loose = (s: Stop) => `${bare(s.street)}|${String(s.number).toLowerCase().replace(/\s/g, '')}`;
 const plz = (s: Stop) => String(s.postcode ?? '').replace(/\D/g, '');
+/** OCR misreads a postcode digit (Klingelpütz 70 as 50670 and 50679): one digit apart is the same; Kölner Str. 12 in 50226 and 50354 is not. */
+const samePlz = (a: string, b: string) => !a || !b || [...a].filter((d, i) => d !== b[i]).length + Math.abs(a.length - b.length) <= 1;
 export const stopKey = (s: Stop) => address(s) + (plz(s) ? `|${plz(s)}` : '');
 
 /** OCR and vision models swap umlauts now and then ("Kämpchenshof" for Kümpchenshof): the same name with each umlaut swapped. */
@@ -28,12 +31,13 @@ export function umlautVariants(street: string): string[] {
 /**
  * Overlapping photos show a row twice: keep the first, never sum its parcels; two postcodes stay two stops. Two rows at
  * one door ("Ströppche Concept Store", "Eva Fiktiv") are one stop with both names and both parcels.
+ * A postcode one digit off is a misread: the first copy's postcode and key stay.
  * ponytail: a name is "the same" by its first 4 letters, enough to absorb a misread surname.
  */
 export function dedupe(stops: Stop[]): Stop[] {
   const out: Stop[] = [];
   for (const s of stops) {
-    const had = out.find(o => loose(o) === loose(s) &&(!plz(o) || !plz(s) || plz(o) === plz(s)));
+    const had = out.find(o => loose(o) === loose(s) && samePlz(plz(o), plz(s)));
     if (!had) { out.push({ ...s, key: s.key ?? stopKey(s) }); continue; }
     const first4 = (n: string) => bare(n).replace(/^\d+/, '').slice(0, 4); // "1 Getränke Ucar": a count glued on
     const other = !!s.name && !!had.name && !had.name.split(' · ').some(n => first4(n) === first4(s.name!));
