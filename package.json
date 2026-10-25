@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.132.1",
+    "@anthropic-ai/sdk": "^0.135.0",
     "pino": "^10.4.0",
     "pino-roll": "^4.0.0"
   },
