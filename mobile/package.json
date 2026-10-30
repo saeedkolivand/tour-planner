@@ -16,6 +16,7 @@
     "@rn-primitives/switch": "^1.5.2",
     "@rn-primitives/toggle": "^1.5.2",
     "@rn-primitives/toggle-group": "^1.5.2",
+    "babel-preset-expo": "~58.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "~58.0.21",
