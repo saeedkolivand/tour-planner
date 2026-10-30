@@ -21,7 +21,9 @@
           "comgooglemaps",
           "waze"
         ],
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       }
     },
     "android": {
@@ -46,13 +48,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Pick screenshots of the scanner's stop list.",
-          "cameraPermission": "Photograph the scanner's stop list to read the addresses."
+          "cameraPermission": "Photograph the scanner's stop list, and where to leave the goods at a customer."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Photograph the scanner's stop list and scan parcel labels.",
+          "cameraPermission": "Photograph the scanner's stop list, scan parcel labels, and photograph where to leave the goods at a customer.",
           "recordAudioAndroid": false
         }
       ],

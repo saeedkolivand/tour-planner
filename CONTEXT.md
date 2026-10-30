@@ -1,7 +1,11 @@
 # Glossary
 
 - **Tour**: one driver's deliveries for one day. Shared by the web app and the iOS app.
+- **Company**: who the driver delivers for (DPD, PHOENIX). Chosen once in Settings; it decides how the scanner screen is read, which stop types exist and what a deadline means. Never guessed from a photo.
+- **Bahnhof**: PHOENIX's loading lane at the depot for one tour number; every PHOENIX tour starts there.
 - **Stop**: one address to deliver to, pick up from, or supply. Identified by street + house number, so the same address photographed twice is one stop.
+- **Customer**: a place delivered to again and again (a pharmacy, for PHOENIX), remembered across days and tours. A stop is one visit to a customer on one tour.
+- **Access note**: how to get the goods in at a customer (night box, key safe, back door, gate), as door photos plus a short free text. Kept on the phone only: it can hold codes.
 - **Parcel**: one package. A stop can have several.
 - **Stop type**: *private*, *business* (company or trade), *pickup* (Abholung / Retoure), or *Paketshop* (a DPD Pickup shop or parcel station being supplied). It decides the service time.
 - **Service time**: minutes spent at a stop, from its type plus 30 s per extra parcel.

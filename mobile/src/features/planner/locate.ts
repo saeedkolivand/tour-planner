@@ -34,7 +34,7 @@ export function holds(text: string, street: string) {
   const a = bare(m[1]), b = bare(m[2]), i = t.indexOf(a);
   return a.length >= 3 && i >= 0 && t.indexOf(b, i + a.length) >= 0;
 }
-function editDistance(a: string, b: string) {
+export function editDistance(a: string, b: string) {
   let prev = [...Array(b.length + 1).keys()];
   for (let i = 1; i <= a.length; i++) {
     const cur = [i];
