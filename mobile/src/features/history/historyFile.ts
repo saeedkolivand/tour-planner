@@ -41,7 +41,7 @@ export function flushHistory() {
     if (!day || day === prev) return;
     const f = new File(folder(), `${day.date}.json`);
     if (!f.exists) f.create();
-    f.write(JSON.stringify(day));
+    f.writeSync(JSON.stringify(day));
     for (const old of files.slice(0, Math.max(0, files.length + (last?.name === f.name ? 0 : 1) - DAYS_KEPT))) old.delete();
   } catch { /* full disk: the tour itself is saved separately */ }
 }

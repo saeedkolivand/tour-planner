@@ -24,10 +24,10 @@ export function flushLogFile() {
   try {
     const f = logFile();
     if (!f.exists) f.create();
-    f.write(lines, { append: true });
+    f.writeSync(lines, { append: true });
     if ((f.size ?? 0) > MAX_CHARS) {
       const text = f.textSync();
-      f.write(text.slice(text.indexOf('\n', text.length - KEEP_CHARS) + 1));
+      f.writeSync(text.slice(text.indexOf('\n', text.length - KEEP_CHARS) + 1));
     }
   } catch { /* full disk or no file system (web preview): the PC upload still has it */ }
 }

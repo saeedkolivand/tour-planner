@@ -1,4 +1,29 @@
+diff --git a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
+index f339d98..5543df9 100644
+--- a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
++++ b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
+@@ -8,8 +8,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
+   public func getSnapshot(
+     in context: Context, completion: @escaping @Sendable (WidgetsTimelineEntry) -> Void
+   ) {
+-    let groupIdentifier =
+-      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
+     guard let groupIdentifier else {
+       completion(WidgetsTimelineEntry(date: Date(), name: name, props: WidgetsLayoutRegistry.initialProps(for: name), entryIndex: nil))
+       return
+@@ -23,8 +22,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
+     in context: Context,
+     completion: @escaping @Sendable (Timeline<WidgetsTimelineEntry>) -> Void
+   ) {
+-    let groupIdentifier =
+-      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
+     guard let groupIdentifier else {
+       fatalError("Could not get the app group identifier from Info.plist")
+     }
 diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+index 86f9d6c..21d3bb7 100644
 --- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
 +++ b/node_modules/expo-widgets/ios/WidgetsStorage.swift
 @@ -1,7 +1,33 @@
@@ -36,26 +61,3 @@ diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/e
    static func set(_ value: [String: Any], forKey key: String) {
      guard let defaults else { return }
  
-diff --git a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
---- a/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
-+++ b/node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift
-@@ -8,8 +8,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
-   public func getSnapshot(
-     in context: Context, completion: @escaping @Sendable (WidgetsTimelineEntry) -> Void
-   ) {
--    let groupIdentifier =
--      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
-+    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
-     guard let groupIdentifier else {
-       completion(WidgetsTimelineEntry(date: Date(), name: name, props: nil, entryIndex: nil))
-       return
-@@ -23,8 +22,7 @@ public struct WidgetsTimelineProvider: TimelineProvider {
-     in context: Context,
-     completion: @escaping @Sendable (Timeline<WidgetsTimelineEntry>) -> Void
-   ) {
--    let groupIdentifier =
--      Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
-+    let groupIdentifier = WidgetsStorage.appGroupIdentifier // [tour-planner patch] resolved, see WidgetsStorage
-     guard let groupIdentifier else {
-       fatalError("Could not get the app group identifier from Info.plist")
-     }
