@@ -15,7 +15,7 @@ const address = (s: Stop) => `${fold(s.street)}|${String(s.number).toLowerCase()
 const loose = (s: Stop) => `${bare(s.street)}|${String(s.number).toLowerCase().replace(/\s/g, '')}`;
 const plz = (s: Stop) => String(s.postcode ?? '').replace(/\D/g, '');
 /** OCR misreads a postcode digit (Klingelpütz 70 as 50670 and 50679): one digit apart is the same; Kölner Str. 12 in 50226 and 50354 is not. */
-const samePlz = (a: string, b: string) => !a || !b || [...a].filter((d, i) => d !== b[i]).length + Math.abs(a.length - b.length) <= 1;
+export const samePlz = (a: string, b: string) => !a || !b || [...a].filter((d, i) => d !== b[i]).length + Math.abs(a.length - b.length) <= 1;
 export const stopKey = (s: Stop) => address(s) + (plz(s) ? `|${plz(s)}` : '');
 
 /** OCR and vision models swap umlauts now and then ("Kämpchenshof" for Kümpchenshof): the same name with each umlaut swapped. */

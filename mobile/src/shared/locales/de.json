@@ -394,5 +394,16 @@
   "visits": {
     "title": "Tour Planner misst die Tour",
     "body": "Wo der Transporter hält, damit Routen besser geplant werden"
+  },
+  "access": {
+    "title": "So kommst du rein",
+    "add": "Zugang hinzufügen",
+    "takePhoto": "Foto aufnehmen",
+    "photo": "Foto {{n}}",
+    "removePhoto": "Foto {{n}} entfernen",
+    "showPhotos_one": "Foto anzeigen",
+    "showPhotos_other": "Alle {{count}} Fotos anzeigen",
+    "notePlaceholder": "z. B. Box links neben der Haustür, oder: Hintertür, die Treppe runter",
+    "private": "Bleibt nur auf diesem Handy und wird nirgends hin gesendet. In der Dateien-App unter Tour Planner > customers."
   }
 }

@@ -394,5 +394,16 @@
   "visits": {
     "title": "Tour Planner is measuring the tour",
     "body": "Where the van stops, so routes can be planned better"
+  },
+  "access": {
+    "title": "How to get in",
+    "add": "Add how to get in",
+    "takePhoto": "Take photo",
+    "photo": "Photo {{n}}",
+    "removePhoto": "Remove photo {{n}}",
+    "showPhotos_one": "Show the photo",
+    "showPhotos_other": "Show all {{count}} photos",
+    "notePlaceholder": "e.g. Box left of the front door, or: back door, down the stairs",
+    "private": "Kept on this phone only, never sent anywhere. In the Files app under Tour Planner > customers."
   }
 }

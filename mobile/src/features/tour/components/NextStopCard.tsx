@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { AccessNote } from '@/features/customers/AccessNote';
 import { useTranslation } from '@/shared/i18n';
 import { clock } from '../selectors';
 import type { Cluster, Stop } from '../types';
@@ -36,6 +37,10 @@ export function NextStopCard({ cluster, index, total, startedAt, navLabel, onNav
             </View>
           </View>
           <StopBadges stop={first} />
+          {/* how to get in, for each door here; the "add" button only for the first: six of them would bury the card */}
+          {cluster.stops.map((s, i) => (
+            <AccessNote key={s.key ?? i} stop={s} hint={i === 0} title={walk.length ? s.name || `${s.street} ${s.number}` : undefined} />
+          ))}
           {walk.length > 0 && (
             <View className="bg-muted gap-1 rounded-lg p-3">
               <View className="flex-row items-center gap-2">
