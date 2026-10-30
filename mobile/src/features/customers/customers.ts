@@ -44,7 +44,7 @@ function save(next: Record<string, Customer>) {
   try {
     const f = dataFile();
     if (!f.exists) f.create();
-    f.write(JSON.stringify(next));
+    f.writeSync(JSON.stringify(next));
   } catch (e) { l.error('customers not saved', e as Error); }
 }
 

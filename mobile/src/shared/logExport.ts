@@ -30,7 +30,7 @@ export async function exportLog(tour: Tour) {
   const f = new File(Paths.cache, `tour-planner-log-${stamp}.txt`);
   if (f.exists) f.delete();
   f.create();
-  f.write([JSON.stringify(header), JSON.stringify({ type: 'tour', ...tour }), ...days.map(d => JSON.stringify({ type: 'day', ...d })), entries].join('\n'));
+  f.writeSync([JSON.stringify(header), JSON.stringify({ type: 'tour', ...tour }), ...days.map(d => JSON.stringify({ type: 'day', ...d })), entries].join('\n'));
   if (!(await Sharing.isAvailableAsync())) throw new Error(t('settings.exportUnavailable'));
   await Sharing.shareAsync(f.uri, { mimeType: 'text/plain', UTI: 'public.plain-text', dialogTitle: t('settings.exportLog') });
   return entries.split('\n').filter(Boolean).length;

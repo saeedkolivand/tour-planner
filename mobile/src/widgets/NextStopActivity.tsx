@@ -57,7 +57,7 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
           </VStack>
         </HStack>
         <ProgressView value={progress} modifiers={[tint(GREEN)]} />
-        <HStack>{caption(counts)}<Spacer />{caption(left)}</HStack>
+        <HStack spacing={0}>{caption(counts)}<Spacer />{caption(left)}</HStack>
       </VStack>
     ),
     // CarPlay Dashboard / Apple Watch: readable at arm's length, one line of context
@@ -82,7 +82,7 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
     ),
     compactTrailing: done ? <Image systemName="checkmark" color={GREEN} /> : eta(15),
     minimal: <Text modifiers={[font({ weight: 'heavy', design: 'rounded' }), foregroundStyle(accent)]}>{done ? '✓' : String(p.no)}</Text>,
-    expandedLeading: <VStack modifiers={[padding({ leading: 4 })]}>{badge(26)}</VStack>,
+    expandedLeading: <VStack spacing={0} modifiers={[padding({ leading: 4 })]}>{badge(26)}</VStack>,
     expandedTrailing: (
       <VStack alignment="trailing" spacing={1} modifiers={[padding({ trailing: 4 })]}>
         {caption(done ? '' : p.arriveLabel)}{eta(17)}
@@ -93,7 +93,7 @@ const NextStopActivity = (p: NextStopProps, _env: LiveActivityEnvironment) => {
       <VStack alignment="leading" spacing={8} modifiers={[padding({ horizontal: 4 })]}>
         <HStack spacing={6}>{expressChip}<Text modifiers={[font({ size: 13 }), foregroundStyle('secondary')]}>{detail}</Text></HStack>
         <ProgressView value={progress} modifiers={[tint(GREEN)]} />
-        <HStack>{caption(counts)}<Spacer />{caption(left)}</HStack>
+        <HStack spacing={0}>{caption(counts)}<Spacer />{caption(left)}</HStack>
       </VStack>
     ),
   };

@@ -17,6 +17,8 @@ updates:
     ignore:
       # pinned exactly by the Expo SDK (native code must match): `npx expo install --fix` moves them, not PRs
       - dependency-name: "expo*"
+      - dependency-name: "@expo/*" # @expo/ui 58 slipped past "expo*" onto SDK 57 and broke the iOS widget build
+      - dependency-name: "eslint-config-expo"
       - dependency-name: "react"
       - dependency-name: "react-dom"
       - dependency-name: "react-native*"
