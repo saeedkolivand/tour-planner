@@ -204,6 +204,8 @@
     "langSystem": "System",
     "langEnglish": "Englisch",
     "langGerman": "Deutsch",
+    "company": "Firma",
+    "companyFooter": "Bestimmt, wie die Scanner-Liste gelesen wird. PHOENIX: Name, Paketanzahl, Zu/Abh und der eigene Ort jeder Zeile; DPD: PRIO, Express und das Zeitfenster.",
     "startEnd": "Start & Ende",
     "startEndFooter": "Ohne Depot starten Routen von deinem aktuellen Standort.",
     "depotPlaceholder": "Depot-Adresse, z. B. Carl-Benz-Ring 1",

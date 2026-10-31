@@ -31,6 +31,8 @@ export interface PhoneFallback {
   mode(): 'auto' | 'phone';
   plan(req: PlanRequest, progress?: (stage: PlanStage, done?: number, total?: number) => void): Promise<Plan & { stops: Stop[] }>;
   parse(text: string): Stop[];
+  /** All photos' rows, before they join the tour: PHOENIX votes misread copies into one stop. */
+  merge?(rows: Stop[]): Stop[];
 }
 
 /**
@@ -112,7 +114,7 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     found.forEach((rows, photo) => L.debug('photo read on the phone', { photo, rows: rows.map(s =>
       `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.prio ? ' PRIO' : ''}${s.slot ? ` ${s.slot}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
     // overlapping photos, "Str."/"Straße", a postcode on one row only, a dropped umlaut: one stop, as the planner keys it
-    return { stops: dedupe([...state.tour.stops, ...found.flat()]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
+    return { stops: dedupe([...state.tour.stops, ...(phone!.merge?.(found.flat()) ?? found.flat())]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
   };
 
   /** Runs a user-started server call with busy/error state and a log line either way. Resolves undefined on failure. */

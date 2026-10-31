@@ -3,6 +3,8 @@ import { File } from 'expo-file-system';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Text } from '@/components/ui/text';
 import { parseStops } from '@/features/planner/parseText';
+import { parsePhoenix } from '@/features/planner/phoenix';
+import { getSettings } from '@/features/settings/settings';
 import { bare } from '@/features/planner/stops';
 import { ocr } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
@@ -31,7 +33,7 @@ export function LiveScan({ camera, on, onKeep }: { camera: RefObject<CameraView 
         const photo = await camera.current?.takePictureAsync({ quality: 0.7, skipProcessing: true, shutterSound: false }).catch(() => null);
         if (photo && live) {
           frames++;
-          const keys = parseStops(await ocr(photo.uri).catch(() => '')).map(s => `${bare(s.street)} ${s.number}`);
+          const keys = (getSettings().company === 'phoenix' ? parsePhoenix : parseStops)(await ocr(photo.uri).catch(() => '')).map(s => `${bare(s.street)} ${s.number}`);
           const fresh = keys.filter(k => !seen.current.has(k));
           fresh.forEach(k => seen.current.add(k));
           if (fresh.length) { kept++; setFound(seen.current.size); onKeep(photo.uri); haptic.tap(); }

@@ -1,5 +1,6 @@
 import { Platform, View } from 'react-native';
 import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Text } from '@/components/ui/text';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
@@ -14,6 +15,17 @@ export function RouteGroup() {
   const s = useSettings();
   return (
     <>
+      <SettingsSection title={t('settings.company')} footer={t('settings.companyFooter')}>
+        <ToggleGroup type="single" variant="outline" value={s.company} className="w-full"
+          onValueChange={v => { if (v) setSettings({ company: v as 'dpd' | 'phoenix' }); }}>
+          {(['dpd', 'phoenix'] as const).map((c, i) => (
+            <ToggleGroupItem key={c} value={c} isFirst={i === 0} isLast={i === 1} className="h-12 flex-1" accessibilityLabel={c.toUpperCase()}>
+              <Text className="text-sm">{c.toUpperCase()}</Text>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </SettingsSection>
+
       <SettingsSection title={t('settings.startEnd')} footer={t('settings.startEndFooter')}>
         <Input defaultValue={s.depot} placeholder={t('settings.depotPlaceholder')} accessibilityLabel={t('settings.depotLabel')}
           onChangeText={depot => setSettings({ depot: depot.trim() })} />
