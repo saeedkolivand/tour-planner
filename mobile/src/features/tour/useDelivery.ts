@@ -33,7 +33,7 @@ export function useDelivery() {
   const navigateAddress = useCallback((s: Stop) => {
     haptic.tap();
     store.depart();
-    navigateTo(`${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim(), navApp, `${s.street} ${s.number}`)
+    navigateTo(`${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city ?? ''}`.replace(/\s+/g, ' ').trim(), navApp, `${s.street} ${s.number}`)
       .catch(e => Alert.alert(t('delivery.navigationError'), (e as Error).message));
   }, [store, navApp]);
 

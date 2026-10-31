@@ -7,8 +7,7 @@ import { getSettings, loadSettings, noPc } from '@/features/settings/settings';
 import { quietPosition } from '@/services/location';
 import { log, startLogging } from '@/shared/log';
 import { createTourApi } from './api';
-import { parseStops } from '@/features/planner/parseText';
-import { parsePhoenix, votePhoenix } from '@/features/planner/phoenix';
+import { companyOf } from '@/features/planner/companies';
 import { phoneDeps } from '@/features/planner/phoneDeps';
 import { planOnPhone } from '@/features/planner/planOnPhone';
 import { createTourStore, type LocalStore, type PhoneFallback, type Saved, type TourStore, type Where } from './store';
@@ -17,8 +16,8 @@ import { createTourStore, type LocalStore, type PhoneFallback, type Saved, type 
 const phone: PhoneFallback = {
   mode: () => (noPc() ? 'phone' : 'auto'),
   plan: (req, progress) => planOnPhone(req, phoneDeps, progress),
-  parse: text => (getSettings().company === 'phoenix' ? parsePhoenix : parseStops)(text),
-  merge: rows => (getSettings().company === 'phoenix' ? votePhoenix(rows) : rows),
+  parse: text => companyOf(getSettings().company).parse(text),
+  merge: rows => companyOf(getSettings().company).merge(rows),
 };
 
 // The phone's copy of the tour: a killed app or a dead connection mid-tour must not lose deliveries. Every saved

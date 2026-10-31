@@ -109,7 +109,7 @@ export function parseStops(text: string): Stop[] {
     const block = `${name ?? ''}\n${tail}`;
     const type = typeIn(block);
     return {
-      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '').replace(/^K\S{2,3}n$/i, 'Köln') || 'Köln', // "Köin"
+      street: m![1].trim(), number: m![2].replace(/\s/g, ''), postcode: pc?.[1] ?? '', city: pc?.[3]?.trim().replace(/,.*$/, '').replace(/^K\S{2,3}n$/i, 'Köln') ?? '', // "Köin"
       ...(pc?.[2] && { area: pc[2].toUpperCase().replace(/1/g, 'I') }), ...(code && { code: `G ${code[1].replace(',', '.')} T ${code[2]}` }),
       type, parcels: parcelsText ? Number(parcelsText[1]) : count ? Number(count) : 1,
       ...(name && { name }), ...(express && { express }), ...(/\bprio\b/i.test(rows ? `${head.join('\n')}\n${tail}` : head.join('\n')) && { prio: true }),

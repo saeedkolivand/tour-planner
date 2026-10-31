@@ -12,7 +12,7 @@ export type Find = (q: string) => Promise<Hit | null>;
 export type Located = LatLon & { exact: boolean; street: string };
 
 export const label = (s: Pick<Stop, 'street' | 'number' | 'postcode' | 'city'>) =>
-  `${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city || 'Köln'}`.replace(/\s+/g, ' ').trim();
+  `${s.street} ${s.number}, ${s.postcode ?? ''} ${s.city ?? ''}`.replace(/\s+/g, ' ').trim();
 
 /**
  * Two spellings of one street: equal once folded, one the start of the other ("Aquinost." for Aquinostraße), or a
@@ -77,7 +77,7 @@ const km = (a: LatLon, b: LatLon) => Math.hypot((a.lat - b.lat) * 111, (a.lon - 
  */
 export async function locate(s: Stop, find: Find, note: (msg: string, data?: Record<string, unknown>) => void = () => {}): Promise<Located | null> {
   const pc = String(s.postcode ?? '').replace(/\D/g, '');
-  const centre = /^\d{5}$/.test(pc) ? await find(`${pc} ${s.city || 'Köln'}`).catch(() => null) : null;
+  const centre = /^\d{5}$/.test(pc) ? await find(`${pc} ${s.city ?? ''}`.trim()).catch(() => null) : null;
   const near = (h: Hit) => !pc || h.postcode === pc || !centre || km(h, centre) < 3;
   const onStreet = (h: Hit) => alike(h.street, s.street) && near(h);
   const exact = (h: Hit, number: string) => sameNumber(h.number, number);
@@ -91,7 +91,7 @@ export async function locate(s: Stop, find: Find, note: (msg: string, data?: Rec
     if (h && onStreet(h)) { note('photon: found without the postcode', { real: h.postcode }); g = out(h, exact(h, s.number)); }
   }
   if (!g) {
-    const h = await find(`${s.street}, ${s.city || 'Köln'}`);
+    const h = await find(s.city ? `${s.street}, ${s.city}` : s.street);
     if (h && onStreet(h)) { note('photon: street only'); g = out(h, false); }
   }
   if (!g || g.exact) return g;

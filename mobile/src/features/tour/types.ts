@@ -111,4 +111,4 @@ export interface Tour { stops: Stop[]; plan: Plan | null; expected: string }
 
 export const STOP_TYPES: StopType[] = ['private', 'business', 'pickup', 'shop']; // labels: locales stopType.*
 export const EMPTY_TOUR: Tour = { stops: [], plan: null, expected: '' };
-export const newStop = (): Stop => ({ street: '', number: '', postcode: '', city: 'Köln', type: 'private', parcels: 1 });
+export const newStop = (): Stop => ({ street: '', number: '', postcode: '', city: '', type: 'private', parcels: 1 });

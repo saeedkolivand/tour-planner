@@ -17,7 +17,10 @@ const L = log('phone-planner');
 const onStreet = (p: Location.LocationGeocodedAddress | undefined, street: string) =>
   !!p && ([p.street, p.name, p.formattedAddress].some((x) => x && holds(x, street)) || (!!p.street && alike(p.street, street)));
 const KEY = 'geocache-v2'; // v1 could return the wrong street's hit; force a re-lookup
-const COLOGNE = { lat: 50.94, lon: 6.96 };
+// answers further than this from the tour's start are the same street name in another town; no start yet: no limit
+const AREA_M = 60_000;
+let area: LatLon | null = null;
+const near = (p: LatLon) => !area || meters(area, p) <= AREA_M;
 let cache: Record<string, LatLon & { exact?: boolean }> | null = null;
 const load = async () => (cache ??= JSON.parse((await storage.getItem(KEY).catch(() => null)) ?? '{}') as Record<string, LatLon & { exact?: boolean }>);
 
@@ -57,9 +60,9 @@ async function geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null
   const hits = await pacedRetry(() => Location.geocodeAsync(q)).catch((e) => { L.warn('geocoder failed', { q, error: e }); return null; });
   if (!hits) return null; // the call itself failed (already logged) — don't also warn "not found"
   const [hit] = hits;
-  L.debug('geocode: phone answered', { q, hits: hits.length, first: hit && { lat: hit.latitude, lon: hit.longitude, kmFromKoeln: Math.round(meters(COLOGNE, { lat: hit.latitude, lon: hit.longitude }) / 1000) } });
-  // the platform geocoders happily answer "somewhere in Germany": only take results in the Cologne region
-  if (!hit || meters(COLOGNE, { lat: hit.latitude, lon: hit.longitude }) > 60_000) { L.warn('not found near Köln', { q }); return null; }
+  L.debug('geocode: phone answered', { q, hits: hits.length, first: hit && { lat: hit.latitude, lon: hit.longitude, kmFromStart: area && Math.round(meters(area, { lat: hit.latitude, lon: hit.longitude }) / 1000) } });
+  // the platform geocoders happily answer "somewhere in Germany": only take results around the tour
+  if (!hit || !near({ lat: hit.latitude, lon: hit.longitude })) { L.warn('not found near the tour', { q }); return null; }
 
   const parts = /^([^\d]*)\d+(.*)$/.exec(q); // "Ludwigstraße 117, 50670 Köln" -> street "Ludwigstraße", rest ", 50670 Köln"
   const street = parts?.[1].trim();
@@ -88,12 +91,12 @@ const PHOTON = 'https://photon.komoot.io/api/';
 type PhotonFeature = { geometry: { coordinates: [number, number] }; properties: { name?: string; street?: string; housenumber?: string; postcode?: string; city?: string } };
 
 async function photon(q: string): Promise<Hit | null> {
-  const url = `${PHOTON}?q=${encodeURIComponent(q)}&lat=${COLOGNE.lat}&lon=${COLOGNE.lon}&limit=5&lang=de`;
+  const url = `${PHOTON}?q=${encodeURIComponent(q)}${area ? `&lat=${area.lat}&lon=${area.lon}` : ''}&limit=5&lang=de`;
   const r = await fetch(url, { signal: AbortSignal.timeout?.(15_000) });
   if (!r.ok) throw new Error(`Photon ${r.status}`);
   const { features = [] } = (await r.json()) as { features?: PhotonFeature[] };
-  // the whole world's addresses: the first answer in the Cologne region, as the phone's geocoder is held to
-  const f = features.find(x => meters(COLOGNE, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 60_000);
+  // the whole world's addresses: the first answer around the tour, as the phone's geocoder is held to
+  const f = features.find(x => near({ lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }));
   const hit = f && { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], street: f.properties.street ?? f.properties.name ?? '', postcode: f.properties.postcode ?? '', number: f.properties.housenumber };
   L.debug('photon answered', { q, answers: features.length, hit: hit && `${hit.street} ${hit.number ?? ''}, ${hit.postcode}` });
   return hit ?? null;
@@ -104,7 +107,7 @@ type GeoapifyResult = { lat: number; lon: number; street?: string; name?: string
 
 async function geoapify(q: string): Promise<Hit | null> {
   const key = getSettings().geoapifyKey.trim();
-  const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(q)}&filter=circle:${COLOGNE.lon},${COLOGNE.lat},60000&bias=proximity:${COLOGNE.lon},${COLOGNE.lat}&lang=de&limit=1&format=json&apiKey=${encodeURIComponent(key)}`;
+  const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(q)}${area ? `&filter=circle:${area.lon},${area.lat},${AREA_M}&bias=proximity:${area.lon},${area.lat}` : ''}&lang=de&limit=1&format=json&apiKey=${encodeURIComponent(key)}`;
   const r = await fetch(url, { signal: AbortSignal.timeout?.(15_000) });
   if (!r.ok) throw new Error(r.status === 401 ? 'Geoapify rejected the key (401)' : `Geoapify ${r.status}`);
   const [f] = ((await r.json()) as { results?: GeoapifyResult[] }).results ?? [];
@@ -166,4 +169,4 @@ export async function clearGeocache() {
   L.info('address cache cleared', { addresses: n });
 }
 
-export const phoneDeps: PhoneDeps = { geocode, matrix, t: key => t(key), knownStreets, locate, optimize, log: (msg, data) => L.debug(msg, data) };
+export const phoneDeps: PhoneDeps = { geocode, setArea: p => { area = p; }, matrix, t: key => t(key), knownStreets, locate, optimize, log: (msg, data) => L.debug(msg, data) };

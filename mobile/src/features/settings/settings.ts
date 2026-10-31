@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { setLanguage, type Lang } from '@/shared/i18n';
 import type { NavApp } from '@/services/navigation';
+import type { Company } from '@/features/planner/companies';
 import type { StopOrder } from '@/features/tour/types';
 import { fromSystem, toSystem, watchSystem } from './systemSettings';
 
@@ -13,7 +14,7 @@ export const WALK_M: Record<RouteStyle, number> = { walk: 80, drive: 25 };
 
 export interface Settings {
   /** Who the driver delivers for: decides how the scanner list is read (CONTEXT.md: Company). Never guessed from a photo. */
-  company: 'dpd' | 'phoenix';
+  company: Company;
   /** The PC over Tailscale (HTTPS via `tailscale serve`). */
   server: string;
   depot: string;

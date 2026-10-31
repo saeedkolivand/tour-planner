@@ -11,7 +11,7 @@ import { descents, revisits, solveOrder, solveOrderAsync, strays } from './solve
 import { vroomOrder } from './vroom.ts';
 import { chain, cluster, dedupe, meters, streetMates } from './stops.ts';
 
-const s = (street: string, number: string, extra: Partial<Stop> = {}): Stop => ({ street, number, postcode: '50667', type: 'private', parcels: 1, ...extra });
+const s = (street: string, number: string, extra: Partial<Stop> = {}): Stop => ({ street, number, postcode: '50667', city: 'Köln', type: 'private', parcels: 1, ...extra });
 
 test('phone rules match the PC: Str./Straße merge, two towns stay apart, parcels not summed', () => {
   const d = dedupe([s('Hohe Str.', '1', { parcels: 2 }), s('Hohe Straße', '1', { parcels: 2 }), s('Kölner Str.', '12', { postcode: '50226' }), s('Kölner Str.', '12', { postcode: '50354' })]);
@@ -109,7 +109,7 @@ test('a kiosk called "Späti 2" is a name, not a street; a shortened street is c
   const s = parseStops(['Späti 2', 'PRIO', '1', 'Neusser Str. 11', '50670IH Köln', 'Kita Remmidemmi e.V.,', '2', 'Gereonsm... engasse 26', '50670HL Köln'].join('\n'));
   assert.deepEqual(s.map(x => `${x.street} ${x.number}`), ['Neusser Str. 11', 'Gereonsm... engasse 26']);
   assert.deepEqual([s[0].name, s[0].express], ['Späti 2', '18:00']);
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'Gereonsmühlengasse 26, 50670 Köln': { lat: 50.944, lon: 6.945 }, '50670 Köln': { lat: 50.944, lon: 6.95 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 }, 'Gereonsmühlengasse 26, 50670 Köln': { lat: 50.944, lon: 6.945 }, '50670 Köln': { lat: 50.944, lon: 6.95 } };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, knownStreets: async () => ['Gereonsmühlengasse', 'Neusser Str.'] };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s[1]] }, deps);
   assert.equal(p.ungeocoded.length, 0, 'placed via the remembered full name');
@@ -209,7 +209,7 @@ test('a misread street snaps to the one street placed before that is a letter or
   assert.equal(snapStreet('Blumenstr.', known), 'Blumenstr.');
   assert.equal(snapStreet('Brezer Str.', known), 'Brezer Str.', 'two candidates');
   assert.equal(snapStreet('Brunnenstr.', known), 'Brunnenstr.', 'too far from Blumenstr.');
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'Krefelder Wall 44, 50670 Köln': { lat: 50.9547, lon: 6.9555 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 }, 'Krefelder Wall 44, 50670 Köln': { lat: 50.9547, lon: 6.9555 } };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, knownStreets: async () => known };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('Kretelder Wall', '44', { postcode: '50670' }), s('Krefelder Wall', '44', { postcode: '50670' })] }, deps);
   assert.deepEqual(p.stops.map(x => x.key), ['krefelderwall|44|50670']);
@@ -217,7 +217,7 @@ test('a misread street snaps to the one street placed before that is a letter or
 
 test('plan on the phone: grouped, ordered, numbered once, and compared with the scanner order', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 },
+    'Depot': { lat: 50.94, lon: 6.90 },
     'A 1, 50667 Köln': { lat: 50.94, lon: 6.95 }, 'A 3, 50667 Köln': { lat: 50.9401, lon: 6.9501 },
     'B 1, 50667 Köln': { lat: 50.94, lon: 6.92 }, 'C 1, 50667 Köln': { lat: 50.94, lon: 6.98 },
   };
@@ -247,7 +247,7 @@ test('dueSec: deadlines count from departure; a passed one is not a constraint',
 
 test('plan on the phone: an address found in another town (not near its postcode) is not trusted', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
+    'Depot': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 }, 'Agnesstraße 69, 50670 Köln': { lat: 50.813, lon: 7.135 },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -257,7 +257,7 @@ test('plan on the phone: an address found in another town (not near its postcode
 
 test('plan on the phone: a stop with no postcode is looked up in the tour\'s usual one, never Porz\'s street of that name', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 }, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 },
+    'Depot': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 }, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 },
     'Neusser Str. 30, Köln': { lat: 50.891, lon: 7.073 }, 'Neusser Str. 30, 50670 Köln': { lat: 50.9526, lon: 6.9574 },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -269,7 +269,7 @@ test('plan on the phone: a stop with no postcode is looked up in the tour\'s usu
 
 test('plan on the phone: a street-only hit (exact: false) parks alone, even next door to an exact one', async () => {
   const pos: Record<string, { lat: number; lon: number; exact?: boolean }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 },
+    'Depot': { lat: 50.94, lon: 6.90 },
     'A 1, 50667 Köln': { lat: 50.94, lon: 6.95, exact: true }, 'A 3, 50667 Köln': { lat: 50.9401, lon: 6.9501, exact: false },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -304,7 +304,7 @@ test('distance estimate: town legs at city pace, the depot run much faster per k
 
 test('plan on the phone: a wrong position kept from an earlier plan is looked up again; a pinned one is kept', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
+    'Depot': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Agnesstraße 69, 50670 Köln': { lat: 50.952, lon: 6.953 },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -318,7 +318,7 @@ test('plan on the phone: a wrong position kept from an earlier plan is looked up
 
 test('plan on the phone: the geocoder wins over a stored in-area position; a pinned one keeps its stored position', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
+    'Depot': { lat: 50.94, lon: 6.90 }, '50670 Köln': { lat: 50.95, lon: 6.955 },
     'Ring 1, 50670 Köln': { lat: 50.949, lon: 6.950 },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -333,7 +333,7 @@ test('plan on the phone: the geocoder wins over a stored in-area position; a pin
 });
 
 test('plan on the phone: geocoder rejecting a stop drops its stored position; a pinned one keeps it', async () => {
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 } };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
   const stored = { lat: 50.951, lon: 6.956 };
   const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [
@@ -357,7 +357,7 @@ test('as scanned: the list order stands; only next-door neighbours on the list s
 
 test('plan on the phone, as scanned: nothing re-ordered, no "you save", Express late flagged in that order', async () => {
   const pos: Record<string, { lat: number; lon: number }> = {
-    'Depot, Köln': { lat: 50.94, lon: 6.90 },
+    'Depot': { lat: 50.94, lon: 6.90 },
     'A 1, 50667 Köln': { lat: 50.94, lon: 6.95 }, 'B 1, 50667 Köln': { lat: 50.94, lon: 6.92 }, 'C 1, 50667 Köln': { lat: 50.94, lon: 6.98 },
   };
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k };
@@ -416,7 +416,7 @@ test('Express first: every Express parking stop before the others, even when it 
 
 test('Express margin: aims early, but "late" is still judged on the deadline itself', async () => {
   // start, A, B; A then B is the fastest drive and reaches B (Express) 2 min before its deadline
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, 'A 1, 50667 Köln': { lat: 50.94, lon: 6.91 }, 'B 1, 50667 Köln': { lat: 50.94, lon: 6.95 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 }, 'A 1, 50667 Köln': { lat: 50.94, lon: 6.91 }, 'B 1, 50667 Köln': { lat: 50.94, lon: 6.95 } };
   const seconds = [[0, 60, 300], [60, 0, 240], [300, 240, 0]];
   const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async () => ({ seconds, meters: seconds, by: 'road' as const }), t: (k: string) => k };
   const tomorrow8 = new Date(Date.now() + 86_400_000).setHours(8, 0, 0, 0);
@@ -459,7 +459,7 @@ test('second geocoder: a house is exact only when OpenStreetMap found that very 
 });
 
 test('plan on the phone: a stop the phone\'s geocoder misses is placed by the second one; progress is reported', async () => {
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.94, lon: 6.90 }, '50670 Köln': koeln, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 }, '50670 Köln': koeln, 'Ring 1, 50670 Köln': { lat: 50.951, lon: 6.956 } };
   const asked: string[] = [], stages: string[] = [], notes: string[] = [];
   const deps = {
     geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k,
@@ -487,7 +487,7 @@ test('VROOM (ORS): jobs with service and deadline, slowed like our road times; i
   assert.ok(Math.abs(sent!.vehicles[0].speed_factor - 1 / 1.3) < 1e-9);
 
   // depot, then A (near) and B (far) on one line: ours goes A, B; a VROOM answer B, A loses, one that matches stays
-  const pos: Record<string, { lat: number; lon: number }> = { 'Depot, Köln': { lat: 50.90, lon: 6.95 }, 'A 1, 50667 Köln': { lat: 50.92, lon: 6.95 }, 'B 1, 50667 Köln': { lat: 50.96, lon: 6.95 } };
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.90, lon: 6.95 }, 'A 1, 50667 Köln': { lat: 50.92, lon: 6.95 }, 'B 1, 50667 Köln': { lat: 50.96, lon: 6.95 } };
   const plan = (answer: number[]) => planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('B', '1'), s('A', '1')] },
     { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k, optimize: async () => answer });
   const streets = async (answer: number[]) => (await plan(answer)).clusters.map(c => c.stops[0].street).join();

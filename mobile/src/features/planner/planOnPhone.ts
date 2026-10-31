@@ -10,6 +10,8 @@ import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } fro
 export interface PhoneDeps {
   /** Address -> position, null when not found. exact:false when only the street (not the house number) was placed. */
   geocode(q: string): Promise<(LatLon & { exact?: boolean }) | null>;
+  /** Where the tour starts: geocoder answers far from it are someone else's street of the same name. */
+  setArea?(p: LatLon): void;
   matrix(points: LatLon[], opts?: MatrixOptions): Promise<Matrix>;
   /** Messages shown to the driver: a translation key in, text out. */
   t(key: 'plan.startNotFound' | 'plan.noStopsPlaced'): string;
@@ -50,9 +52,10 @@ const early = (due: number | null, marginSec: number) => (due == null ? null : M
 export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: PlanProgress = () => {}): Promise<Plan & { stops: Stop[] }> {
   const note = deps.log ?? (() => {});
   const departAt = req.departAt && req.departAt > Date.now() ? req.departAt : Date.now();
-  const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(/\b\d{5}\b|,/.test(p.q) ? p.q : `${p.q}, Köln`));
+  const place = async (p: Place | null) => (!p ? null : 'lat' in p ? p : deps.geocode(p.q));
   const start = await place(req.start);
   if (!start) throw new Error(deps.t('plan.startNotFound'));
+  deps.setArea?.(start);
   const end = await place(req.end);
 
   const known = (await deps.knownStreets?.().catch(() => [])) ?? [];
@@ -73,16 +76,17 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
   const centre = async (s: Stop) => {
     const pc = String(s.postcode ?? '').replace(/\D/g, '');
     if (!/^\d{5}$/.test(pc)) return null;
-    if (!centres.has(pc)) centres.set(pc, await deps.geocode(`${pc} ${s.city || 'Köln'}`).catch(() => null));
+    if (!centres.has(pc)) centres.set(pc, await deps.geocode(`${pc} ${s.city ?? ''}`.trim()).catch(() => null));
     return centres.get(pc) ?? null;
   };
   // no postcode ("00000AA", the scanner's unknown area, or cut off the photo): looked up and checked in the tour's usual
   // one, or "Neusser Str. 30, Köln" lands on Porz's Neusser Straße, 12 km off
   const pcs = todo.map(s => String(s.postcode ?? '').replace(/\D/g, '')).filter(p => /^\d{5}$/.test(p));
-  const usual = pcs.sort((a, b) => pcs.filter(x => x === b).length - pcs.filter(x => x === a).length)[0] ?? '';
+  const most = (xs: string[]) => [...xs].sort((a, b) => xs.filter(x => x === b).length - xs.filter(x => x === a).length)[0] ?? '';
+  const usual = most(pcs), town = most(todo.flatMap(s => s.city || []));
   for (const [i, s] of todo.entries()) {
     progress('places', i, todo.length);
-    const q = { ...s, postcode: s.postcode || usual };
+    const q = { ...s, postcode: s.postcode || usual, city: s.city || town };
     const inArea = async (g: (LatLon & { exact?: boolean }) | null, by: string) => {
       const c = g && await centre(q);
       const km = g && c ? Math.round(meters(g, c) / 100) / 10 : null;
