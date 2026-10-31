@@ -15,7 +15,8 @@ export default function SettingsGroupScreen() {
     <View className="bg-background flex-1">
       <ScreenHeader title={t(`settingsGroups.${g.id}`)} back={{ label: t('tabs.settings'), onPress: () => router.back() }} />
       <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
-      <ScrollView contentContainerClassName="gap-6 px-5 pb-16" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerClassName="gap-6 px-5 pb-16" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets>
         <g.Body />
       </ScrollView>
     </View>
