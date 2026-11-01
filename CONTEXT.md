@@ -5,6 +5,9 @@
 - **Bahnhof**: PHOENIX's loading lane at the depot for one tour number; every PHOENIX tour starts there.
 - **Stop**: one address to deliver to, pick up from, or supply. Identified by street + house number, so the same address photographed twice is one stop.
 - **Customer**: a place delivered to again and again (a pharmacy, for PHOENIX), remembered across days and tours. A stop is one visit to a customer on one tour.
+- **Fixed route**: a supervisor's standing order of customers, each with the pin where the van stops (and door photos and notes, kept as its access note). Stop order *Fixed route*: tonight's scanner rows are matched to it (by learned address, else name near the pin, else the pin itself), delivered in its order, nothing solved; route stops with nothing tonight are skipped. Imported once from `route.json` in the app's customers folder. Phone only.
+- **New stop (fixed route)**: a scanner row on no route. Slotted in where it adds the least detour (cheapest insertion) and shown to the driver to confirm; once delivered it joins the route where it was taken.
+- **Loading the van**: a step-through of the stops still to deliver, highest loading number first, so the first stop goes in last.
 - **Access note**: how to get the goods in at a customer (night box, key safe, back door, gate), as door photos plus a short free text. Kept on the phone only: it can hold codes.
 - **Parcel**: one package. A stop can have several.
 - **Stop type**: *private*, *business* (company or trade), *pickup* (Abholung / Retoure), or *Paketshop* (a DPD Pickup shop or parcel station being supplied). It decides the service time.

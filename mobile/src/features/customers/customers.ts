@@ -48,6 +48,11 @@ function save(next: Record<string, Customer>) {
   } catch (e) { l.error('customers not saved', e as Error); }
 }
 
+/** The remembered customers now, and a change to them (the fixed route's import and learning, routeStore.ts). */
+export const customersNow = () => load();
+export const updateCustomers = (fn: (all: Record<string, Customer>) => Record<string, Customer>) => save(fn({ ...load() }));
+export const customersFolder = () => folder();
+
 /** A photo's file. Names are kept, not paths: the app's folder moves with each reinstall on iOS. */
 export const photoUri = (name: string) => new File(folder(), name).uri;
 

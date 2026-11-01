@@ -33,6 +33,8 @@ export interface PhoneFallback {
   parse(text: string): Stop[];
   /** All photos' rows, before they join the tour: PHOENIX votes misread copies into one stop. */
   merge?(rows: Stop[]): Stop[];
+  /** The stop count a photo's header shows, if it shows one (the "did I capture everything" check fills itself in). */
+  total?(text: string): number | null;
 }
 
 /**
@@ -114,7 +116,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
     found.forEach((rows, photo) => L.debug('photo read on the phone', { photo, rows: rows.map(s =>
       `${s.street} ${s.number}, ${s.postcode}${s.name ? ` (${s.name})` : ''}${s.express ? ` Express ${s.express}` : ''}${s.prio ? ' PRIO' : ''}${s.slot ? ` ${s.slot}` : ''}${s.parcels > 1 ? ` x${s.parcels}` : ''}${s.type !== 'private' ? ` ${s.type}` : ''}`) }));
     // overlapping photos, "Str."/"Straße", a postcode on one row only, a dropped umlaut: one stop, as the planner keys it
-    return { stops: dedupe([...state.tour.stops, ...(phone!.merge?.(found.flat()) ?? found.flat())]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })) };
+    const totals = texts.map(t => phone!.total?.(t) ?? 0).filter(n => n > 0);
+    return { stops: dedupe([...state.tour.stops, ...(phone!.merge?.(found.flat()) ?? found.flat())]), photos: found.map((f, photo) => ({ photo, found: f.length, by: 'phone' })), ...(totals.length && { expected: Math.max(...totals) }) };
   };
 
   /** Runs a user-started server call with busy/error state and a log line either way. Resolves undefined on failure. */
@@ -218,7 +221,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
         }
       });
       if (!r) return null;
-      setTour(t => ({ ...t, stops: r.stops }));
+      // the scanner's own count, unless the driver typed one
+      setTour(t => ({ ...t, stops: r.stops, ...(!t.expected && r.expected && { expected: String(r.expected) }) }));
       const result = { found: r.photos.reduce((n, p) => n + p.found, 0), added: r.stops.length - before, error: r.photos.find(p => p.error)?.error };
       L.info('scanned', { kind, inputs: r.photos.length, ...result, readers: r.photos.map(p => p.by ?? 'failed') });
       return result;
@@ -230,7 +234,8 @@ export function createTourStore(api: TourApi, L: StoreLogger = silent, local: Lo
       const r = await run('plan', 'store.planningRoute', async () => {
         // the phone's plan takes minutes the first time (each new address looked up): say which step it's on
         const stage = (st: PlanStage, done?: number, total?: number) => set({ busy: `planning.${st}`, progress: total ? { done, total } as Progress : null });
-        if (phone?.mode() === 'phone') return phone.plan(req, stage);
+        // the fixed route lives on the phone; the PC doesn't know it
+        if (phone?.mode() === 'phone' || (phone && opt.order === 'route')) return phone.plan(req, stage);
         try { return { ...await api.optimize(req), by: 'pc' as const }; }
         catch (e) {
           if (!phone || !unreachable(e)) throw e;

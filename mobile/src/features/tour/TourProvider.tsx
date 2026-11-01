@@ -8,6 +8,7 @@ import { quietPosition } from '@/services/location';
 import { log, startLogging } from '@/shared/log';
 import { createTourApi } from './api';
 import { companyOf } from '@/features/planner/companies';
+import { importRoute, routeDeps } from '@/features/customers/routeStore';
 import { phoneDeps } from '@/features/planner/phoneDeps';
 import { planOnPhone } from '@/features/planner/planOnPhone';
 import { createTourStore, type LocalStore, type PhoneFallback, type Saved, type TourStore, type Where } from './store';
@@ -15,9 +16,13 @@ import { createTourStore, type LocalStore, type PhoneFallback, type Saved, type 
 // Without the PC (no server set, 'Phone only', or it doesn't answer): plan and read lists on the phone.
 const phone: PhoneFallback = {
   mode: () => (noPc() ? 'phone' : 'auto'),
-  plan: (req, progress) => planOnPhone(req, phoneDeps, progress),
+  plan: (req, progress) => {
+    if (req.order === 'route') importRoute(); // a route.json dropped in since the last plan
+    return planOnPhone(req, { ...phoneDeps, route: routeDeps }, progress);
+  },
   parse: text => companyOf(getSettings().company).parse(text),
   merge: rows => companyOf(getSettings().company).merge(rows),
+  total: text => companyOf(getSettings().company).total?.(text) ?? null,
 };
 
 // The phone's copy of the tour: a killed app or a dead connection mid-tour must not lose deliveries. Every saved
@@ -36,7 +41,7 @@ const StoreContext = createContext<TourStore | null>(null);
 /** Owns the one tour store for the app; the API reads the server URL from settings on every call. */
 export function TourProvider({ children }: { children: ReactNode }) {
   const [store] = useState(() => createTourStore(createTourApi(() => getSettings().server), log('tour'), local, phone, where));
-  useEffect(() => { loadSettings().then(startLogging).then(store.start); }, [store]);
+  useEffect(() => { loadSettings().then(startLogging).then(() => { importRoute(); store.start(); }); }, [store]);
   // Siri shortcuts can deliver stops on the server while the app is in the background: resync on return. Leaving
   // the app writes the tour history now (iOS may suspend it before the delayed write).
   useEffect(() => {

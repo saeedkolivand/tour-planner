@@ -27,9 +27,9 @@ export function RouteStats({ plan, view }: { plan: Plan; view: RouteView }) {
         </View>
         <Progress value={pct} className="bg-success/15 h-2.5" indicatorClassName="bg-success" aria-label={t('route.progressLabel')} />
       </View>
-      {(plan.pendingStart || plan.order === 'scanned') && (
+      {(plan.pendingStart || plan.order === 'scanned' || plan.order === 'route') && (
         <Text className="text-muted-foreground text-xs">
-          {[plan.order === 'scanned' && t('route.inScannerOrder'), plan.pendingStart && t('route.notStartedYet')].filter(Boolean).join(' ')}
+          {[plan.order === 'scanned' && t('route.inScannerOrder'), plan.order === 'route' && t('route.inRouteOrder'), plan.pendingStart && t('route.notStartedYet')].filter(Boolean).join(' ')}
         </Text>
       )}
       {plan.by?.startsWith('phone') && (

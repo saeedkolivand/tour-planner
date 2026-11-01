@@ -6,7 +6,11 @@ import { bare, samePlz } from '../planner/stops.ts';
 import type { Stop } from '../tour/types.ts';
 
 /** A place delivered to again and again, and how to get the goods in there. `photos`: file names in customers/. */
-export interface Customer { name?: string; street: string; number: string; postcode: string; note: string; photos: string[] }
+export interface Customer {
+  name?: string; street: string; number: string; postcode: string; note: string; photos: string[];
+  /** On the fixed route: its place in the order and the pin where the van stops. */
+  rank?: number; lat?: number; lon?: number;
+}
 
 const plz = (p?: string) => String(p ?? '').replace(/\D/g, '');
 const num = (n?: string) => String(n ?? '').toLowerCase().replace(/\s/g, '');

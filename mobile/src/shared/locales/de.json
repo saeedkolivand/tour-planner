@@ -68,7 +68,8 @@
     "openHint": "Öffnet den Stopp zum Bearbeiten",
     "streetOnly": "Nur Straße",
     "startScanned": "Wie gescannt starten",
-    "discardTitle": "Änderungen verwerfen?"
+    "discardTitle": "Änderungen verwerfen?",
+    "startRoute": "Feste Tour starten"
   },
   "stopType": {
     "private": "Privat",
@@ -183,7 +184,15 @@
     "notPlannedTitle_one": "{{count}} Stopp nicht auf der Route",
     "notPlannedTitle_other": "{{count}} Stopps nicht auf der Route",
     "notPlannedEditHint": "Öffnet den Stopp, um die Adresse zu korrigieren",
-    "notPlannedHint": "Tippe einen an, um die Adresse zu korrigieren, und plane dann neu. Die Navigation findet ihn trotzdem über die Adresse, abhaken kannst du ihn hier."
+    "notPlannedHint": "Tippe einen an, um die Adresse zu korrigieren, und plane dann neu. Die Navigation findet ihn trotzdem über die Adresse, abhaken kannst du ihn hier.",
+    "emptyBodyRoute": "Erfasse die Stoppliste von heute Nacht und starte dann. Jeder Stopp bekommt seinen Platz auf deiner festen Tour.",
+    "inRouteOrder": "In der Reihenfolge deiner festen Tour.",
+    "freshTitle_one": "{{count}} Stopp nicht auf deiner Tour",
+    "freshTitle_other": "{{count}} Stopps nicht auf deiner Tour",
+    "freshBody": "Jeder steht dort, wo er den kleinsten Umweg macht. Tippe darauf, um ihn zu verschieben; nach der Zustellung gehört er an dieser Stelle zur Tour.",
+    "freshAfter": "nach {{stop}}",
+    "freshFirst": "zuerst",
+    "freshMove": "Verschieben"
   },
   "count": {
     "parkingStops_one": "{{count}} Parkstopp übrig",
@@ -302,7 +311,9 @@
     "exportLog": "Protokoll exportieren",
     "exportFailed": "Protokoll konnte nicht exportiert werden",
     "exportUnavailable": "Dateien teilen ist auf diesem Gerät nicht möglich.",
-    "logFooter": "Etwas lief schief? Ausführliches Protokoll einschalten, nochmal scannen oder planen, dann exportieren und die Datei schicken. Sie enthält die Adressen und Namen deiner Scannerliste und den Tourverlauf, aber keine Schlüssel und keine Serveradresse."
+    "logFooter": "Etwas lief schief? Ausführliches Protokoll einschalten, nochmal scannen oder planen, dann exportieren und die Datei schicken. Sie enthält die Adressen und Namen deiner Scannerliste und den Tourverlauf, aber keine Schlüssel und keine Serveradresse.",
+    "orderRoute": "Feste Tour",
+    "orderRouteFooter": "Deine feste Tour ({{n}} Stopps) gibt die Reihenfolge vor: Jeder gescannte Stopp bekommt seinen Platz darauf und hält an seiner Markierung; Stopps ohne Ware heute werden übersprungen. Ein Stopp, der auf keiner Tour ist, kommt dorthin, wo er den kleinsten Umweg macht, und du prüfst, wo er hingehört. Gilt ab der nächsten Planung."
   },
   "closure": {
     "reportLabel": "Eine gesperrte Straße oder neue Einbahnstraße hier melden",
@@ -407,5 +418,20 @@
     "showPhotos_other": "Alle {{count}} Fotos anzeigen",
     "notePlaceholder": "z. B. Box links neben der Haustür, oder: Hintertür, die Treppe runter",
     "private": "Bleibt nur auf diesem Handy und wird nirgends hin gesendet. In der Dateien-App unter Tour Planner > customers."
+  },
+  "load": {
+    "open": "Wagen beladen",
+    "title": "Wagen beladen",
+    "subtitle": "Letzter Stopp zuerst",
+    "progress": "{{done}} von {{total}} geladen",
+    "progressLabel": "Ladefortschritt",
+    "next": "Geladen, weiter",
+    "back": "Zurück",
+    "pickup": "Abholung: Retouren mitnehmen",
+    "fresh": "Neu heute",
+    "doneTitle": "Wagen beladen",
+    "doneBody": "Alles ist drin, letzter Stopp zuerst. Stopp 1 liegt an der Tür.",
+    "emptyTitle": "Nichts zu laden",
+    "emptyBody": "Plane zuerst die Tour; jeder offene Stopp erscheint dann hier."
   }
 }

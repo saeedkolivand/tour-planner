@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { History, LocateFixed, PartyPopper, Route as RouteIcon } from 'lucide-react-native';
+import { History, LocateFixed, PackageOpen, PartyPopper, Route as RouteIcon } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import ReorderableList, { useReorderableDrag } from 'react-native-reorderable-list';
@@ -14,6 +14,7 @@ import { readArrivals } from '@/features/history/historyFile';
 import { ReportClosureButton } from '@/features/roads/ReportClosureButton';
 import { ClusterRow } from '@/features/tour/components/ClusterRow';
 import { CompletedSection } from '@/features/tour/components/CompletedSection';
+import { FreshStops } from '@/features/tour/components/FreshStops';
 import { MoveDialog } from '@/features/tour/components/MoveDialog';
 import { NextStopCard } from '@/features/tour/components/NextStopCard';
 import { NotPlannedSection } from '@/features/tour/components/NotPlannedSection';
@@ -42,7 +43,7 @@ function LateNote({ plan, stops }: { plan: Plan; stops: Stop[] }) {
   const more = late.length > 3 ? t('route.moreCount', { n: late.length - 3 }) : '';
   return (
     <Text className="text-destructive text-sm font-medium">
-      {t(plan.order === 'scanned' ? 'route.lateNoteScanned' : 'route.lateNote', { stops: t('count.stops', { count: late.length }), list: shown, more })}
+      {t(plan.order === 'scanned' || plan.order === 'route' ? 'route.lateNoteScanned' : 'route.lateNote', { stops: t('count.stops', { count: late.length }), list: shown, more })}
     </Text>
   );
 }
@@ -67,7 +68,7 @@ export default function RouteScreen() {
   const editIndex = editing ? tour.stops.findIndex(s => s.key === editing) : -1;
   const plan = usePlanning();
   const settings = useSettings();
-  const scanned = settings.stopOrder === 'scanned';
+  const scanned = settings.stopOrder === 'scanned' || settings.stopOrder === 'route';
   const numbered = useMemo(() => tour.stops.filter(s => s.no != null), [tour.stops]); // stable for the memoized map
   const nextKeys = useMemo(() => new Set(view?.next?.stops.map(s => s.key)), [view]);
   // the day in numbers once the last stop is delivered (the same figures Past deliveries keeps)
@@ -92,7 +93,7 @@ export default function RouteScreen() {
       <View className="bg-background flex-1">
         <ScreenHeader title={t('tabs.route')} />
         <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
-        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={scanned ? t('route.emptyBodyScanned') : t('route.emptyBody')}
+        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={t(settings.stopOrder === 'route' ? 'route.emptyBodyRoute' : scanned ? 'route.emptyBodyScanned' : 'route.emptyBody')}
           action={<Button size="xl" onPress={() => (tour.stops.length ? plan() : router.navigate('/'))} disabled={!!busy}>
             <Text>{tour.stops.length ? t(scanned ? 'route.startStopsBtn' : 'route.planStopsBtn', { count: tour.stops.length }) : t('route.captureStopsBtn')}</Text>
           </Button>} />
@@ -115,6 +116,9 @@ export default function RouteScreen() {
         ListHeaderComponent={
           <View className="mb-3.5 gap-4">
             <RouteStats plan={p} view={view} />
+            {view.delivered === 0 && view.next && (
+              <Button variant="outline" onPress={() => router.push('/load')}><Icon as={PackageOpen} size={16} /><Text>{t('load.open')}</Text></Button>
+            )}
             {view.next ? (
               <NextStopCard cluster={view.next} index={view.nextIndex} total={p.clusters.length} startedAt={view.etaBase} navLabel={navLabel}
                 onNavigate={() => navigate(view.next!)} onDelivered={() => deliver(view.next!)} onToggleStop={toggleStop} />
@@ -126,6 +130,7 @@ export default function RouteScreen() {
               </View>
             )}
             <LateNote plan={p} stops={tour.stops} />
+            {p.order === 'route' && <FreshStops clusters={p.clusters} nextIndex={view.nextIndex} onMove={setMoving} />}
             {/* the live copies: an address fixed since the plan shows as fixed, a tick shows as done */}
             <NotPlannedSection stops={p.ungeocoded.map(u => ({ ...u, ...tour.stops.find(s => s.key && s.key === u.key) }))}
               onEdit={s => s.key && setEditing(s.key)} onNavigate={navigateAddress} onToggle={toggleStop} />

@@ -40,6 +40,12 @@ export function parsePhoenix(text: string): Stop[] {
   return stops;
 }
 
+/** "Abholungen 1 - Zustellungen 45" in the header: 46 stops. Null when the photo doesn't show it (or OCR split it). */
+export function phoenixTotal(text: string): number | null {
+  const m = /abholungen\s*(\d{1,3})\D{0,6}zustellungen\s*(\d{1,3})/i.exec(text);
+  return m ? Number(m[1]) + Number(m[2]) : null;
+}
+
 /** The reading seen most often; a tie goes to the first. */
 const mode = <T>(xs: T[]) => xs.reduce((best, x) => (xs.filter(y => y === x).length > xs.filter(y => y === best).length ? x : best), xs[0]);
 

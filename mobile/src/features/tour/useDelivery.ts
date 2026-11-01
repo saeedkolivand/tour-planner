@@ -1,6 +1,8 @@
 // The driving loop in one place: navigate → deliver → (optionally) navigate to the next stop.
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
+import { rankBetween } from '@/features/customers/fixedRoute';
+import { joinRoute } from '@/features/customers/routeStore';
 import { useSettings } from '@/features/settings/settings';
 import { NAV_APPS, navigateTo } from '@/services/navigation';
 import { haptic } from '@/shared/haptics';
@@ -42,6 +44,12 @@ export function useDelivery() {
     lastDelivered.current = Date.now();
     haptic.success();
     store.setDone(keysOf(c), true);
+    // a stop new tonight joins the fixed route where the driver took it
+    const plan = store.getState().tour.plan;
+    if (plan?.order === 'route') {
+      const order = plan.clusters.flatMap(x => x.stops);
+      for (const s of c.stops) if (s.fresh) joinRoute(s, rankBetween(order, order.findIndex(o => o.key === s.key)));
+    }
     const view = viewRef.current;
     const following = view?.next === c ? view.upcoming[0]?.cluster : undefined;
     if (following && autoNavigate) navigate(following);

@@ -2,6 +2,7 @@ import { Platform, View } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Text } from '@/components/ui/text';
+import { routeSize } from '@/features/customers/routeStore';
 import { COMPANIES, type Company } from '@/features/planner/companies';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
@@ -43,8 +44,8 @@ export function RouteGroup() {
         </View>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.stopOrder')} footer={t(ORDER_TEXT[s.stopOrder].footer)}>
-        <StopOrderPicker value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
+      <SettingsSection title={t('settings.stopOrder')} footer={t(ORDER_TEXT[s.stopOrder].footer, { n: routeSize() })}>
+        <StopOrderPicker withRoute={routeSize() > 0} value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
       </SettingsSection>
 
       <SettingsSection title={t('settings.routeStyle')} footer={t('settings.routeStyleFooter')}>

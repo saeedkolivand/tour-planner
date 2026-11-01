@@ -1,7 +1,11 @@
 import { request } from '../../shared/http.ts';
 import type { LatLon, Plan, PlanRequest, Stop, Tour } from './types.ts';
 
-export interface ExtractResult { stops: Stop[]; photos: { photo: number; found: number; by?: string; error?: string }[] }
+export interface ExtractResult {
+  stops: Stop[]; photos: { photo: number; found: number; by?: string; error?: string }[];
+  /** The stop count the scanner's own header gave (PHOENIX: pickups + deliveries), when it showed one. */
+  expected?: number;
+}
 export type ScanInput = { images: string[] } | { texts: string[] };
 
 /** The server's HTTP API. The only module that knows URLs and wire formats. */

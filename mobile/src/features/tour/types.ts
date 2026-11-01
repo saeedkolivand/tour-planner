@@ -45,6 +45,10 @@ export interface Stop {
   slot?: string;
   /** Its place in the order the driver set by hand (manualOrder.ts); a re-plan keeps that order. Absent = the planner's. */
   seq?: number;
+  /** Fixed route: its place in the route's order (fractional for a stop slotted in between). */
+  rank?: number;
+  /** Fixed route: on no route yet, slotted in by the planner; the driver confirms where it goes. */
+  fresh?: boolean;
   /** Where the phone was when this stop was marked delivered (one reading at the tap, metres of accuracy). */
   donePos?: LatLon & { acc?: number };
 }
@@ -81,8 +85,8 @@ export interface Plan {
 }
 
 /** 'improved': the scanner list's order with local detours fixed. 'fastest': the planner picks the order freely.
- * 'scanned': the order of the scanner list, as photographed. */
-export type StopOrder = 'improved' | 'fastest' | 'scanned';
+ * 'scanned': the order of the scanner list, as photographed. 'route': the fixed route's order (customers/fixedRoute.ts). */
+export type StopOrder = 'improved' | 'fastest' | 'scanned' | 'route';
 
 /** How to plan: the driver's settings, sent to the PC or to the phone's own planner. */
 export interface PlanOptions {

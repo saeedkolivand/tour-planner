@@ -68,7 +68,8 @@
     "openHint": "Opens the stop to edit it",
     "streetOnly": "Street only",
     "startScanned": "Start as scanned",
-    "discardTitle": "Discard your changes?"
+    "discardTitle": "Discard your changes?",
+    "startRoute": "Start fixed route"
   },
   "stopType": {
     "private": "Private",
@@ -183,7 +184,15 @@
     "notPlannedTitle_one": "{{count}} stop not on the route",
     "notPlannedTitle_other": "{{count}} stops not on the route",
     "notPlannedEditHint": "Opens the stop to fix its address",
-    "notPlannedHint": "Tap one to fix its address, then re-plan. Navigation still finds it by its address, and you can tick it off here."
+    "notPlannedHint": "Tap one to fix its address, then re-plan. Navigation still finds it by its address, and you can tick it off here.",
+    "emptyBodyRoute": "Capture tonight’s scanner list, then start. Each stop takes its place on your fixed route.",
+    "inRouteOrder": "In your fixed route’s order.",
+    "freshTitle_one": "{{count}} stop not on your route",
+    "freshTitle_other": "{{count}} stops not on your route",
+    "freshBody": "Each is placed where it adds the least detour. Tap one to move it; once delivered it joins your route there.",
+    "freshAfter": "after {{stop}}",
+    "freshFirst": "first",
+    "freshMove": "Move"
   },
   "count": {
     "parkingStops_one": "{{count}} parking stop left",
@@ -302,7 +311,9 @@
     "exportLog": "Export log",
     "exportFailed": "Could not export the log",
     "exportUnavailable": "Sharing files is not available on this device.",
-    "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list and the tour history, but no keys and no server address."
+    "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list and the tour history, but no keys and no server address.",
+    "orderRoute": "Fixed route",
+    "orderRouteFooter": "Your fixed route ({{n}} stops) sets the order: each scanned stop takes its place on it and parks at its pin; stops with nothing tonight are skipped. A stop on no route is slotted in where it adds the least detour, and you check where it goes. Takes effect at the next plan."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",
@@ -407,5 +418,20 @@
     "showPhotos_other": "Show all {{count}} photos",
     "notePlaceholder": "e.g. Box left of the front door, or: back door, down the stairs",
     "private": "Kept on this phone only, never sent anywhere. In the Files app under Tour Planner > customers."
+  },
+  "load": {
+    "open": "Load the van",
+    "title": "Load the van",
+    "subtitle": "Last stop first",
+    "progress": "{{done}} of {{total}} loaded",
+    "progressLabel": "Loading progress",
+    "next": "Loaded, next",
+    "back": "Back",
+    "pickup": "Pickup: bring the returns back",
+    "fresh": "New tonight",
+    "doneTitle": "Van loaded",
+    "doneBody": "Everything is in, last stop first. Stop 1 is at the doors.",
+    "emptyTitle": "Nothing to load",
+    "emptyBody": "Plan the tour first; every stop still to deliver shows up here."
   }
 }

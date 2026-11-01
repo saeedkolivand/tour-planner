@@ -70,6 +70,7 @@ export default function RootLayout() {
           <Tabs.Screen name="scan" options={{ title: t('tabs.scan'), tabBarIcon: tabIcon(ScanBarcode), tabBarLabel: tabLabel(t('tabs.scan')) }} />
           <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: tabIcon(Settings), tabBarLabel: tabLabel(t('tabs.settings')) }} />
           <Tabs.Screen name="history" options={{ href: null, title: t('history.title') }} />
+          <Tabs.Screen name="load" options={{ href: null, title: t('load.title') }} />
         </Tabs>
         <LiveSurfaces />
         <PortalHost />

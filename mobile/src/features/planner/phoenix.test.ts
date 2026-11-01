@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parsePhoenix, votePhoenix } from './phoenix.ts';
+import { parsePhoenix, phoenixTotal, votePhoenix } from './phoenix.ts';
 
 // a real photo's Apple Vision text (2026-10-31), the top row cut off and the last row's town not on the photo
 const photo = `[rows]
@@ -44,4 +44,9 @@ test('overlapping photos: misread copies of one pharmacy vote into one stop, par
   assert.equal(out.length, 3);
   assert.deepEqual(out.map(s => [s.number, s.postcode, s.parcels]), [['37', '42719', 5], ['2b', '40764', 9], ['201', '40789', 7]]);
   assert.equal(parsePhoenix('Neue Apo\nNeuer Markt 5l\nDE 42781 Haan').length, 0, 'a misread digit is no house letter');
+});
+
+test('the header gives the stop count: pickups plus deliveries', () => {
+  assert.equal(phoenixTotal('Stoppliste\n50616\nTourNr: 5880 (0 / 47)\n+\nAbholungen 1 - Zustellungen 45\nV'), 46);
+  assert.equal(phoenixTotal(photo), null); // scrolled past the header
 });

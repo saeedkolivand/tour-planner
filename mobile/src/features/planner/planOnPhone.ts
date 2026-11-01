@@ -4,6 +4,7 @@ import type { Matrix, MatrixOptions } from './matrix.ts';
 import { label, snapStreet, type Located } from './locate.ts';
 import { routeCost, solveOrderAsync } from './solve.ts';
 import type { VroomInput } from './vroom.ts';
+import { applyRoute, type RouteDeps } from '../customers/fixedRoute.ts';
 import { untruncate } from './parseText.ts';
 import { chain, cluster, dedupe, fold, meters, streetMates, umlautVariants } from './stops.ts';
 
@@ -21,6 +22,8 @@ export interface PhoneDeps {
   locate?(s: Stop, q: string): Promise<Located | null>;
   /** A starting order (OpenRouteService's VROOM) for the phone's search: parking stop indices from 1, null = none. */
   optimize?(input: VroomInput): Promise<number[] | null>;
+  /** The fixed route, for order 'route'. */
+  route?: RouteDeps;
   /** The detailed log: why each stop was or wasn't placed, and how the order came about. */
   log?(msg: string, data?: Record<string, unknown>): void;
 }
@@ -111,10 +114,17 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     if (!g) s.lat = s.lon = undefined;
     if (g) { Object.assign(s, g); placed.push(s as Stop & LatLon); } else ungeocoded.push(s);
   }
+  // fixed route: its order stands like the scanner's would; a stop on it parks at its pin, even one not placed above
+  const onRoute = req.order === 'route' && deps.route;
+  if (onRoute) {
+    const r = applyRoute(placed, ungeocoded, onRoute);
+    ungeocoded.splice(0, ungeocoded.length, ...r.ungeocoded);
+    note('fixed route', { onRoute: placed.filter(s => !s.fresh).length, fresh: placed.filter(s => s.fresh).map(label), notPlaced: ungeocoded.length });
+  }
   if (!placed.length) throw new Error(deps.t('plan.noStopsPlaced'));
 
   // as scanned: the list's order stands, only next-door neighbours share a parking spot; nothing is solved
-  const scanned = req.order === 'scanned';
+  const scanned = req.order === 'scanned' || !!onRoute;
   const groups = scanned ? chain(placed, req.walkM) : cluster(placed, req.walkM);
   const points = [start, ...groups.map(g => g.park), ...(end ? [end] : [])];
   progress('roadTimes');
@@ -175,6 +185,6 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     clusters, km, late, min: Math.round((t + served) / 60),
     baseline: scanned ? null : { km: base.km, min: (base.s + served) / 60 },
     ungeocoded, start, end, startedAt: departAt, stops: all, lastNo: next, by: m.by === 'road' ? 'phone-road' : 'phone-estimate', ...(m.why && { note: m.why }),
-    ...(scanned && { order: 'scanned' as const }),
+    ...(scanned && { order: onRoute ? 'route' as const : 'scanned' as const }),
   };
 }

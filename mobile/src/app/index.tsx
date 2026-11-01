@@ -101,8 +101,8 @@ export default function StopsScreen() {
         ListEmptyComponent={<EmptyState icon={ScanLine} title={t('stops.emptyTitle')} body={t('stops.emptyBody')} />}
       />
       {tour.stops.length > 0 && (
-        <StickyAction label={`${stopOrder === 'scanned' ? t('stops.startScanned') : t('stops.planRoute')} · ${t('count.stops', { count: tour.stops.length })}`}
-          icon={stopOrder === 'scanned' ? ListOrdered : Sparkles} onPress={planAndGo} disabled={!!busy} />
+        <StickyAction label={`${stopOrder === 'route' ? t('stops.startRoute') : stopOrder === 'scanned' ? t('stops.startScanned') : t('stops.planRoute')} · ${t('count.stops', { count: tour.stops.length })}`}
+          icon={stopOrder === 'scanned' || stopOrder === 'route' ? ListOrdered : Sparkles} onPress={planAndGo} disabled={!!busy} />
       )}
       {editing != null && tour.stops[editing] && (
         <StopEditDialog key={editing} stop={tour.stops[editing]} onClose={closeEditor}

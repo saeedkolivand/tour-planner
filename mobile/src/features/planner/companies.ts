@@ -1,13 +1,16 @@
 // Who the driver delivers for (CONTEXT.md: Company) and how its scanner list is read. A new job is one more entry here.
 import type { Stop } from '../tour/types.ts';
 import { parseStops } from './parseText.ts';
-import { parsePhoenix, votePhoenix } from './phoenix.ts';
+import { parsePhoenix, phoenixTotal, votePhoenix } from './phoenix.ts';
 
-interface Reader { name: string; parse(text: string): Stop[]; /** all photos' rows, before they join the tour */ merge(rows: Stop[]): Stop[] }
+interface Reader {
+  name: string; parse(text: string): Stop[]; /** all photos' rows, before they join the tour */ merge(rows: Stop[]): Stop[];
+  /** the stop count in a photo's header, if it shows one */ total?(text: string): number | null;
+}
 
 export const COMPANIES = {
   dpd: { name: 'DPD', parse: parseStops, merge: rows => rows },
-  phoenix: { name: 'PHOENIX', parse: parsePhoenix, merge: votePhoenix },
+  phoenix: { name: 'PHOENIX', parse: parsePhoenix, merge: votePhoenix, total: phoenixTotal },
 } satisfies Record<string, Reader>;
 
 export type Company = keyof typeof COMPANIES;
