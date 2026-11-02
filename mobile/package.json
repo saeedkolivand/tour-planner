@@ -4,7 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.25",
-    "@maplibre/maplibre-react-native": "^11.5.0",
+    "@maplibre/maplibre-react-native": "^11.5.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@rn-primitives/alert-dialog": "^1.5.2",
     "@rn-primitives/dialog": "^1.5.2",
@@ -41,7 +41,7 @@
     "expo-text-extractor": "^2.0.0",
     "expo-widgets": "~58.0.25",
     "i18next": "^26.5.11",
-    "lucide-react-native": "^1.62.0",
+    "lucide-react-native": "^1.64.0",
     "nativewind": "^4.2.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
