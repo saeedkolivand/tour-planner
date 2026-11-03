@@ -25,6 +25,7 @@ import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import type { Cluster, Plan, Stop } from '@/features/tour/types';
 import { useDelivery } from '@/features/tour/useDelivery';
 import { usePlanning } from '@/features/tour/usePlanning';
+import { orderOf } from '@/features/customers/routeStore';
 import { noPc, useSettings } from '@/features/settings/settings';
 import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
@@ -68,7 +69,7 @@ export default function RouteScreen() {
   const editIndex = editing ? tour.stops.findIndex(s => s.key === editing) : -1;
   const plan = usePlanning();
   const settings = useSettings();
-  const scanned = settings.stopOrder === 'scanned' || settings.stopOrder === 'route';
+  const order = orderOf(settings), scanned = order === 'scanned' || order === 'route';
   const numbered = useMemo(() => tour.stops.filter(s => s.no != null), [tour.stops]); // stable for the memoized map
   const nextKeys = useMemo(() => new Set(view?.next?.stops.map(s => s.key)), [view]);
   // the day in numbers once the last stop is delivered (the same figures Past deliveries keeps)
@@ -93,7 +94,7 @@ export default function RouteScreen() {
       <View className="bg-background flex-1">
         <ScreenHeader title={t('tabs.route')} />
         <StatusBanner busy={busy} progress={progress} error={error} offline={offline} />
-        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={t(settings.stopOrder === 'route' ? 'route.emptyBodyRoute' : scanned ? 'route.emptyBodyScanned' : 'route.emptyBody')}
+        <EmptyState icon={RouteIcon} title={t('route.emptyTitle')} body={t(order === 'route' ? 'route.emptyBodyRoute' : scanned ? 'route.emptyBodyScanned' : 'route.emptyBody')}
           action={<Button size="xl" onPress={() => (tour.stops.length ? plan() : router.navigate('/'))} disabled={!!busy}>
             <Text>{tour.stops.length ? t(scanned ? 'route.startStopsBtn' : 'route.planStopsBtn', { count: tour.stops.length }) : t('route.captureStopsBtn')}</Text>
           </Button>} />

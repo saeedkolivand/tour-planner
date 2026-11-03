@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Alert } from 'react-native';
+import { orderOf } from '@/features/customers/routeStore';
 import { useSettings, WALK_M } from '@/features/settings/settings';
 import { currentPosition } from '@/services/location';
 import { haptic } from '@/shared/haptics';
@@ -9,7 +10,9 @@ import { t } from '@/shared/i18n';
 /** Plans from the depot (or GPS when none is set), or re-plans the rest of the tour from where you are. */
 export function usePlanning() {
   const store = useTourStore();
-  const { depot, endAtDepot, expressOnTime, expressMarginMin, expressFirst, leaveAt, routeStyle, stopOrder, bothSides } = useSettings();
+  const settings = useSettings();
+  const { depot, endAtDepot, expressOnTime, expressMarginMin, expressFirst, leaveAt, routeStyle, bothSides } = settings;
+  const stopOrder = orderOf(settings);
 
   return useCallback(async (fromHere = false): Promise<boolean> => {
     haptic.tap();

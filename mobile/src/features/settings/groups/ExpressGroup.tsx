@@ -1,3 +1,4 @@
+import { orderOf } from '@/features/customers/routeStore';
 import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { ExpressMarginPicker } from '@/features/settings/components/ExpressMarginPicker';
@@ -11,7 +12,7 @@ export function ExpressGroup() {
   const s = useSettings();
   return (
     <>
-      <SettingsSection title={t('settings.express')} footer={s.stopOrder === 'scanned' ? t('settings.expressScannedFooter') : t('settings.expressFooter')}>
+      <SettingsSection title={t('settings.express')} footer={orderOf(s) !== 'improved' && orderOf(s) !== 'fastest' ? t('settings.expressScannedFooter') : t('settings.expressFooter')}>
         <SwitchRow label={t('settings.expressOnTime')} hint={t('settings.expressOnTimeHint')} value={s.expressOnTime} onChange={expressOnTime => setSettings({ expressOnTime })} />
         {s.expressOnTime && (
           <>

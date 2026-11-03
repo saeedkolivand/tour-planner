@@ -16,6 +16,7 @@ import { StopListItem } from '@/features/tour/components/StopListItem';
 import { coverage } from '@/features/tour/selectors';
 import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import { usePlanning } from '@/features/tour/usePlanning';
+import { orderOf } from '@/features/customers/routeStore';
 import { useSettings } from '@/features/settings/settings';
 import { pickScreenshots, readPhotos } from '@/services/scan';
 import { haptic } from '@/shared/haptics';
@@ -28,7 +29,7 @@ export default function StopsScreen() {
   const store = useTourStore();
   const { tour, busy, progress, error, offline } = useTourState();
   const plan = usePlanning();
-  const { stopOrder } = useSettings();
+  const stopOrder = orderOf(useSettings());
   const [msg, setMsg] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [camera, setCamera] = useState(false);

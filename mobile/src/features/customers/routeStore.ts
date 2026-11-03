@@ -2,7 +2,8 @@
 // next to it), then kept as ranked customers in customers.json, so the door photos and notes are the access notes.
 // Phone only, like the access notes: names, photos and notes are never logged.
 import { File } from 'expo-file-system';
-import type { Stop } from '@/features/tour/types';
+import { companyOf } from '@/features/planner/companies';
+import type { Stop, StopOrder } from '@/features/tour/types';
 import { log } from '@/shared/log';
 import { type Customer, customersFolder, customersNow, updateCustomers } from './customers';
 import { cheapestSlot, routeMatch, type RouteDeps } from './fixedRoute';
@@ -32,6 +33,10 @@ export function importRoute() {
 
 /** How many stops the route has (0: none imported). */
 export const routeSize = () => Object.values(customersNow()).filter(c => c.rank != null).length;
+
+/** The order a plan uses: a company with a fixed order always the route's (none on the phone yet: the scanner's). */
+export const orderOf = (s: { company: string; stopOrder: StopOrder }): StopOrder =>
+  companyOf(s.company).fixedOrder ? (routeSize() ? 'route' : 'scanned') : s.stopOrder;
 
 export const routeDeps: RouteDeps = {
   match: s => {

@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Text } from '@/components/ui/text';
 import { routeSize } from '@/features/customers/routeStore';
-import { COMPANIES, type Company } from '@/features/planner/companies';
+import { COMPANIES, companyOf, type Company } from '@/features/planner/companies';
 import { NavAppPicker } from '@/features/settings/components/NavAppPicker';
 import { RouteStylePicker } from '@/features/settings/components/RouteStylePicker';
 import { SettingsDivider, SettingsSection, SwitchRow } from '@/features/settings/components/SettingsSection';
@@ -44,9 +44,16 @@ export function RouteGroup() {
         </View>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.stopOrder')} footer={t(ORDER_TEXT[s.stopOrder].footer, { n: routeSize() })}>
-        <StopOrderPicker withRoute={routeSize() > 0} value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
-      </SettingsSection>
+      {companyOf(s.company).fixedOrder ? (
+        <SettingsSection title={t('settings.stopOrder')}>
+          <Text className="text-base font-semibold">{t(routeSize() ? 'settings.orderRoute' : 'settings.orderScanned')}</Text>
+          <Text className="text-muted-foreground text-sm">{t(routeSize() ? 'settings.orderFixedFooter' : 'settings.orderFixedNoRouteFooter', { n: routeSize(), company: companyOf(s.company).name })}</Text>
+        </SettingsSection>
+      ) : (
+        <SettingsSection title={t('settings.stopOrder')} footer={t(ORDER_TEXT[s.stopOrder].footer, { n: routeSize() })}>
+          <StopOrderPicker withRoute={routeSize() > 0} value={s.stopOrder} onChange={stopOrder => setSettings({ stopOrder })} />
+        </SettingsSection>
+      )}
 
       <SettingsSection title={t('settings.routeStyle')} footer={t('settings.routeStyleFooter')}>
         <RouteStylePicker value={s.routeStyle} onChange={routeStyle => setSettings({ routeStyle })} />

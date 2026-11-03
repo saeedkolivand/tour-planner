@@ -6,11 +6,14 @@ import { parsePhoenix, phoenixTotal, votePhoenix } from './phoenix.ts';
 interface Reader {
   name: string; parse(text: string): Stop[]; /** all photos' rows, before they join the tour */ merge(rows: Stop[]): Stop[];
   /** the stop count in a photo's header, if it shows one */ total?(text: string): number | null;
+  /** The tour's order is given (a fixed route), never improved or solved: the Stop order setting doesn't apply. */
+  fixedOrder?: true;
 }
 
 export const COMPANIES = {
   dpd: { name: 'DPD', parse: parseStops, merge: rows => rows },
-  phoenix: { name: 'PHOENIX', parse: parsePhoenix, merge: votePhoenix, total: phoenixTotal },
+  // PHOENIX: the supervisor's route is the order; the driver asked for no improved or fastest order, ever (2026-11-03)
+  phoenix: { name: 'PHOENIX', parse: parsePhoenix, merge: votePhoenix, total: phoenixTotal, fixedOrder: true },
 } satisfies Record<string, Reader>;
 
 export type Company = keyof typeof COMPANIES;

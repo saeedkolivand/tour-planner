@@ -67,3 +67,6 @@ export function votePhoenix(rows: Stop[]): Stop[] {
     return { ...g.find(s => stopKey(s) === key)!, postcode: pc, city, ...(names.length && { name: mode(names) }), parcels: counts.length ? mode(counts) : 1 };
   });
 }
+
+/** A pharmacy (it goes in the back of the van), by its name: "Apotheke", "Apo", not "Apollo-Optik". */
+export const isPharmacy = (name?: string) => /\bapo(th\w*)?\b|\bappth/i.test(name ?? '');

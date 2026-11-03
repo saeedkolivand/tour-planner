@@ -313,7 +313,9 @@
     "exportUnavailable": "Sharing files is not available on this device.",
     "logFooter": "Something went wrong? Turn on the detailed log, scan or plan again, then export and send the file. It holds the addresses and names from your scanner list and the tour history, but no keys and no server address.",
     "orderRoute": "Fixed route",
-    "orderRouteFooter": "Your fixed route ({{n}} stops) sets the order: each scanned stop takes its place on it and parks at its pin; stops with nothing tonight are skipped. A stop on no route is slotted in where it adds the least detour, and you check where it goes. Takes effect at the next plan."
+    "orderRouteFooter": "Your fixed route ({{n}} stops) sets the order: each scanned stop takes its place on it and parks at its pin; stops with nothing tonight are skipped. A stop on no route is slotted in where it adds the least detour, and you check where it goes. Takes effect at the next plan.",
+    "orderFixedFooter": "{{company}} tours always keep your fixed route’s order ({{n}} stops): nothing is improved or re-ordered.",
+    "orderFixedNoRouteFooter": "{{company}} tours are never re-ordered. No fixed route on the phone yet, so the stops keep the scanner list’s order; put route.json in the app’s customers folder to use one."
   },
   "closure": {
     "reportLabel": "Report a closed road or a new one-way street here",
@@ -432,6 +434,8 @@
     "doneTitle": "Van loaded",
     "doneBody": "Everything is in, last stop first. Stop 1 is at the doors.",
     "emptyTitle": "Nothing to load",
-    "emptyBody": "Plan the tour first; every stop still to deliver shows up here."
+    "emptyBody": "Plan the tour first; every stop still to deliver shows up here.",
+    "backPharmacies": "Back of the van: pharmacies",
+    "opticians": "Opticians"
   }
 }

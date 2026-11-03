@@ -10,6 +10,8 @@ import { Icon } from '@/components/ui/icon';
 import { Progress } from '@/components/ui/progress';
 import { Text } from '@/components/ui/text';
 import { AccessNote } from '@/features/customers/AccessNote';
+import { isPharmacy } from '@/features/planner/phoenix';
+import { useSettings } from '@/features/settings/settings';
 import { useTourState } from '@/features/tour/TourProvider';
 import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
@@ -19,13 +21,18 @@ const L = log('load-van');
 
 /**
  * Loading the van, last stop first (the supervisor's "load from the end"): one stop at a time, its loading number
- * huge, the parcel count and the door photo, so what goes in first is what comes out last. Tap-through; a PHOENIX
- * tote label can't be scanned yet (its format is unknown).
+ * huge, the parcel count and the door photo, so what goes in first is what comes out last. PHOENIX: the pharmacies
+ * first, into the back of the van, then the opticians (ponytail: last-first too, until the driver's own order for them
+ * arrives). Tap-through; a PHOENIX tote label can't be scanned yet (its format is unknown).
  */
 export default function LoadScreen() {
   const { t } = useTranslation();
   const { tour } = useTourState();
-  const stops = useMemo(() => tour.stops.filter(s => s.no != null && !s.done).sort((a, b) => b.no! - a.no!), [tour.stops]);
+  const split = useSettings().company === 'phoenix';
+  const stops = useMemo(() => {
+    const open = tour.stops.filter(s => s.no != null && !s.done).sort((a, b) => b.no! - a.no!);
+    return split ? [...open.filter(s => isPharmacy(s.name)), ...open.filter(s => !isPharmacy(s.name))] : open;
+  }, [tour.stops, split]);
   const [i, setI] = useState(0);
   const back = { label: t('tabs.route'), onPress: () => router.back() };
   const s = stops[i];
@@ -53,6 +60,7 @@ export default function LoadScreen() {
           <Text className="text-muted-foreground text-sm font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{t('load.progress', { done: i, total: stops.length })}</Text>
           <Progress value={(i / stops.length) * 100} className="h-2" aria-label={t('load.progressLabel')} />
         </View>
+        {split && <Text className="text-lg font-bold">{t(isPharmacy(s.name) ? 'load.backPharmacies' : 'load.opticians')}</Text>}
         <View className="bg-foreground items-center rounded-2xl py-6" accessibilityLabel={t('route.loadingNumberLabel', { n: s.no })}>
           <Text className="text-background text-8xl font-black" style={{ fontVariant: ['tabular-nums'] }}>{s.no}</Text>
         </View>
