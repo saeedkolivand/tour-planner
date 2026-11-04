@@ -48,6 +48,10 @@
     "cameraNeeded": "Camera access is needed to photograph the scanner list."
   },
   "stops": {
+    "routePickTitle": "Which stop on the route is this?",
+    "routePickSearch": "Search the route by name",
+    "routePickItem": "This is {{name}}",
+    "routePickHint": "Picked, it goes to that stop's pin and place in the order, and the app remembers this address for it.",
     "title": "Stops",
     "addByHand": "Add a stop by hand",
     "captured": "Captured",
@@ -185,6 +189,7 @@
     "notPlannedTitle_other": "{{count}} stops not on the route",
     "notPlannedEditHint": "Opens the stop to fix its address",
     "notPlannedHint": "Tap one to fix its address, then re-plan. Navigation still finds it by its address, and you can tick it off here.",
+    "notPlannedHintRoute": "Its name didn't match the fixed route and its address wasn't found. Tap it and pick which route stop it is: it parks at that pin, tonight and from now on.",
     "emptyBodyRoute": "Capture tonight’s scanner list, then start. Each stop takes its place on your fixed route.",
     "inRouteOrder": "In your fixed route’s order.",
     "freshTitle_one": "{{count}} stop not on your route",

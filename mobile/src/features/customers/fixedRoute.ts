@@ -50,7 +50,8 @@ export function routeMatch(all: Record<string, Customer>, s: Stop): [string, Ran
   if (known) return known;
   const named = ranked.filter(([, c]) => sameName(c.name, s.name, s.street));
   const strong = named.filter(([, c]) => sameName(c.name, s.name, s.street, true));
-  if (s.lat == null || s.lon == null) return strong.length === 1 ? strong[0] : undefined; // not placed: a sure name nobody else has
+  // not placed: a sure name nobody else has, else a near one nobody else has ("Reusrather Apo" ~ "Rosrather Apotheke")
+  if (s.lat == null || s.lon == null) return strong.length === 1 ? strong[0] : !strong.length && named.length === 1 ? named[0] : undefined;
   const at = { lat: s.lat, lon: s.lon }, d = ([, c]: [string, Ranked]) => meters(c, at);
   const nearest = (es: [string, Ranked][], m: number) => es.filter(e => d(e) <= m).sort((a, b) => d(a) - d(b))[0];
   return nearest(named, NAMED_M) ?? nearest(strong, STRONG_M) ?? nearest(ranked, SAME_M);

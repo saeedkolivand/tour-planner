@@ -10,14 +10,17 @@ import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { haptic } from '@/shared/haptics';
 import type { Stop } from '../types';
+import { RoutePick } from './RoutePick';
 import { TypePicker } from './TypePicker';
 import { useTranslation } from '@/shared/i18n';
 
 type Draft = Pick<Stop, 'street' | 'number' | 'postcode' | 'type' | 'parcels'>;
 
 /** Edits one stop. Mount with key={index} so each open starts from the stop's current values. */
-export function StopEditDialog({ stop, onSave, onDelete, onClose }: {
+export function StopEditDialog({ stop, onSave, onDelete, onClose, route, onRoute }: {
   stop: Stop; onSave(patch: Partial<Stop>): void; onDelete(): void; onClose(): void;
+  /** the fixed route's stops (route order only): pick the one this row is */
+  route?: { id: string; name: string; rank: number }[]; onRoute?(id: string): void;
 }) {
   const { t } = useTranslation();
   const [initial] = useState<Draft>(() => ({ street: stop.street, number: stop.number, postcode: stop.postcode, type: stop.type, parcels: stop.parcels }));
@@ -46,6 +49,7 @@ export function StopEditDialog({ stop, onSave, onDelete, onClose }: {
   return (
     <Sheet title={stop.no != null ? t('stops.stopNumber', { n: stop.no }) : t('stops.editTitle')} onDismiss={save}
       cancel={{ label: t('common.cancel'), onPress: cancel }} action={{ label: t('common.save'), onPress: save }}>
+      {route && onRoute && <RoutePick stop={stop} route={route} onPick={id => { haptic.success(); onRoute(id); onClose(); }} />}
       <View className="gap-2">
         <Label nativeID="street">{t('stops.address')}</Label>
         <View className="flex-row gap-2">

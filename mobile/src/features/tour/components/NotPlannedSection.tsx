@@ -12,8 +12,8 @@ import type { Stop } from '../types';
  * Stops the plan could not place (address not found, or no road today): never dropped silently. Tap one to fix its
  * address; navigation still finds it by the address, and it can be ticked off like any other stop.
  */
-export function NotPlannedSection({ stops, onEdit, onNavigate, onToggle }: {
-  stops: Stop[]; onEdit(s: Stop): void; onNavigate(s: Stop): void; onToggle(s: Stop): void;
+export function NotPlannedSection({ stops, onEdit, onNavigate, onToggle, hint }: {
+  stops: Stop[]; onEdit(s: Stop): void; onNavigate(s: Stop): void; onToggle(s: Stop): void; hint?: string;
 }) {
   const { t } = useTranslation();
   if (!stops.length) return null;
@@ -49,7 +49,7 @@ export function NotPlannedSection({ stops, onEdit, onNavigate, onToggle }: {
           </Pressable>
         );
       })}
-      <Text className="text-muted-foreground text-xs">{anyAddress ? t('route.notPlannedHint') : t('route.deliverOnFoot').trim()}</Text>
+      <Text className="text-muted-foreground text-xs">{anyAddress ? hint ?? t('route.notPlannedHint') : t('route.deliverOnFoot').trim()}</Text>
     </View>
   );
 }

@@ -48,6 +48,10 @@
     "cameraNeeded": "Kamerazugriff wird benötigt, um die Scanner-Liste zu fotografieren."
   },
   "stops": {
+    "routePickTitle": "Welcher Stopp der Route ist das?",
+    "routePickSearch": "Route nach Namen durchsuchen",
+    "routePickItem": "Das ist {{name}}",
+    "routePickHint": "Gewählt kommt er an den Pin und Platz dieses Stopps, und die App merkt sich die Adresse dafür.",
     "title": "Stopps",
     "addByHand": "Stopp manuell hinzufügen",
     "captured": "Erfasst",
@@ -185,6 +189,7 @@
     "notPlannedTitle_other": "{{count}} Stopps nicht auf der Route",
     "notPlannedEditHint": "Öffnet den Stopp, um die Adresse zu korrigieren",
     "notPlannedHint": "Tippe einen an, um die Adresse zu korrigieren, und plane dann neu. Die Navigation findet ihn trotzdem über die Adresse, abhaken kannst du ihn hier.",
+    "notPlannedHintRoute": "Der Name passte zu keinem Stopp der festen Route und die Adresse wurde nicht gefunden. Tippe ihn an und wähle, welcher Routenstopp es ist: Er kommt an dessen Pin, heute und künftig.",
     "emptyBodyRoute": "Erfasse die Stoppliste von heute Nacht und starte dann. Jeder Stopp bekommt seinen Platz auf deiner festen Tour.",
     "inRouteOrder": "In der Reihenfolge deiner festen Tour.",
     "freshTitle_one": "{{count}} Stopp nicht auf deiner Tour",

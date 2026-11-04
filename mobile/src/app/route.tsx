@@ -25,7 +25,7 @@ import { useTourState, useTourStore } from '@/features/tour/TourProvider';
 import type { Cluster, Plan, Stop } from '@/features/tour/types';
 import { useDelivery } from '@/features/tour/useDelivery';
 import { usePlanning } from '@/features/tour/usePlanning';
-import { orderOf } from '@/features/customers/routeStore';
+import { orderOf, routeStops, teachRoute } from '@/features/customers/routeStore';
 import { noPc, useSettings } from '@/features/settings/settings';
 import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
@@ -134,7 +134,8 @@ export default function RouteScreen() {
             {p.order === 'route' && <FreshStops clusters={p.clusters} nextIndex={view.nextIndex} onMove={setMoving} />}
             {/* the live copies: an address fixed since the plan shows as fixed, a tick shows as done */}
             <NotPlannedSection stops={p.ungeocoded.map(u => ({ ...u, ...tour.stops.find(s => s.key && s.key === u.key) }))}
-              onEdit={s => s.key && setEditing(s.key)} onNavigate={navigateAddress} onToggle={toggleStop} />
+              onEdit={s => s.key && setEditing(s.key)} onNavigate={navigateAddress} onToggle={toggleStop}
+              hint={p.order === 'route' ? t('route.notPlannedHintRoute') : undefined} />
             <RouteMap start={p.start} stops={numbered} nextKeys={nextKeys} onMove={store.pin} />
             {view.upcoming.length > 0 && <Label>{t('route.upNext')}</Label>}
             {tour.stops.some(s => s.seq != null) ? (
@@ -155,7 +156,8 @@ export default function RouteScreen() {
       )}
       {editIndex >= 0 && (
         <StopEditDialog key={editing} stop={tour.stops[editIndex]} onClose={() => setEditing(null)}
-          onSave={patch => store.editStop(editIndex, patch)} onDelete={() => store.removeStop(editIndex)} />
+          onSave={patch => store.editStop(editIndex, patch)} onDelete={() => store.removeStop(editIndex)}
+          {...(p.order === 'route' && { route: routeStops(), onRoute: (id: string) => { teachRoute(id, tour.stops[editIndex]); plan(true); } })} />
       )}
     </View>
   );

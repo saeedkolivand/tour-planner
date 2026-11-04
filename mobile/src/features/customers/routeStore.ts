@@ -58,3 +58,13 @@ export function joinRoute(s: Stop, rank: number) {
   updateCustomers(all => ({ ...all, [`route-${Date.now()}`]: c }));
   l.info('stop joined the fixed route', { rank });
 }
+
+/** The route's stops in order, for the driver to pick from. */
+export const routeStops = () => Object.entries(customersNow()).filter(([, c]) => c.rank != null)
+  .map(([id, c]) => ({ id, name: c.name ?? '', rank: c.rank! })).sort((a, b) => a.rank - b.rank);
+
+/** The driver says this row is that route stop: it takes the row's address, so this plan and every later one match it. */
+export function teachRoute(id: string, s: Stop) {
+  updateCustomers(all => ({ ...all, [id]: { ...all[id], street: s.street, number: s.number, postcode: s.postcode } }));
+  l.info('route stop picked by hand', { rank: customersNow()[id]?.rank });
+}
