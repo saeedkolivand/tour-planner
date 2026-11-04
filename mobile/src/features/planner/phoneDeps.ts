@@ -2,9 +2,11 @@
 import { storage } from '@/shared/storage';
 import * as Location from 'expo-location';
 import { getSettings } from '@/features/settings/settings';
-import type { LatLon } from '@/features/tour/types';
+import type { LatLon, Stop } from '@/features/tour/types';
 import { t } from '@/shared/i18n';
 import { log } from '@/shared/log';
+import { searchPlaces } from '../../../modules/place-search';
+import { sameName } from '@/features/customers/fixedRoute';
 import { alike, holds, locate as locateBy, type Hit } from './locate';
 import { estimateMatrix, orsMatrix, osrmMatrix, type MatrixOptions } from './matrix';
 import type { PhoneDeps } from './planOnPhone';
@@ -115,6 +117,22 @@ async function geoapify(q: string): Promise<Hit | null> {
   return f ? { lat: f.lat, lon: f.lon, street: f.street ?? f.name ?? '', postcode: f.postcode ?? '', number: f.housenumber } : null;
 }
 
+/**
+ * A place by its name, as typed into Apple Maps: its name and postcode, then with its street too. Taken only when the
+ * answer has that postcode and a name like the scanner's, so a "Linden-Apotheke" in the next town never counts.
+ */
+async function findByName(s: Pick<Stop, 'name' | 'street' | 'number' | 'postcode'>): Promise<LatLon | null> {
+  if (!searchPlaces || !area || !s.name) return null;
+  const name = s.name.split(' · ')[0].replace(/\bapo\b\.?/i, 'Apotheke').replace(/\bopt\b\.?/i, 'Optik');
+  for (const q of [`${name} ${s.postcode}`, `${name}, ${s.street} ${s.number}, ${s.postcode}`]) {
+    const hits = await searchPlaces(q, area.lat, area.lon).catch(e => { L.warn('Apple Maps search failed', { q, error: e }); return []; });
+    const f = hits.find(h => h.postcode === s.postcode && sameName(h.name, s.name));
+    L.info(f ? 'placed by its name' : 'not found by its name', { q, answers: hits.length });
+    if (f) return { lat: f.lat, lon: f.lon };
+  }
+  return null;
+}
+
 /** A stop the phone's geocoder could not place, by OpenStreetMap, then Geoapify (with a key); remembered like the phone's own answers. */
 async function locate(s: Parameters<NonNullable<PhoneDeps['locate']>>[0], q: string) {
   let g = await locateBy(s, photon, (msg, data) => L.debug(msg, { q, ...data }));
@@ -169,4 +187,4 @@ export async function clearGeocache() {
   L.info('address cache cleared', { addresses: n });
 }
 
-export const phoneDeps: PhoneDeps = { geocode, setArea: p => { area = p; }, matrix, t: key => t(key), knownStreets, locate, optimize, log: (msg, data) => L.debug(msg, data) };
+export const phoneDeps: PhoneDeps = { geocode, setArea: p => { area = p; }, matrix, t: key => t(key), knownStreets, locate, findByName, optimize, log: (msg, data) => L.debug(msg, data) };

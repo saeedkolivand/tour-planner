@@ -535,3 +535,14 @@ test('real duplicates (2026-10-15/20): a postcode one digit off and OCR\'s "sir"
   assert.deepEqual(d.map(x => x.key), ['weissenburgstr|29|50870', 'klingelpuetz|70|50679', 'kasparstr|47|50667', 'adolffischerstr|19|50667']);
   assert.equal(dedupe([s('Kölner Str.', '12', { postcode: '50226' }), s('Kölner Str.', '12', { postcode: '50354' })]).length, 2);
 });
+
+test('an address no geocoder finds is looked up by its name (Apple Maps) before it is given up', async () => {
+  const pos: Record<string, { lat: number; lon: number }> = { 'Depot': { lat: 50.94, lon: 6.90 }, 'A 1, 50667 Köln': { lat: 50.94, lon: 6.95 } };
+  const asked: string[] = [];
+  const deps = { geocode: async (q: string) => pos[q] ?? null, matrix: async (p: { lat: number; lon: number }[]) => estimateMatrix(p), t: (k: string) => k,
+    findByName: async (x: Stop) => { asked.push(x.name!); return x.name === 'Linden Apo' ? { lat: 50.941, lon: 6.96 } : null; } };
+  const p = await planOnPhone({ start: { q: 'Depot' }, end: null, stops: [s('A', '1'), s('Nowhere', '9', { name: 'Linden Apo' }), s('Gone', '2')], lastNo: 0 }, deps);
+  assert.equal(p.clusters.flatMap(c => c.stops).length, 2, 'placed by its name');
+  assert.deepEqual(asked, ['Linden Apo'], 'only a stop with a name is searched by it');
+  assert.equal(p.ungeocoded.length, 1);
+});

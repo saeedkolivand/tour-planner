@@ -20,6 +20,8 @@ export interface PhoneDeps {
   knownStreets?(): Promise<string[]>;
   /** The second geocoder (OpenStreetMap), for a stop the first could not place; `q` is its label (the cache key). */
   locate?(s: Stop, q: string): Promise<Located | null>;
+  /** The last try: the place by its name in Apple Maps ("Reusrather Apotheke 40764"), for one whose address no geocoder finds. */
+  findByName?(s: Stop): Promise<LatLon | null>;
   /** A starting order (OpenRouteService's VROOM) for the phone's search: parking stop indices from 1, null = none. */
   optimize?(input: VroomInput): Promise<number[] | null>;
   /** The fixed route, for order 'route'. */
@@ -102,6 +104,12 @@ export async function planOnPhone(req: PlanRequest, deps: PhoneDeps, progress: P
     if (!g && !s.pinned) for (const street of umlautVariants(s.street)) {
       g = await inArea(await deps.geocode(label({ ...q, street })).catch(() => null), 'phone, umlaut swapped');
       if (g) { note('placed with an umlaut swapped', { stop: label(s), street }); s.street = street; break; }
+    }
+    // Apple Maps by its name next ("Reusrather Apotheke 40764"), its own postcode the check: the 3 km one leans on the
+    // postcode's centre, which may be what's off
+    if (!g && !s.pinned && s.name && q.postcode && deps.findByName) {
+      g = await deps.findByName(q).catch(() => null);
+      if (g) note('placed by its name', { stop: label(s) });
     }
     // the phone's geocoder takes a street named after a town ("Neusser Str.") for the town, or lacks the house:
     // OpenStreetMap's, by the PC's rules (locate.ts); the stop takes the spelling it found if that differs
