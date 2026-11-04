@@ -9,7 +9,7 @@ import { type Customer, customersFolder, customersNow, updateCustomers } from '.
 import { cheapestSlot, routeMatch, type RouteDeps } from './fixedRoute';
 
 const l = log('fixed-route');
-interface RouteFile { stops: { no: number; name: string; lat: number; lon: number; note?: string; media?: string[] }[] }
+interface RouteFile { stops: { no: number; name: string; lat: number; lon: number; note?: string; media?: string[]; street?: string; number?: string; postcode?: string }[] }
 
 const isRoute = (id: string) => id.startsWith('route-');
 
@@ -22,7 +22,8 @@ export function importRoute() {
     updateCustomers(all => {
       const next = Object.fromEntries(Object.entries(all).filter(([id]) => !isRoute(id)));
       for (const s of stops) {
-        next[`route-${s.no}`] = { name: s.name, street: '', number: '', postcode: '', note: s.note ?? '', photos: (s.media ?? []).filter(m => /\.jpe?g$/i.test(m)), rank: s.no, lat: s.lat, lon: s.lon };
+        // the scanner's address, where it's known, matches the row before anything is geocoded (two Fielmanns, one name)
+        next[`route-${s.no}`] = { name: s.name, street: s.street ?? '', number: s.number ?? '', postcode: s.postcode ?? '', note: s.note ?? '', photos: (s.media ?? []).filter(m => /\.jpe?g$/i.test(m)), rank: s.no, lat: s.lat, lon: s.lon };
       }
       return next;
     });

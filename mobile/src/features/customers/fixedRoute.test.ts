@@ -38,6 +38,7 @@ test('a name two route stops share needs the position; a unique one does not', (
   assert.equal(routeMatch(route, row('Linden-Apotheke'))?.[0], 'route-1'); // not placed, unique name
   assert.equal(routeMatch(route, row('Fielmann')), undefined); // two Fielmanns, no position yet
   assert.equal(routeMatch(route, row('Lynden Apo'))?.[0], 'route-1'); // not placed, misspelt, but no other is near
+  assert.equal(routeMatch({ ...route, 'route-1': { ...route['route-1'], street: 'Ringstr.', number: '2', postcode: '42799' } }, row('Linden-Apotheke')), undefined, 'another postcode, another Linden');
   assert.equal(routeMatch(route, row('Fielmann', { lat: 51.1401, lon: 7.0002 }))?.[0], 'route-5');
   assert.equal(routeMatch(route, row('Turm-Apotheke', { lat: 51.1199, lon: 7.0 }))?.[0], 'route-3');
   // misread beyond recognition, but at the same door

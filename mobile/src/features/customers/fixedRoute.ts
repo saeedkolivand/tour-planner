@@ -2,7 +2,7 @@
 // van stops. Each night's scanner rows are matched to them and delivered in that order; nothing is solved. A row on no
 // route is new tonight: it's offered the slot that costs the least detour, and the driver decides.
 import { editDistance } from '../planner/locate.ts';
-import { bare, meters } from '../planner/stops.ts';
+import { bare, meters, samePlz } from '../planner/stops.ts';
 import type { LatLon, Stop } from '../tour/types.ts';
 import { type Customer, isVisitTo } from './match.ts';
 
@@ -45,7 +45,10 @@ const SAME_M = 40; // that close it's the same door, whatever OCR made of the na
 
 /** The route customer this stop is a visit to: by address once learned, else by name near its pin, else by its pin. */
 export function routeMatch(all: Record<string, Customer>, s: Stop): [string, Ranked] | undefined {
-  const ranked = Object.entries(all).filter((e): e is [string, Ranked] => e[1].rank != null && e[1].lat != null && e[1].lon != null);
+  const plz = (p?: string) => String(p ?? '').replace(/\D/g, '');
+  // a route stop whose postcode is known is never a row from another postcode (Montanus in Burscheid isn't Leichlingen's)
+  const ranked = Object.entries(all).filter((e): e is [string, Ranked] => e[1].rank != null && e[1].lat != null && e[1].lon != null
+    && samePlz(plz(e[1].postcode), plz(s.postcode)));
   const known = ranked.find(([, c]) => !!c.street && isVisitTo(c, s));
   if (known) return known;
   const named = ranked.filter(([, c]) => sameName(c.name, s.name, s.street));
