@@ -427,20 +427,14 @@
     "private": "Kept on this phone only, never sent anywhere. In the Files app under Tour Planner > customers."
   },
   "load": {
-    "open": "Load the van",
-    "title": "Load the van",
-    "subtitle": "Last stop first",
-    "progress": "{{done}} of {{total}} loaded",
-    "progressLabel": "Loading progress",
-    "next": "Loaded, next",
+    "open": "Load",
+    "title": "Load",
+    "subtitle": "Last stop first · tap one when it's in",
     "back": "Back",
-    "pickup": "Pickup: bring the returns back",
-    "fresh": "New tonight",
-    "doneTitle": "Van loaded",
-    "doneBody": "Everything is in, last stop first. Stop 1 is at the doors.",
-    "emptyTitle": "Nothing to load",
-    "emptyBody": "Plan the tour first; every stop still to deliver shows up here.",
-    "backPharmacies": "Back of the van: pharmacies",
-    "opticians": "Opticians"
+    "van": "Van",
+    "box": "Optician box",
+    "pickup": "Pickup",
+    "notOnRoute": "Not on the route: place it yourself",
+    "emptyBody": "Scan the Stoppliste first."
   }
 }

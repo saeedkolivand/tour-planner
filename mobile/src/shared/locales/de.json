@@ -427,20 +427,14 @@
     "private": "Bleibt nur auf diesem Handy und wird nirgends hin gesendet. In der Dateien-App unter Tour Planner > customers."
   },
   "load": {
-    "open": "Wagen beladen",
-    "title": "Wagen beladen",
-    "subtitle": "Letzter Stopp zuerst",
-    "progress": "{{done}} von {{total}} geladen",
-    "progressLabel": "Ladefortschritt",
-    "next": "Geladen, weiter",
+    "open": "Beladen",
+    "title": "Beladen",
+    "subtitle": "Letzter Stopp zuerst · antippen, wenn drin",
     "back": "Zurück",
-    "pickup": "Abholung: Retouren mitnehmen",
-    "fresh": "Neu heute",
-    "doneTitle": "Wagen beladen",
-    "doneBody": "Alles ist drin, letzter Stopp zuerst. Stopp 1 liegt an der Tür.",
-    "emptyTitle": "Nichts zu laden",
-    "emptyBody": "Plane zuerst die Tour; jeder offene Stopp erscheint dann hier.",
-    "backPharmacies": "Hinten in den Wagen: Apotheken",
-    "opticians": "Optiker"
+    "van": "Wagen",
+    "box": "Optiker-Kiste",
+    "pickup": "Abholung",
+    "notOnRoute": "Nicht auf der Route: selbst einsortieren",
+    "emptyBody": "Scanne zuerst die Stoppliste."
   }
 }

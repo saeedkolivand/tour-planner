@@ -52,6 +52,6 @@ test('the header gives the stop count: pickups plus deliveries', () => {
 });
 
 test('pharmacies are told from opticians by name', () => {
-  for (const n of ['Linden-Apotheke', 'Markt-Apo', 'Avie Apo am Blumentopf', 'Eich Apotheken', 'Markt Appthek']) assert.ok(isPharmacy(n), n);
+  for (const n of ['Linden-Apotheke', 'Markt-Apo', 'Avie Apo am Blumentopf', 'Eich Apotheken', 'Markt Appthek', 'Park-Apot Montanusstr.']) assert.ok(isPharmacy(n), n);
   for (const n of ['Apollo-Optik', 'Fielmann', 'Optik Bod Gartenstr. 4-', undefined]) assert.ok(!isPharmacy(n), n);
 });

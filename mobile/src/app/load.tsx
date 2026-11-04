@@ -1,88 +1,90 @@
 import { router } from 'expo-router';
-import { ArrowLeft, Check, PackageCheck, Undo2 } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { EmptyState } from '@/components/EmptyState';
+import { Pressable, SectionList, View } from 'react-native';
 import { ScreenHeader } from '@/components/Screen';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Progress } from '@/components/ui/progress';
 import { Text } from '@/components/ui/text';
-import { AccessNote } from '@/features/customers/AccessNote';
+import { routeDeps, routeSize } from '@/features/customers/routeStore';
 import { isPharmacy } from '@/features/planner/phoenix';
 import { useSettings } from '@/features/settings/settings';
 import { useTourState } from '@/features/tour/TourProvider';
+import type { Stop } from '@/features/tour/types';
+import { cn } from '@/lib/utils';
 import { haptic } from '@/shared/haptics';
 import { useTranslation } from '@/shared/i18n';
 import { log } from '@/shared/log';
 
 const L = log('load-van');
+const id = (s: Stop) => s.key ?? `${s.street} ${s.number} ${s.name ?? ''}`;
 
 /**
- * Loading the van, last stop first (the supervisor's "load from the end"): one stop at a time, its loading number
- * huge, the parcel count and the door photo, so what goes in first is what comes out last. PHOENIX: the pharmacies
- * first, into the back of the van, then the opticians (ponytail: last-first too, until the driver's own order for them
- * arrives). Tap-through; a PHOENIX tote label can't be scanned yet (its format is unknown).
+ * Loading: tonight's stops last-first, each with its package count; tap one when it's in. PHOENIX: the van
+ * (pharmacies) and the optician box, apart. The order is the plan's once there is one, before that the fixed route's.
+ * ponytail: ticks live while the screen is open; keep them across visits if leaving halfway proves common.
  */
 export default function LoadScreen() {
   const { t } = useTranslation();
   const { tour } = useTourState();
-  const split = useSettings().company === 'phoenix';
-  const stops = useMemo(() => {
-    const open = tour.stops.filter(s => s.no != null && !s.done).sort((a, b) => b.no! - a.no!);
-    return split ? [...open.filter(s => isPharmacy(s.name)), ...open.filter(s => !isPharmacy(s.name))] : open;
-  }, [tour.stops, split]);
-  const [i, setI] = useState(0);
-  const back = { label: t('tabs.route'), onPress: () => router.back() };
-  const s = stops[i];
-  const step = (d: number) => {
-    haptic[d > 0 ? 'success' : 'select']();
-    if (d > 0 && i + 1 === stops.length) L.info('van loaded', { stops: stops.length });
-    setI(n => Math.max(0, n + d));
-  };
+  const phoenix = useSettings().company === 'phoenix';
+  const [ticked, setTicked] = useState<Set<string>>(new Set());
 
-  if (!s) {
-    return (
-      <View className="bg-background flex-1">
-        <ScreenHeader title={t('load.title')} back={back} />
-        <EmptyState icon={PackageCheck} title={t(stops.length ? 'load.doneTitle' : 'load.emptyTitle')} body={t(stops.length ? 'load.doneBody' : 'load.emptyBody')}
-          action={<Button size="xl" onPress={() => router.back()}><Text>{t('tabs.route')}</Text></Button>} />
-      </View>
-    );
-  }
+  const sections = useMemo(() => {
+    const planned = new Map((tour.plan?.clusters ?? []).flatMap(c => c.stops).map((s, i) => [id(s), i]));
+    const rank = (s: Stop) => planned.get(id(s)) ?? (routeSize() ? routeDeps.match(s)?.rank : undefined) ?? s.no;
+    // last stop first; a row the route doesn't know (yet) last, to be placed by hand
+    const open = tour.stops.filter(s => !s.done).map(s => ({ s, r: rank(s) })).sort((a, b) => (b.r ?? -1) - (a.r ?? -1));
+    if (!phoenix) return [{ title: t('load.van'), data: open }];
+    return [
+      { title: t('load.van'), data: open.filter(x => isPharmacy(x.s.name)) },
+      { title: t('load.box'), data: open.filter(x => !isPharmacy(x.s.name)) },
+    ].filter(x => x.data.length);
+  }, [tour.stops, tour.plan, phoenix, t]);
+
+  const toggle = (s: Stop) => {
+    haptic.select();
+    setTicked(prev => {
+      const next = new Set(prev);
+      if (!next.delete(id(s))) next.add(id(s));
+      for (const sec of sections) if (sec.data.every(x => next.has(id(x.s)))) L.info('loaded', { section: sec.title, stops: sec.data.length });
+      return next;
+    });
+  };
 
   return (
     <View className="bg-background flex-1">
-      <ScreenHeader title={t('load.title')} subtitle={t('load.subtitle')} back={back} />
-      <ScrollView contentContainerClassName="gap-4 px-5 pb-10">
-        <View className="gap-2">
-          <Text className="text-muted-foreground text-sm font-semibold" style={{ fontVariant: ['tabular-nums'] }}>{t('load.progress', { done: i, total: stops.length })}</Text>
-          <Progress value={(i / stops.length) * 100} className="h-2" aria-label={t('load.progressLabel')} />
-        </View>
-        {split && <Text className="text-lg font-bold">{t(isPharmacy(s.name) ? 'load.backPharmacies' : 'load.opticians')}</Text>}
-        <View className="bg-foreground items-center rounded-2xl py-6" accessibilityLabel={t('route.loadingNumberLabel', { n: s.no })}>
-          <Text className="text-background text-8xl font-black" style={{ fontVariant: ['tabular-nums'] }}>{s.no}</Text>
-        </View>
-        <View className="gap-1">
-          <Text className="text-2xl font-bold">{s.name ?? `${s.street} ${s.number}`}</Text>
-          {!!s.name && <Text className="text-muted-foreground text-base">{`${s.street} ${s.number}, ${s.city ?? s.postcode}`}</Text>}
-          <View className="mt-1 flex-row flex-wrap gap-2">
-            <Badge variant="secondary"><Text>{t('count.parcels', { count: s.parcels })}</Text></Badge>
-            {s.type === 'pickup' && <Badge><Text>{t('load.pickup')}</Text></Badge>}
-            {s.fresh && <Badge variant="outline"><Text>{t('load.fresh')}</Text></Badge>}
-          </View>
-        </View>
-        <AccessNote stop={s} />
-        <View className="flex-row gap-3">
-          <Button variant="outline" size="xl" className="flex-1" onPress={() => step(-1)} disabled={i === 0} accessibilityLabel={t('load.back')}>
-            <Icon as={i === 0 ? ArrowLeft : Undo2} size={18} /><Text>{t('load.back')}</Text>
-          </Button>
-          <Button size="xl" className="flex-[2]" onPress={() => step(1)}>
-            <Icon as={Check} size={18} /><Text>{t('load.next')}</Text>
-          </Button>
-        </View>
-      </ScrollView>
+      <ScreenHeader title={t('load.title')} subtitle={t('load.subtitle')} back={{ label: t('load.back'), onPress: () => router.back() }} />
+      <SectionList
+        sections={sections}
+        keyExtractor={x => id(x.s)}
+        contentContainerClassName="gap-2 px-5 pb-16"
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => (
+          <Text className="text-muted-foreground mt-4 mb-1 text-sm font-bold uppercase tracking-widest">
+            {`${section.title} · ${section.data.filter(x => ticked.has(id(x.s))).length}/${section.data.length}`}
+          </Text>
+        )}
+        renderItem={({ item: { s, r } }) => {
+          const done = ticked.has(id(s));
+          return (
+            <Pressable onPress={() => toggle(s)} accessibilityRole="checkbox" accessibilityState={{ checked: done }}
+              accessibilityLabel={`${s.name ?? s.street}, ${t('count.parcels', { count: s.parcels })}`}
+              className={cn('bg-card border-border min-h-16 flex-row items-center gap-3 rounded-xl border px-4 active:opacity-70', done && 'opacity-40')}>
+              <View className={cn('size-7 items-center justify-center rounded-full border-2', done ? 'bg-primary border-primary' : 'border-muted-foreground')}>
+                {done && <Icon as={Check} size={16} className="text-primary-foreground" />}
+              </View>
+              <View className="flex-1">
+                <Text className={cn('text-lg font-semibold', done && 'line-through')} numberOfLines={1}>{s.name ?? `${s.street} ${s.number}`}</Text>
+                {(r == null || s.type === 'pickup') && (
+                  <Text className="text-muted-foreground text-xs">{[r == null && t('load.notOnRoute'), s.type === 'pickup' && t('load.pickup')].filter(Boolean).join(' · ')}</Text>
+                )}
+              </View>
+              <Text className="text-3xl font-black" style={{ fontVariant: ['tabular-nums'] }}>{s.parcels}</Text>
+            </Pressable>
+          );
+        }}
+        ListEmptyComponent={<Text className="text-muted-foreground mt-8 text-center">{t('load.emptyBody')}</Text>}
+      />
     </View>
   );
 }

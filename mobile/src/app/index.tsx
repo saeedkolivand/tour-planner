@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ListOrdered, Plus, ScanLine, Sparkles } from 'lucide-react-native';
+import { ListOrdered, PackageOpen, Plus, ScanLine, Sparkles } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -95,6 +95,9 @@ export default function StopsScreen() {
           <View className="mb-1 gap-3">
             <CaptureCard onCamera={() => { haptic.tap(); setCamera(true); }} onLibrary={pickAndRead} busy={!!busy} message={msg} />
             {tour.stops.length > 0 && <CoverageCard c={cov} expected={tour.expected} onExpected={store.setExpected} />}
+            {tour.stops.length > 0 && stopOrder === 'route' && (
+              <Button size="lg" variant="outline" onPress={() => router.push('/load')}><Icon as={PackageOpen} size={18} /><Text>{t('load.open')}</Text></Button>
+            )}
             {tour.stops.length > 0 && <Text className="text-muted-foreground mt-2 text-xs font-bold uppercase tracking-widest">{t('stops.captured')}</Text>}
           </View>
         }
