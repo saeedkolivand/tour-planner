@@ -17,7 +17,7 @@ export function RouteGroup() {
   const s = useSettings();
   return (
     <>
-      <SettingsSection title={t('settings.company')} footer={t('settings.companyFooter')}>
+      <SettingsSection title={t('settings.company')} footer={t(companyOf(s.company).shifts ? 'settings.companyShiftFooter' : 'settings.companyFooter')}>
         <ToggleGroup type="single" variant="outline" value={s.company} className="w-full"
           onValueChange={v => { if (v) setSettings({ company: v as Company }); }}>
           {Object.entries(COMPANIES).map(([c, { name }], i, all) => (
@@ -26,6 +26,16 @@ export function RouteGroup() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        {companyOf(s.company).shifts && (
+          <ToggleGroup type="single" variant="outline" value={s.shift} className="w-full"
+            onValueChange={v => { if (v) setSettings({ shift: v as 'night' | 'day' }); }}>
+            {(['night', 'day'] as const).map((sh, i) => (
+              <ToggleGroupItem key={sh} value={sh} isFirst={i === 0} isLast={i === 1} className="h-12 flex-1" accessibilityLabel={t(`settings.shift_${sh}`)}>
+                <Text className="text-sm">{t(`settings.shift_${sh}`)}</Text>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
       </SettingsSection>
 
       <SettingsSection title={t('settings.startEnd')} footer={t('settings.startEndFooter')}>

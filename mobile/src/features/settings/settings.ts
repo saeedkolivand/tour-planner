@@ -15,6 +15,8 @@ export const WALK_M: Record<RouteStyle, number> = { walk: 80, drive: 25 };
 export interface Settings {
   /** Who the driver delivers for: decides how the scanner list is read (CONTEXT.md: Company). Never guessed from a photo. */
   company: Company;
+  /** PHOENIX: which shift's fixed route tonight's rows are matched to (route.json: night, route-day.json: day). */
+  shift: 'night' | 'day';
   /** The PC over Tailscale (HTTPS via `tailscale serve`). */
   server: string;
   depot: string;
@@ -70,7 +72,7 @@ export interface Settings {
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { company: 'dpd', server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', geoapifyKey: '', expressAlerts: true, arrivalAlerts: true, expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'improved', bothSides: true, detailedLog: false, keepHistory: true };
+const DEFAULTS: Settings = { company: 'dpd', shift: 'night', server: '', depot: '', endAtDepot: false, navApp: Platform.OS === 'android' ? 'google' : 'apple', autoNavigate: true, autoAddScans: false, liveScan: true, serverOcr: false, planner: 'auto', orsKey: '', geoapifyKey: '', expressAlerts: true, arrivalAlerts: true, expressOnTime: true, expressMarginMin: 0, expressFirst: false, leaveAt: '', language: 'system', routeStyle: 'walk', stopOrder: 'improved', bothSides: true, detailedLog: false, keepHistory: true };
 
 const deviceLang = (): Lang => (getLocales()[0]?.languageCode === 'de' ? 'de' : 'en');
 const applyLang = (s: Settings) => setLanguage(s.language === 'system' ? deviceLang() : s.language);
