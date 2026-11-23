@@ -9,13 +9,13 @@
   },
   "keywords": [],
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
+    "@anthropic-ai/sdk": "^1.11.0",
     "pino": "^10.4.0",
     "pino-roll": "^4.0.0"
   },
   "type": "module",
   "devDependencies": {
     "@semantic-release/exec": "^7.1.0",
-    "semantic-release": "^25.0.9"
+    "semantic-release": "^26.0.1"
   }
 }
