@@ -26,9 +26,10 @@ export function StopOrderPicker({ value, onChange, withRoute }: { value: StopOrd
       onValueChange={v => { if (v) { haptic.select(); onChange(v as StopOrder); } }}>
       {orders.map((o, i) => (
         <ToggleGroupItem key={o.key} value={o.key} isFirst={i === 0} isLast={i === orders.length - 1} className="h-14 flex-1" accessibilityLabel={t(ORDER_TEXT[o.key].label)}>
-          <View className="flex-row items-center gap-1.5">
+          {/* icon over label: four side-by-side labels overflow a phone-width row */}
+          <View className="items-center gap-1 px-1">
             <Icon as={o.icon} size={16} />
-            <Text className="text-sm" numberOfLines={1}>{t(ORDER_TEXT[o.key].label)}</Text>
+            <Text className="text-xs" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t(ORDER_TEXT[o.key].label)}</Text>
           </View>
         </ToggleGroupItem>
       ))}
